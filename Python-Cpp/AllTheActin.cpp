@@ -11,22 +11,23 @@ class AllTheActin{
     
     public:
     
-    AllTheActin(){
+    AllTheActin(npDoub pyPositions, double a, double kbT, double mu){
         // Initialize with only monomers
-        _TotalMonomers = 28;
-        vec3 X0 = {0,0,0};
-        int nForFiber = 10;
-        double a = 4e-3;
-        double kbT = 4.1e-3;
-        double mu = 1.0;
-        _Fibers.push_back(Fiber(X0,nForFiber,2*a,a,mu,kbT));
-        // A branched fiber
-        int nForBranch = 18;
-        int nLinFib = 3;
-        intvec BranchStartIndex = {0,10,15,nForBranch};
-        intvec AttachPoints = {0, 4, 12};
-        _BranchedFibers.push_back(BranchedFiber(X0,nForBranch,2*a,a,mu,kbT,nLinFib,BranchStartIndex,AttachPoints));
+        vec Positions(pyPositions.size());
+        std::memcpy(Positions.data(),pyPositions.data(),pyPositions.size()*sizeof(double));  
+        _TotalMonomers = Positions.size()/3;
+        _a = a;
+        _kbT = kbT;
+        _mu = mu;
         _X = vec(3*_TotalMonomers);
+        // Initialize the monomers 
+        for (uint i=0; i < _TotalMonomers; i++){
+            vec3 MonPt;
+            for (int d=0; d<3; d++){
+               MonPt[d]=Positions[3*i+d];
+            }
+            _Monomers.push_back(Monomer(MonPt,a,mu,kbT));
+        }
     }
     
     void Diffuse(double dt, npDoub pyRandVec){
@@ -75,7 +76,8 @@ class AllTheActin{
         std::vector <Monomer> _Monomers;
         std::vector <Fiber> _Fibers;
         std::vector <BranchedFiber> _BranchedFibers;
-        double _TotalMonomers;
+        uint _TotalMonomers;
+        double _a, _kbT, _mu;
         vec _X; 
         
         void AssembleX(){
@@ -123,7 +125,7 @@ class AllTheActin{
 
 PYBIND11_MODULE(AllTheActin, m) {
     py::class_<AllTheActin>(m, "AllTheActin")
-        .def(py::init<>())
+        .def(py::init<npDoub, double, double, double>())
         .def("Diffuse",&AllTheActin::Diffuse)
         .def("getX", &AllTheActin::getX);
 }    

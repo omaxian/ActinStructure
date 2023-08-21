@@ -45,7 +45,7 @@ class Monomer: public ActinStructure{
         std::memcpy(_X0.data(),X.data(),X.size()*sizeof(double));
         _kbT = kbT;
         _Mobility = 1.0/(6*M_PI*mu*a);
-        _DCoeff = 2.0*_kbT/_Mobility;
+        _DCoeff = 2.0*_kbT*_Mobility;
         _X = vec(3);
     }
     
