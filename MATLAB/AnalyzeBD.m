@@ -2,12 +2,16 @@ addpath(genpath('../../Python'))
 Nf = 10;
 Nt = 28;
 nTri = 100;
+nError = 5;
+nSeed = nTri/nError;
 dt = 1e-4;
 a = 4e-3;
 mu = 1;
 kbT = 4.1e-3;
-for seed=1:nTri
-Locs=load(strcat('X_',num2str(seed),'.txt'));
+for iError=1:nError
+for seed=1:nSeed
+loadseed = nSeed*(iError-1)+seed;
+Locs=load(strcat('X_',num2str(loadseed),'.txt'));
 XAll0 = Locs(1:Nf,:);
 MInverse = 6*pi*a*mu;
 K0 = RigidRTMatrix(XAll0);
@@ -20,7 +24,7 @@ numSteps=length(Locs)/Nt;
 Coms = zeros(numSteps,3);
 tanvecs = zeros(numSteps,3);
 for i=1:numSteps
-    Coms(i,:)=Locs((i-1)*Nt+1,:);
+    Coms(i,:)=mean(Locs((i-1)*Nt+1:(i-1)*Nt+Nf,:));
     tanvecs(i,:)=(Locs((i-1)*Nt+Nf,:)-Locs((i-1)*Nt+1,:))/norm(Locs((i-1)*Nt+Nf,:)-Locs((i-1)*Nt+1,:));
 end
 for i=1:numSteps
@@ -34,16 +38,18 @@ for i=1:numSteps
 end
 allmeandisp2(seed,:)=meandisp2;
 allmeandotu(seed,:)=meandotu;
-ts = (0:numSteps-1)*dt;
-delta = 2/sqrt(numSteps);
 end
+L2Displacements(iError,:) = mean(allmeandisp2);
+Rotations(iError,:) = mean(allmeandotu);
+end
+ts = (0:numSteps-1)*dt;
 subplot(1,2,1)
-errorbar(ts,mean(allmeandisp2),2*std(allmeandisp2)/sqrt(nTri),'LineWidth',2.0)
+errorbar(ts,mean(L2Displacements),2*std(L2Displacements)/sqrt(nError),'LineWidth',2.0)
 hold on
 plot(ts,slope*ts,'-k');
 xlim([0 (numSteps-1)*dt])
 subplot(1,2,2)
-errorbar(ts,mean(allmeandotu),2*std(allmeandotu)/sqrt(nTri),'LineWidth',2.0)
+errorbar(ts,mean(Rotations),2*std(Rotations)/sqrt(nError),'LineWidth',2.0)
 hold on
 plot(ts,exp(-alpha1*ts),'-k')
 xlim([0 (numSteps-1)*dt])

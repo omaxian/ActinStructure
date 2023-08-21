@@ -48,15 +48,6 @@ for iT=1:nSteps
         u1 = U(:,1);
         Coords = Taus' \ u1;
     end
-    vtilde = randn(6,1);
-    %vtilde = load('WDrift.txt');
-    %vtilde = vtilde(7:end);
-    % Update X0 and rotate taus
-    TausTilde = rotate(Taus,delta*vtilde(1:3)');
-    X0Tilde = X0 + delta*vtilde(4:6)';
-    XTilde = BranchedFiberPoints(X0Tilde,nPerFiber,AttachedTo,branchpts,TausTilde,a);
-    KTilde = RigidRTMatrix(XTilde);
-    NTilde = (KTilde'*MInverse*KTilde)^(-1);
     Wn =randn(6,1);%load('W1.txt');
     %Wn=Wn(7:12);
     v = sqrt(2*kbT/dt)*real(Nnow^(1/2))*Wn;% + kbT/delta*(NTilde-Nnow)*vtilde;

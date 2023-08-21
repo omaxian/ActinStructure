@@ -12,7 +12,7 @@ class AllTheActin{
     public:
     
     AllTheActin(){
-        // A fiber
+        // Initialize with only monomers
         _TotalMonomers = 28;
         vec3 X0 = {0,0,0};
         int nForFiber = 10;
@@ -29,35 +29,39 @@ class AllTheActin{
         _X = vec(3*_TotalMonomers);
     }
     
-    void Diffuse(double dt, npDoub pyRandVec, npDoub pyRandDrift, bool DoDrift){
+    void Diffuse(double dt, npDoub pyRandVec){
         vec RandVec(pyRandVec.size());
         std::memcpy(RandVec.data(),pyRandVec.data(),pyRandVec.size()*sizeof(double));  
-        vec RandDriftVec(pyRandDrift.size());
-        std::memcpy(RandDriftVec.data(),pyRandDrift.data(),pyRandDrift.size()*sizeof(double));  
         int start=0; 
+        // Diffuse monomers
+        for (uint i=0; i < _Monomers.size(); i++){
+            int nRand = _Monomers[i].NumberRand();
+            vec RandomNumbers(nRand);
+            for (int j=0; j < nRand; j++){
+                RandomNumbers[j]=RandVec[start+j];
+            }
+            start+=nRand;    
+            _Monomers[i].Diffuse(dt,RandomNumbers);
+        }
         // Diffuse the fibers
-        for (int i=0; i < _Fibers.size(); i++){
+        for (uint i=0; i < _Fibers.size(); i++){
             int nRand = _Fibers[i].NumberRand();
             vec RandomNumbers(nRand);
-            vec RandomDrift(nRand);
             for (int j=0; j < nRand; j++){
                 RandomNumbers[j]=RandVec[start+j];
-                RandomDrift[j]=RandDriftVec[start+j];
             }
             start+=nRand;    
-            _Fibers[i].Diffuse(dt,RandomNumbers,DoDrift,RandomDrift);
+            _Fibers[i].Diffuse(dt,RandomNumbers);
         }
         // Diffuse the branched fibers
-        for (int i=0; i < _BranchedFibers.size(); i++){
+        for (uint i=0; i < _BranchedFibers.size(); i++){
             int nRand = _BranchedFibers[i].NumberRand();
             vec RandomNumbers(nRand);
-            vec RandomDrift(nRand);
             for (int j=0; j < nRand; j++){
                 RandomNumbers[j]=RandVec[start+j];
-                RandomDrift[j]=RandDriftVec[start+j];
             }
             start+=nRand;    
-            _BranchedFibers[i].Diffuse(dt,RandomNumbers,DoDrift,RandomDrift);
+            _BranchedFibers[i].Diffuse(dt,RandomNumbers);
         }
     }
     
@@ -75,17 +79,24 @@ class AllTheActin{
         vec _X; 
         
         void AssembleX(){
-            int start=0;
-            for (int i=0; i < _Fibers.size(); i++){
+            uint start=0;
+            for (uint i=0; i < _Monomers.size(); i++){
+                vec XStruct = _Monomers[i].getX();
+                for (uint j=0; j < XStruct.size(); j++){
+                    _X[start+j]=XStruct[j];
+                }
+                start+=XStruct.size();
+            }
+            for (uint i=0; i < _Fibers.size(); i++){
                 vec XStruct = _Fibers[i].getX();
-                for (int j=0; j < XStruct.size(); j++){
+                for (uint j=0; j < XStruct.size(); j++){
                     _X[start+j]=XStruct[j];
                 }
                 start+=XStruct.size();
             }  
-            for (int i=0; i < _BranchedFibers.size(); i++){
+            for (uint i=0; i < _BranchedFibers.size(); i++){
                 vec XStruct = _BranchedFibers[i].getX();
-                for (int j=0; j < XStruct.size(); j++){
+                for (uint j=0; j < XStruct.size(); j++){
                     _X[start+j]=XStruct[j];
                 }
                 start+=XStruct.size();

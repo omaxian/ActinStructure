@@ -46,7 +46,7 @@ class Monomer: public ActinStructure{
         _kbT = kbT;
         _Mobility = 1.0/(6*M_PI*mu*a);
         _DCoeff = 2.0*_kbT/_Mobility;
-        
+        _X = vec(3);
     }
     
     int NumberRand(){
@@ -60,8 +60,9 @@ class Monomer: public ActinStructure{
         }
     }
     
-    vec3 getX(){
-        return _X0;
+    vec getX(){
+        std::memcpy(_X.data(),_X0.data(),_X0.size()*sizeof(double));  
+        return _X;   
     }
         
 };
@@ -96,13 +97,26 @@ class Fiber: public ActinStructure{
         return 6;
     }
     
-    void Diffuse(double dt,const vec &W,bool drift,const vec &WDrift){
+    void Diffuse(double dt,const vec &W){
         vec K(3*_nMonomers*6);
         computeX(_X0,_tau,_X);
-        calcKRigid(_X,K);
-        vec KTK(6*6), KTKCopy(6*6);
+        vec3 XCOM = calcKRigid(_X,K);
+        vec3 X0FromCOM; 
+        for (int d=0; d < 3; d++){
+            X0FromCOM[d]=_X0[d]-XCOM[d];
+        }
+        vec KTK(6*6);
         BlasMatrixProduct(6, 3*_nMonomers,6, 1.0/_Mobility,0.0,K,true,K,KTK); // K'*M^(-1)*K
-        std::memcpy(KTKCopy.data(),KTK.data(),KTK.size()*sizeof(double));
+        // Check off diagonal blocks
+        double maxOff=0;
+        for (int iR=0; iR < 3; iR++){
+            for (int d=0; d< 3; d++){
+                maxOff=std::max(fabs(KTK[18+6*iR+d]),maxOff);
+            }
+        }
+        if (maxOff > 1e-10){
+            throw std::runtime_error("Trans-rot mobility coupling is not zero");
+        }   
         bool normalize = true;
         bool half = true;
         double pinvtol= 1e-10;
@@ -110,31 +124,17 @@ class Fiber: public ActinStructure{
         SolveWithPseudoInverse(6, 6,KTK, W, OmegaU, pinvtol,normalize,half,6); // N^(1/2)
         for (int d=0; d< 6; d++){
             OmegaU[d]*=sqrt(2*_kbT/dt); // sqrt(2kbT/dt)*N^(1/2)*W
-        }
-        if (drift){ // (N(Xtilde)-N(x))*Wtilde
-            double deltaRFD = 1e-5;
-            vec XTilde(3*_nMonomers), KTilde(3*_nMonomers*6);
-            GetXTilde(_X0,_tau,WDrift,deltaRFD,XTilde);
-            calcKRigid(XTilde,KTilde);
-            vec KTKTilde(6*6);
-            BlasMatrixProduct(6, 3*_nMonomers,6, 1.0/_Mobility,0.0,KTilde,true,KTilde,KTKTilde); // K'*M^(-1)*K
-            bool half = false;
-            vec DeltaOmegaU1(6);
-            SolveWithPseudoInverse(6, 6,KTKTilde, WDrift, DeltaOmegaU1, pinvtol,normalize,half,6); // NTilde*WTilde
-            vec DeltaOmegaU2(6);
-            SolveWithPseudoInverse(6, 6,KTKCopy, WDrift, DeltaOmegaU2, pinvtol,normalize,half,6); // N*Wtilde
-            for (int d=0; d< 6; d++){
-                OmegaU[d]+=_kbT/deltaRFD*(DeltaOmegaU1[d]-DeltaOmegaU2[d]);
-            }
-        }
-             
+        }             
         // Update center of mass
         vec3 Omega;
         for (int d=0; d< 3; d++){
-            _X0[d]+=dt*OmegaU[3+d];
             Omega[d]=dt*OmegaU[d];
         }
         rotateTangents(Omega,_tau);
+        rotateVector(Omega,X0FromCOM);
+        for (int d=0; d< 3; d++){
+            _X0[d]=XCOM[d]+dt*OmegaU[3+d]+X0FromCOM[d];
+        }
     }
         
        
@@ -148,16 +148,27 @@ class Fiber: public ActinStructure{
         double _spacing;
         vec _tau;
         
-        void calcKRigid(const vec &X, vec &K){
+        vec3 calcKRigid(const vec &X, vec &K){
             /*
             Kinematic matrix for rigid fibers
             */
             // First calculate cross product matrix
+            double OneOverN = 1.0/_nMonomers;
+            vec3 XCOM={0,0,0};
+            for (int iPt=0; iPt < _nMonomers; iPt++){
+                for (int d=0; d < 3; d++){
+                    XCOM[d]+=X[3*iPt+d];
+                }
+            }
+            for (int d=0; d < 3; d++){
+                XCOM[d]*=OneOverN;
+            }
+            
             vec CPMatrix(9*_nMonomers);
             for (int iPt = 0; iPt < _nMonomers; iPt++){
                 vec3 disp;
                 for (int d=0; d < 3; d++){
-                    disp[d]=X[3*iPt+d]-X[d];
+                    disp[d]=X[3*iPt+d]-XCOM[d];
                 }
                 CPMatrix[9*iPt+1] = -disp[2];
                 CPMatrix[9*iPt+2] =  disp[1];
@@ -173,7 +184,7 @@ class Fiber: public ActinStructure{
                     int Xrowstart = (3*iPt+iD)*3;
                     // Copy the row entry from XMatTimesCPMat
                     for (int iEntry=0; iEntry < 3; iEntry++){
-                        K[rowstart+iEntry]=CPMatrix[Xrowstart+iEntry];
+                        K[rowstart+iEntry]=-CPMatrix[Xrowstart+iEntry];
                     }
                 }
             } 
@@ -183,19 +194,8 @@ class Fiber: public ActinStructure{
                     K[rowstart+3+iD]=1;
                 }
             }
+            return XCOM;
         }
-        
-        void GetXTilde(const vec3 &X0,const vec &tau,const vec &WDrift,double deltaRFD, vec &XTilde){
-            vec3 X0Tilde, OmegaTilde;
-            vec TauTilde(tau.size());
-            std::memcpy(TauTilde.data(),tau.data(),tau.size()*sizeof(double));
-            for (int d=0; d < 3; d++){
-                X0Tilde[d] = X0[d] + deltaRFD*WDrift[3+d];
-                OmegaTilde[d] = deltaRFD*WDrift[d]; 
-            }
-            rotateTangents(OmegaTilde, TauTilde);
-            computeX(X0Tilde,TauTilde,XTilde);
-        }   
         
     private:
         
