@@ -72,18 +72,10 @@ class Fiber: public ActinStructure{
     public:
     
     // Initialize
-    Fiber(vec3 X0, int nMonomers, double spacing, double a, double mu, double kbT){
-        std::random_device rd; 
-        std::mt19937 gen(0); // rd()
-        std::normal_distribution<float> NormalDist(0,1.0); 
+    Fiber(vec3 X0, vec3 tau, int nMonomers, double spacing, double a, double mu, double kbT){
         _tau = vec(3);
-        vec3 ThisTau;
         for (int d=0; d< 3; d++){
-            ThisTau[d] = NormalDist(gen);
-        }
-        normalize(ThisTau);
-        for (int d=0; d< 3; d++){
-            _tau[d] = ThisTau[d];
+            _tau[d] = tau[d];
         }
         std::memcpy(_X0.data(),X0.data(),X0.size()*sizeof(double)); 
         _spacing = spacing;
@@ -141,6 +133,15 @@ class Fiber: public ActinStructure{
     vec getX(){
         computeX(_X0,_tau,_X);
         return _X;
+    }
+    
+    virtual bool isBarbedEnd(int MonIndex){
+        return (MonIndex==_nMonomers-1);
+    }
+    
+    void addMonomer(){
+        _nMonomers++;
+        _X.resize(3*_nMonomers);
     }
     
     protected: 
@@ -225,11 +226,11 @@ class BranchedFiber: public Fiber{
     
     public:
     
-    BranchedFiber(vec3 X0, int nMonomers, double spacing, double a, double mu, double kbT, 
-        int nLinFib, intvec BranchStartIndex,intvec AttachPoints):Fiber(X0,nMonomers,spacing,a,mu,kbT){
+    BranchedFiber(vec3 X0, vec3 tau0, int nMonomers, double spacing, double a, double mu, double kbT, 
+        int nLinFib, intvec BranchStartIndex,intvec AttachPoints):Fiber(X0,tau0,nMonomers,spacing,a,mu,kbT){
         
         _nLinearFib = nLinFib;
-        _BranchStartIndex = intvec(BranchStartIndex.size());
+        _BranchStartIndex = intvec(BranchStartIndex.size()); // has nLinFib+1 entries
         std::memcpy(_BranchStartIndex.data(),BranchStartIndex.data(),BranchStartIndex.size()*sizeof(int));
         _AttachPoints = intvec(AttachPoints.size());
         std::memcpy(_AttachPoints.data(),AttachPoints.data(),AttachPoints.size()*sizeof(int));
@@ -280,6 +281,16 @@ class BranchedFiber: public Fiber{
             }
             std::cout << std::endl;
         }
+    }
+    
+    bool isBarbedEnd(int MonIndex) override{
+        std::cout << "Check this method " << std::endl;
+        for (int iFib =0; iFib < _nLinearFib; iFib++){
+            if (MonIndex == _BranchStartIndex[iFib+1]-1){
+                return true;
+            }
+        }
+        return false;
     } 
     
     private:

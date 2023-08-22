@@ -1,4 +1,4 @@
-all: AllTheActin.so
+all: AllTheActin.so NeighborSearcher.so
 
 CXX=g++
 PYTHON3=python3
