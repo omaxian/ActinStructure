@@ -139,9 +139,44 @@ class Fiber: public ActinStructure{
         return (MonIndex==_nMonomers-1);
     }
     
-    void addMonomer(){
+    virtual bool isPointedEnd(int MonIndex){
+        return (MonIndex==0);
+    }
+    
+    int NumMonomers(){
+        return _nMonomers;
+    }
+    
+    vec3 getPointedEnd(){
+        return _X0;
+    } 
+    
+    vec3 getBarbedEnd(){
+        vec3 Be;
+        for (int d =0; d < 3; d++){
+            Be[d] = _X0[d]+_tau[d]*(_nMonomers-1)*_spacing;
+        }  
+        return Be;  
+    }
+    
+    void addMonomer(bool PointedEnd){
         _nMonomers++;
         _X.resize(3*_nMonomers);
+        if (PointedEnd) {// adjust the start point
+            for (int d=0; d < 3; d++){
+                _X0[d]-=_spacing*_tau[d];
+            }
+        }
+    }
+    
+    void removeMonomer(bool PointedEnd){
+        _nMonomers--;
+        _X.resize(3*_nMonomers);
+        if (PointedEnd) {// adjust the start point
+            for (int d=0; d < 3; d++){
+                _X0[d]+=_spacing*_tau[d];
+            }
+        }
     }
     
     protected: 
