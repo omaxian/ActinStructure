@@ -64,6 +64,10 @@ class Monomer: public ActinStructure{
         std::memcpy(_X.data(),_X0.data(),_X0.size()*sizeof(double));  
         return _X;   
     }
+    
+    void setX0(vec3 XIn){
+        std::memcpy(_X0.data(),XIn.data(),XIn.size()*sizeof(double));      
+    }
         
 };
 
@@ -72,12 +76,14 @@ class Fiber: public ActinStructure{
     public:
     
     // Initialize
-    Fiber(vec3 X0, vec3 tau, int nMonomers, double spacing, double a, double mu, double kbT){
+    Fiber(vec3 X0, vec3 tau, int nMonomers, intvec MonomerInds, double spacing, double a, double mu, double kbT){
         _tau = vec(3);
         for (int d=0; d< 3; d++){
             _tau[d] = tau[d];
         }
         std::memcpy(_X0.data(),X0.data(),X0.size()*sizeof(double)); 
+        _MonomerIndices = intvec(MonomerInds.size());
+        std::memcpy(_MonomerIndices.data(),MonomerInds.data(),MonomerInds.size()*sizeof(int)); 
         _spacing = spacing;
         _nMonomers = nMonomers;
         _Mobility = 1.0/(6*M_PI*mu*a);
@@ -159,13 +165,28 @@ class Fiber: public ActinStructure{
         return Be;  
     }
     
-    void addMonomer(bool PointedEnd){
+    intvec getMonomerIndices(){
+        return _MonomerIndices;
+    }
+    
+    int BarbedIndex(){
+        return _MonomerIndices[_nMonomers-1];
+    }
+    
+    int PointedIndex(){
+        return _MonomerIndices[0];
+    }
+    
+    void addMonomer(bool PointedEnd, int MonomerInd){
         _nMonomers++;
         _X.resize(3*_nMonomers);
         if (PointedEnd) {// adjust the start point
             for (int d=0; d < 3; d++){
                 _X0[d]-=_spacing*_tau[d];
             }
+            _MonomerIndices.insert(_MonomerIndices.begin(), MonomerInd);
+        } else {
+            _MonomerIndices.push_back(MonomerInd);
         }
     }
     
@@ -176,13 +197,18 @@ class Fiber: public ActinStructure{
             for (int d=0; d < 3; d++){
                 _X0[d]+=_spacing*_tau[d];
             }
+            _MonomerIndices.erase(_MonomerIndices.begin());
+        } else {
+            _MonomerIndices.erase(_MonomerIndices.begin()+_nMonomers);
         }
     }
+    
     
     protected: 
         int _nMonomers;
         double _spacing;
         vec _tau;
+        intvec _MonomerIndices;
         
         vec3 calcKRigid(const vec &X, vec &K){
             /*
@@ -262,7 +288,7 @@ class BranchedFiber: public Fiber{
     public:
     
     BranchedFiber(vec3 X0, vec3 tau0, int nMonomers, double spacing, double a, double mu, double kbT, 
-        int nLinFib, intvec BranchStartIndex,intvec AttachPoints):Fiber(X0,tau0,nMonomers,spacing,a,mu,kbT){
+        int nLinFib, intvec BranchStartIndex,intvec AttachPoints):Fiber(X0,tau0,nMonomers,{0,0},spacing,a,mu,kbT){
         
         _nLinearFib = nLinFib;
         _BranchStartIndex = intvec(BranchStartIndex.size()); // has nLinFib+1 entries

@@ -54,14 +54,16 @@ class AllTheActin{
     void Diffuse(double dt){
         int start=0; 
         // Diffuse monomers
-        for (uint i=0; i < _Monomers.size(); i++){
+        for (uint i=0; i < _TotalMonomers; i++){
             int nRand = _Monomers[i].NumberRand();
             vec RandomNumbers(nRand);
             for (int j=0; j < nRand; j++){
                 RandomNumbers[j]=normaldist(rng);
             }
             start+=nRand;    
-            _Monomers[i].Diffuse(dt,RandomNumbers);
+            if (_StructureIndex[i]==-1){
+                _Monomers[i].Diffuse(dt,RandomNumbers);
+            }
         }
         // Diffuse the fibers
         for (uint i=0; i < _Fibers.size(); i++){
@@ -70,7 +72,7 @@ class AllTheActin{
             for (int j=0; j < nRand; j++){
                 RandomNumbers[j]=normaldist(rng);
             }
-            start+=nRand;    
+            start+=nRand;
             _Fibers[i].Diffuse(dt,RandomNumbers);
         }
         // Diffuse the branched fibers
@@ -83,6 +85,8 @@ class AllTheActin{
             start+=nRand;    
             _BranchedFibers[i].Diffuse(dt,RandomNumbers);
         }
+        // Keep monomers in sync
+        UpdateMonomerLocations();
     }
     
     int React(double dt){
@@ -96,8 +100,7 @@ class AllTheActin{
         intvec NeighborList = _ReactionNeighbors.NeighborList(_X);
         uint nPair = NeighborList.size()/2;
          
-        intvec MonomersToDelete;
-        int newStructIndex =  _StructureIndex[_TotalMonomers-1]+1;
+        int newStructIndex =  _Fibers.size()+_BranchedFibers.size();
         
         // Binding reactions
         for (uint iPair = 0; iPair < nPair; iPair++){
@@ -110,28 +113,17 @@ class AllTheActin{
                 //std::cout << "Two fibers; doing nothing" << std::endl;
             } else if (struct1 == -1 && struct2 == -1){
                 // 2 monomers forming a fiber
-                bool Reacted = FormFiberFromMonomers(pt1, pt2, dt, MonomersToDelete,newStructIndex);
+                bool Reacted = FormFiberFromMonomers(pt1, pt2, dt,newStructIndex);
                 if (Reacted){
                     //std::cout << "Add mon+mon, New structure index " << newStructIndex << std::endl;
                 }
             } else { // There is one monomer and a fiber
-                bool Reacted = AddMonomerToFiber(struct1, pt1, struct2, pt2, dt, MonomersToDelete);
+                bool Reacted = AddMonomerToFiber(struct1, pt1, struct2, pt2, dt);
                 if (Reacted){
                     //std::cout << "Add mon+fib, New structure index " << newStructIndex << std::endl;
                 }
             } 
         }
-        std::sort(MonomersToDelete.begin(), MonomersToDelete.end(), std::greater<int>());
-        for (uint i=0; i < MonomersToDelete.size(); i++){
-            int indexToDelete = MonomersToDelete[i];
-            //std::cout << "Deleting index " << indexToDelete << " from monomer list." << std::endl;
-            _Monomers.erase(_Monomers.begin() + indexToDelete);
-        }
-        //std::cout << "Number of free monomers " << _Monomers.size() << std::endl;
-        /*vec X = _Fibers[0].getX();
-        for (int i=0; i < _Fibers[0].NumMonomers(); i++){
-            std:: cout << X[3*i] << " " << X[3*i+1] << " " << X[3*i+2] << std::endl;
-        }*/
         
         uint nFib = _Fibers.size();
         // Process unbinding reactions
@@ -139,9 +131,7 @@ class AllTheActin{
             NMonomerFibBreakup(iFib, dt);
         }
         
-        //std::cout << "Number monomers " << _Monomers.size() << std::endl;
-        //std::cout << "Number fibers " << _Fibers.size() << std::endl;
-        return _Monomers.size();
+        return _Fibers.size();
     }
     
     npDoub getX(){
@@ -150,7 +140,6 @@ class AllTheActin{
     }
     
     npInt getStructureIDs(){
-        AssembleX();
         return makePyArray(_StructureIndex);
     }
            
@@ -173,57 +162,49 @@ class AllTheActin{
         
         
         void AssembleX(){
-            uint start=0;
-            for (uint i=0; i < _Monomers.size(); i++){
+            for (uint i=0; i < _TotalMonomers; i++){
                 vec XStruct = _Monomers[i].getX();
-                for (uint j=0; j < XStruct.size(); j++){
-                    _X[start+j]=XStruct[j];
+                for (uint j=0; j < 3; j++){
+                    _X[3*i+j]=XStruct[j];
                 }
-                start+=XStruct.size();
-                _StructureIndex[i] = -1;
-                _BarbedEnd[i] = false;
-                _PointedEnd[i] = false;
-            }
-            int StructIndex=0;
-            int StartMon = _Monomers.size();
-            for (uint i=0; i < _Fibers.size(); i++){
-                vec XStruct = _Fibers[i].getX();
-                for (uint j=0; j < XStruct.size(); j++){
-                    _X[start+j]=XStruct[j];
-                }
-                start+=XStruct.size();
-                uint nMon = XStruct.size()/3;
-                for (uint iMon=0; iMon < nMon; iMon++){
-                    _StructureIndex[StartMon+iMon] = StructIndex;
-                    _BarbedEnd[StartMon+iMon] = _Fibers[i].isBarbedEnd(iMon);
-                    _PointedEnd[StartMon+iMon] = _Fibers[i].isPointedEnd(iMon);
-                }  
-                StructIndex++;
-                StartMon+=nMon;
-            }  
-            for (uint i=0; i < _BranchedFibers.size(); i++){
-                vec XStruct = _BranchedFibers[i].getX();
-                for (uint j=0; j < XStruct.size(); j++){
-                    _X[start+j]=XStruct[j];
-                }
-                start+=XStruct.size();
-                uint nMon = XStruct.size()/3;
-                for (uint iMon=0; iMon < nMon; iMon++){
-                    _StructureIndex[StartMon+iMon] = StructIndex;
-                    _BarbedEnd[StartMon+iMon] = _BranchedFibers[i].isBarbedEnd(iMon);
-                    _PointedEnd[StartMon+iMon] = _BranchedFibers[i].isPointedEnd(iMon);
-                }  
-                StructIndex++;
-                StartMon+=nMon;
             }
         } 
         
-        bool FormFiberFromMonomers(uint pt1, uint pt2, double dt, intvec &MonomersToDelete, int &newStructIndex){
+        void UpdateMonomerLocations(){
+            // Copy from fibers
+            for (uint i=0; i < _Fibers.size(); i++){
+                vec FibX = _Fibers[i].getX();
+                intvec fibMons = _Fibers[i].getMonomerIndices();
+                for (uint i =0; i < fibMons.size(); i++){
+                    uint MonIndex =  fibMons[i];
+                    vec3 XForMon;
+                    for (int d=0; d< 3; d++){
+                        XForMon[d] = FibX[3*i+d];
+                    }
+                    _Monomers[MonIndex].setX0(XForMon);
+                }
+            }
+            // Copy from branched fibers
+            for (uint i=0; i < _BranchedFibers.size(); i++){
+                vec FibX = _BranchedFibers[i].getX();
+                intvec fibMons = _BranchedFibers[i].getMonomerIndices();
+                for (uint i =0; i < fibMons.size(); i++){
+                    uint MonIndex =  fibMons[i];
+                    vec3 XForMon;
+                    for (int d=0; d< 3; d++){
+                        XForMon[d] = FibX[3*i+d];
+                    }
+                    _Monomers[MonIndex].setX0(XForMon);
+                }
+            }
+        }
+            
+        
+        bool FormFiberFromMonomers(uint pt1, uint pt2, double dt, int &newStructIndex){
             double pForm = dt*_TwoMonRate;
             //std::cout << "Two monomers; forming fiber number " << newStructIndex << " with probability " << pForm << std::endl;
             double r = unifdist(rngu);
             if (r < pForm) { 
-                //std::cout << "Random val " << r << " -> reaction proceeding" << std::endl;
                 // Randomly switch the pointed end
                 double re = unifdist(rngu);
                 if (re < 0.5){
@@ -233,8 +214,6 @@ class AllTheActin{
                 }
                 // The pointed end is pt1
                 //std::cout << "Pointed end at pt " << pt1 << std::endl;
-                MonomersToDelete.push_back(pt1);
-                MonomersToDelete.push_back(pt2);
                 vec X0 = _Monomers[pt1].getX();
                 vec3 tau, X0Dim;
                 for (int d = 0; d < 3; d++){
@@ -242,7 +221,10 @@ class AllTheActin{
                     X0Dim[d] = X0[d];
                 }
                 normalize(tau);
-                _Fibers.push_back(Fiber(X0Dim,tau,2,2*_a,_a,_mu,_kbT));
+                intvec MonomerInds = {pt1,pt2};
+                _Fibers.push_back(Fiber(X0Dim,tau,2,MonomerInds,2*_a,_a,_mu,_kbT));
+                // Update monomer locations for barbed end
+                _Monomers[pt2].setX0(_Fibers[newStructIndex].getBarbedEnd());
                 _StructureIndex[pt1] = newStructIndex;
                 _StructureIndex[pt2] = newStructIndex;
                 _BarbedEnd[pt2] = true;
@@ -255,9 +237,8 @@ class AllTheActin{
             return false;
         }
         
-        bool AddMonomerToFiber(const int struct1, const int pt1, const int struct2, const int pt2, double dt, intvec &MonomersToDelete){
+        bool AddMonomerToFiber(const int struct1, const int pt1, const int struct2, const int pt2, double dt){
             // Find the monomer
-            //std::cout << struct1 << " , " << pt1 << " , " << struct2 << "," << pt2 << std::endl;
             int MonIndex = pt2;
             int FibIndex = pt1;
             if (struct1 == -1){
@@ -279,10 +260,9 @@ class AllTheActin{
             if (r < pForm) { 
                 // Process the reaction
                 //std::cout << "Adding to existing fiber " << std::endl;
-                MonomersToDelete.push_back(MonIndex); 
                 int ExistingFibIndex = _StructureIndex[FibIndex]; // The structure to join
                 //std::cout << "Point " << FibIndex << " adding monomer # " << MonIndex << " to fiber " << ExistingFibIndex << std::endl;
-                _Fibers[ExistingFibIndex].addMonomer(_PointedEnd[FibIndex]);
+                _Fibers[ExistingFibIndex].addMonomer(_PointedEnd[FibIndex], MonIndex);
                 _StructureIndex[MonIndex] = ExistingFibIndex;
                 if (_BarbedEnd[FibIndex]){
                     //std::cout << "New barbed end" << std::endl;
@@ -301,14 +281,20 @@ class AllTheActin{
         void TwoMonomerFibBreakup(const int iFib){
             //std::cout << "Breaking up fiber " << std::endl;
             vec Xfib = _Fibers[iFib].getX();
+            intvec MonIndices = _Fibers[iFib].getMonomerIndices();
+            //std::cout << "Breaking up mons " << MonIndices[0] << " , " << MonIndices[1] << std::endl;
             //for (int i=0; i < 6; i++){
-                //std::cout << Xfib[i] << " , ";
+            //    std::cout << Xfib[i] << " , ";
             //}
             //std::cout << std::endl;
             vec3 FixedMon = _Fibers[iFib].getPointedEnd();
+            int FixedIndex = MonIndices[0];
+            int MovedIndex = MonIndices[1];
             double re = unifdist(rngu);
             if (re < 0.5){
                 FixedMon = _Fibers[iFib].getBarbedEnd();
+                FixedIndex = MonIndices[1];
+                MovedIndex = MonIndices[0];
             }
             // Birth another monomer within the reactive sphere
             vec3 deltaX = PointInSphere(_BindingRadius); 
@@ -317,11 +303,18 @@ class AllTheActin{
             for (int d =0; d < 3; d++){
                 NewMon[d] = FixedMon[d]+deltaX[d]; 
             }
-            //std::cout << "New monomer = " << FixedMon[0] << " , " << FixedMon[1] << " , " << FixedMon[2] << std::endl;
-            //std::cout << "New monomer = " << NewMon[0] << " , " << NewMon[1] << " , " << NewMon[2] << std::endl;
+            //std::cout << "New monomer " << FixedIndex << " = " << FixedMon[0] << " , " << FixedMon[1] << " , " << FixedMon[2] << std::endl;
+            //std::cout << "New monomer " << MovedIndex << " = " << NewMon[0] << " , " << NewMon[1] << " , " << NewMon[2] << std::endl;
+            // Reset structure index and barbed/pointed ends
+            _StructureIndex[FixedIndex]=-1;
+            _BarbedEnd[FixedIndex] = false;
+            _PointedEnd[FixedIndex] = false;
+            _StructureIndex[MovedIndex]=-1;
+            _BarbedEnd[MovedIndex] = false;
+            _PointedEnd[MovedIndex] = false;
+            _Monomers[MovedIndex].setX0(NewMon);
+            _Monomers[FixedIndex].setX0(FixedMon);
             _Fibers.erase(_Fibers.begin() + iFib);    
-            _Monomers.push_back(Monomer(FixedMon,_a,_mu,_kbT));
-            _Monomers.push_back(Monomer(NewMon,_a,_mu,_kbT));
         }
         
         void NMonomerFibBreakup(const int iFib, double dt){
@@ -339,18 +332,23 @@ class AllTheActin{
                 }
                 // More than 2 monomers  
                 vec3 BarbedEnd = _Fibers[iFib].getBarbedEnd();
-                //std::cout << "Old barbed end " << BarbedEnd[0] << " , " << BarbedEnd[1] << " , " << BarbedEnd[2] << std::endl;
+                int MonIndex = _Fibers[iFib].BarbedIndex();
+                //std::cout << "Old barbed end #" << MonIndex << " = " << BarbedEnd[0] << " , " << BarbedEnd[1] << " , " << BarbedEnd[2] << std::endl;
                 _Fibers[iFib].removeMonomer(false); // remove from barbed end
+                _BarbedEnd[MonIndex] = false;
+                _StructureIndex[MonIndex] = -1;
+                int NewBarbedIndex = _Fibers[iFib].BarbedIndex();
+                _BarbedEnd[NewBarbedIndex] = true;
                 // Add monomer to random pt
                 vec3 DeltaX = PointInSphere(_BindingRadius);
                 BarbedEnd = _Fibers[iFib].getBarbedEnd();
-                //std::cout << "New barbed end " << BarbedEnd[0] << " , " << BarbedEnd[1] << " , " << BarbedEnd[2] << std::endl;
+                //std::cout << "New barbed end " << NewBarbedIndex << " = " << BarbedEnd[0] << " , " << BarbedEnd[1] << " , " << BarbedEnd[2] << std::endl;
                 vec3 NewPt;
                 for (int d =0; d < 3; d++){
                     NewPt[d] = BarbedEnd[d]+DeltaX[d];
                 }
-                //std::cout << "New pt " << NewPt[0] << " , " << NewPt[1] << " , " << NewPt[2] << std::endl;
-                _Monomers.push_back(Monomer(NewPt,_a,_mu,_kbT));
+                //std::cout << "New pt " << MonIndex << " = " << NewPt[0] << " , " << NewPt[1] << " , " << NewPt[2] << std::endl;
+                _Monomers[MonIndex].setX0(NewPt);
             }
             
             double PointedOffProb = _PointedUnbindingRate*dt;
@@ -366,19 +364,23 @@ class AllTheActin{
                 }
                 // More than 2 monomers  
                 vec3 PointedEnd = _Fibers[iFib].getPointedEnd();
-                //std::cout << "Removed monomer from fiber " << nMonomers << " monomers " << std::endl;
-                //std::cout << "Old pointed end " << PointedEnd[0] << " , " << PointedEnd[1] << " , " << PointedEnd[2] << std::endl;
+                int MonIndex = _Fibers[iFib].PointedIndex();
+                //std::cout << "Old pointed end #" << MonIndex << " = " << PointedEnd[0] << " , " << PointedEnd[1] << " , " << PointedEnd[2] << std::endl;
                 _Fibers[iFib].removeMonomer(true); // remove from barbed end
+                _PointedEnd[MonIndex] = false;
+                _StructureIndex[MonIndex] = -1;
+                int NewPointedIndex = _Fibers[iFib].PointedIndex();
+                _PointedEnd[NewPointedIndex] = true;
                 // Add monomer to random pt
                 vec3 DeltaX = PointInSphere(_BindingRadius);
                 PointedEnd = _Fibers[iFib].getPointedEnd();
-                //std::cout << "New pointed end " << PointedEnd[0] << " , " << PointedEnd[1] << " , " << PointedEnd[2] << std::endl;
+                //std::cout << "New pointed end #" << NewPointedIndex << " = " << PointedEnd[0] << " , " << PointedEnd[1] << " , " << PointedEnd[2] << std::endl;
                 vec3 NewPt;
                 for (int d =0; d < 3; d++){
                     NewPt[d] = PointedEnd[d]+DeltaX[d];
                 }
-                //std::cout << "New pt " << NewPt[0] << " , " << NewPt[1] << " , " << NewPt[2] << std::endl;
-                _Monomers.push_back(Monomer(NewPt,_a,_mu,_kbT));
+                //std::cout << "New pt #" << MonIndex << " = " << NewPt[0] << " , " << NewPt[1] << " , " << NewPt[2] << std::endl;
+                _Monomers[MonIndex].setX0(NewPt);
             }
             //std::cout << "End method " << std::endl;
         }  

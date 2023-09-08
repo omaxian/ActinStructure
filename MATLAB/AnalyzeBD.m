@@ -1,12 +1,12 @@
 addpath(genpath('../../Python'))
-Nf = 10;
-Nt = 28;
-nTri = 100;
+Nf = 8;
+Nt = 8;
+nTri = 50;
 nError = 5;
 nSeed = nTri/nError;
 dt = 1e-4;
 a = 4e-3;
-mu = 1;
+mu = 0.068;
 kbT = 4.1e-3;
 for iError=1:nError
 for seed=1:nSeed
