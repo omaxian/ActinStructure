@@ -18,15 +18,15 @@ np.random.seed(seed);
 X = np.random.rand(Nmon,3)*Lens;
 
 # Reaction rates
-#[_BindingRadius  _TwoMonRate  _BarbedBindingRate  _BarbedUnbindingRate   _PointedBindingRate   _PointedUnbindingRate]
-RxnRates = [10*a, 10, 0, 5, 0, 7];
+#[_BindingRadius  _TwoMonRate _TwoMonOffRate _BarbedBindingRate  _BarbedUnbindingRate   _PointedBindingRate   _PointedUnbindingRate]
+RxnRates = [2*a, 12, 5, 2, 1.5,4,2.5];
 
 AllActin = AllTheActin(X,Lens,a,kbT,mu, RxnRates, seed);
 
-Tf = 1;
+Tf = 5;
 dt = 0.01;
 nSteps = int(Tf/dt+1e-6);
-nSaves = 100;
+nSaves = 500;
 AllX = np.zeros(((nSaves+1)*Nmon,3));
 AllIDs = np.zeros((nSaves+1)*Nmon,dtype=np.int64);
 nFibs = np.zeros((nSteps+1),dtype=np.int64);
@@ -50,4 +50,4 @@ AllX[nSaves*Nmon:(nSaves+1)*Nmon,:] = AllActin.getX();
 AllIDs[nSaves*Nmon:(nSaves+1)*Nmon] = AllActin.getStructureIDs(); 
 np.savetxt('X_'+str(seed)+'.txt',AllX);
 np.savetxt('IDs_'+str(seed)+'.txt',AllIDs);
-np.savetxt('Dt2Fibers_'+str(seed)+'.txt',nFibs);
+np.savetxt('Fibers_'+str(seed)+'.txt',nFibs);

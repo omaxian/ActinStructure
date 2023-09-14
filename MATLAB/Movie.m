@@ -1,9 +1,9 @@
 X=load('X_1.txt');
 IDs=load('IDs_1.txt');
 Nmon=1000;
-nT=100;
+nT=500;
 f = figure;
-%f.Position = [100 100 1000 1000];
+f.Position = [100 100 1000 1000];
 NFree = zeros(nT,1);
 for iT=1:nT
     inds = (iT-1)*Nmon+1:iT*Nmon;
