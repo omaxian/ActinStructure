@@ -10,11 +10,14 @@ for iT=1:nT
     Xpl = X(inds,:);
     Xpl = mod(Xpl,[1 1 1]);
     mons = IDs(inds)==-1;
+    mons(1)=0;
     NFree(iT)=sum(mons);
     bis = IDs(inds) > -1;
+    bis(1)=0;
     scatter3(Xpl(mons,1),Xpl(mons,2),Xpl(mons,3),'filled')
     hold on
     scatter3(Xpl(bis,1),Xpl(bis,2),Xpl(bis,3),'filled')
+    scatter3(Xpl(1,1),Xpl(1,2),Xpl(1,3),50,'k','filled')
     hold off
     view([ -14.2290   28.1680])
     zlim([0 1])

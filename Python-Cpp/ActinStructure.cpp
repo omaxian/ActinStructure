@@ -76,7 +76,7 @@ class Fiber: public ActinStructure{
     public:
     
     // Initialize
-    Fiber(vec3 X0, vec3 tau, int nMonomers, intvec MonomerInds, double spacing, double a, double mu, double kbT){
+    Fiber(vec3 X0, vec3 tau, uint nMonomers, intvec MonomerInds, double spacing, double a, double mu, double kbT){
         _tau = vec(3);
         for (int d=0; d< 3; d++){
             _tau[d] = tau[d];

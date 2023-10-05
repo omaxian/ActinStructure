@@ -12,16 +12,41 @@ class AllTheActin{
     
     public:
     
-    AllTheActin(npDoub pyPositions, vec3 Lengths, double a, double kbT, double mu, vec RxnRates, int seed)
+    AllTheActin(uint NMon, intvec NperFiber, vec3 Lengths, double a, double kbT, double mu, vec RxnRates, int seed, int nThr)
     :_ReactionNeighbors(){
-        // Initialize with only monomers
-        vec Positions(pyPositions.size());
-        std::memcpy(Positions.data(),pyPositions.data(),pyPositions.size()*sizeof(double));  
-        _TotalMonomers = Positions.size()/3;
+    
+        /*
+        Initialization
+        Nmon = total number of monomers, including those attached to fibers
+        NperFiber = integer vector of number of monomers on each of the nascent fibers
+        Lengths = 3-vector of (x,y,z) periodic domain lengths
+        a = hydrodynamic radius
+        kbT = thermal energy
+        mu = fluid viscosity
+        RxnRates = vector with the rates (see below for ordering)
+        seed = the seed for reproducibility
+        */
+        
+        // Initialize random number generators
+        rngu.seed(seed);
+        unifdist = std::uniform_real_distribution<double>(0.0,1.0);
+        rng.seed(seed);
+        normaldist = std::normal_distribution<double>(0.0,1.0);
+        
+                
+        // Diffusion variables
+        _TotalMonomers = NMon;
+        _a = a;
+        _kbT = kbT;
+        _mu = mu;
+        _X = vec(3*_TotalMonomers);
+        _spacing = 2*_a;
+        
+        // Initialize monomers
         for (uint i=0; i < _TotalMonomers; i++){
             vec3 MonPt;
             for (int d=0; d<3; d++){
-               MonPt[d]=Positions[3*i+d];
+               MonPt[d]=unifdist(rngu)*Lengths[d];
             }
             _Monomers.push_back(Monomer(MonPt,a,mu,kbT));
         }
@@ -29,17 +54,32 @@ class AllTheActin{
         _BarbedEnd = std::vector<bool>(_TotalMonomers,false);
         _PointedEnd = std::vector<bool>(_TotalMonomers,false);
         
-        // Diffusion variables
-        _a = a;
-        _kbT = kbT;
-        _mu = mu;
-        _X = vec(3*_TotalMonomers);
-        rng.seed(seed);
-        normaldist = std::normal_distribution<double>(0.0,1.0);
-        
+        // Initialize fibers at end of monomer list (just overwrite what is there already)
+        uint nInFibs = std::accumulate(NperFiber.begin(), NperFiber.end(),0);
+        uint nFibs = NperFiber.size();
+        uint MonStart = NMon-nInFibs;
+        for (uint iFib=0; iFib < nFibs; iFib++){
+            // Initialize a fiber
+            vec3 tau = PointOnUnitSphere();
+            vec MonP = _Monomers[MonStart].getX();
+            vec3 X0; 
+            for (int d=0; d < 3; d++){
+                X0[d]=MonP[d];
+            }
+            uint ThisnMon = NperFiber[iFib];
+            intvec MonIndices(ThisnMon);
+            for (uint iM=0; iM < ThisnMon; iM++){
+                MonIndices[iM]=MonStart+iM;
+                _StructureIndex[MonStart+iM]=iFib;
+            }
+            _PointedEnd[MonStart]=true;
+            _BarbedEnd[MonStart+ThisnMon-1]=true;
+            _Fibers.push_back(Fiber(X0, tau, ThisnMon, MonIndices, _spacing, _a, _mu, _kbT));
+            MonStart+=ThisnMon;
+        }
+        UpdateMonomerLocations();
+
         // Reaction variables
-        rngu.seed(seed+1);
-        unifdist = std::uniform_real_distribution<double>(0.0,1.0);
         _BindingRadius = RxnRates[0];
         _TwoMonRate = RxnRates[1];
         _TwoMonOffRate = RxnRates[2];
@@ -47,7 +87,6 @@ class AllTheActin{
         _BarbedUnbindingRate = RxnRates[4];
         _PointedBindingRate = RxnRates[5];
         _PointedUnbindingRate = RxnRates[6];
-        int nThr = 1;
         _ReactionNeighbors = NeighborSearcher(_TotalMonomers, Lengths, _BindingRadius, nThr);
         
     }
@@ -150,7 +189,7 @@ class AllTheActin{
         std::vector <Fiber> _Fibers;
         std::vector <BranchedFiber> _BranchedFibers;
         uint _TotalMonomers;
-        double _a, _kbT, _mu;
+        double _a, _kbT, _mu, _spacing;
         double _BindingRadius, _TwoMonRate, _TwoMonOffRate, _BarbedBindingRate, _BarbedUnbindingRate, _PointedBindingRate, _PointedUnbindingRate;
         intvec _StructureIndex;
         std::vector<bool>  _BarbedEnd, _PointedEnd;
@@ -223,7 +262,7 @@ class AllTheActin{
                 }
                 normalize(tau);
                 intvec MonomerInds = {pt1,pt2};
-                _Fibers.push_back(Fiber(X0Dim,tau,2,MonomerInds,2*_a,_a,_mu,_kbT));
+                _Fibers.push_back(Fiber(X0Dim,tau,2,MonomerInds,_spacing,_a,_mu,_kbT));
                 // Update monomer locations for barbed end
                 _Monomers[pt2].setX0(_Fibers[newStructIndex].getBarbedEnd());
                 _StructureIndex[pt1] = newStructIndex;
@@ -257,6 +296,12 @@ class AllTheActin{
             }  
             // Only do it if the number of monomers > 4 (TEMPORARY)
             double pForm = dt*RxnRate;
+            int cExistingFibIndex = _StructureIndex[FibIndex]; // The structure to join
+            int nMon = _Fibers[cExistingFibIndex].NumMonomers();
+            if (nMon ==5){
+                pForm=0;
+                //std::cout << "5 monomer max!" << std::endl;
+            }
             ////std::cout << "Adding monomer to fiber with probability " << pForm << std::endl;
             double r = unifdist(rngu);
             if (r < pForm) { 
@@ -402,13 +447,18 @@ class AllTheActin{
             ////std::cout << "End method " << std::endl;
         }  
         
-        vec3 PointInSphere(double r){
-            double u = unifdist(rngu);
+        vec3 PointOnUnitSphere(){
             vec3 tau;
             for (int d=0; d < 3; d++){
                 tau[d] = normaldist(rng);
             }
-            normalize(tau);
+            normalize(tau);    
+            return tau;
+        }
+        
+        vec3 PointInSphere(double r){
+            vec3 tau = PointOnUnitSphere();
+            double u = unifdist(rngu);
             double cbrtu = std::cbrt(u);
             for (int d=0; d < 3; d++){
                 tau[d] = r*cbrtu*tau[d];
@@ -448,7 +498,7 @@ class AllTheActin{
 
 PYBIND11_MODULE(AllTheActin, m) {
     py::class_<AllTheActin>(m, "AllTheActin")
-        .def(py::init<npDoub, vec3, double, double, double, vec,int>())
+        .def(py::init<uint, intvec, vec3, double, double, double, vec,int,int>())
         .def("Diffuse",&AllTheActin::Diffuse)
         .def("React",&AllTheActin::React)
         .def("getX", &AllTheActin::getX)
