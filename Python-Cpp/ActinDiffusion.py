@@ -33,8 +33,8 @@ Nmon = 1000;
 LBox = 1;
 Lens=np.array([LBox,LBox,LBox]);
 seed = int(sys.argv[1]);
-nInFibers = np.concatenate((3*np.ones(1,dtype=np.int64),\
-    4*np.ones(5,dtype=np.int64),5*np.ones(39,dtype=np.int64))); # initialize nucleates
+nInFibers = [];#np.concatenate((3*np.ones(1,dtype=np.int64),\
+    #4*np.ones(5,dtype=np.int64),5*np.ones(39,dtype=np.int64))); # initialize nucleates
 print(nInFibers)
 
 
