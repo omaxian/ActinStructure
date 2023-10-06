@@ -240,7 +240,7 @@ class AllTheActin{
         }
             
         
-        bool FormFiberFromMonomers(uint pt1, uint pt2, double dt, int &newStructIndex){
+        bool FormFiberFromMonomers(int pt1, int pt2, double dt, int &newStructIndex){
             double pForm = dt*_TwoMonRate;
             //std::cout << "Two monomers; forming fiber number " << newStructIndex << " with probability " << pForm << std::endl;
             double r = unifdist(rngu);
