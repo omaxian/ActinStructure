@@ -45,14 +45,15 @@ RxnRates = [RxnRadius, TwoMonRate, TwoMonOffRate, BarbedBindRate, BarbedUnbindin
 nThr=8;
 AllActin = AllTheActin(Nmon,nInFibers,Lens,a,kbT,mu, RxnRates, seed,nThr);
 
-Tf = 100;
+Tf = 2000;
 logdt = 4;
 dt = 10**(-logdt);
 nSteps = int(Tf/dt+1e-6);
 nSaves = 1000;
 AllX = np.zeros(((nSaves+1)*Nmon,3));
 AllIDs = np.zeros((nSaves+1)*Nmon,dtype=np.int64);
-nFibs = np.zeros((nSteps+1),dtype=np.int64);
+nFibs = np.zeros((nSaves+1),dtype=np.int64);
+nFibsNow = len(nInFibers);
 
 saveEvery = nSteps//nSaves;
 
@@ -62,12 +63,14 @@ for i in range(nSteps):
         saveIndex = i//saveEvery;
         AllX[saveIndex*Nmon:(saveIndex+1)*Nmon,:] = AllActin.getX();
         AllIDs[saveIndex*Nmon:(saveIndex+1)*Nmon] = AllActin.getStructureIDs();
-        print('Number fibers %d' %nFibs[i])
-    nFibs[i+1]=AllActin.React(dt);
+        nFibs[saveIndex] = nFibsNow;
+        print('Number fibers %d' %nFibs[saveIndex])
+    nFibsNow=AllActin.React(dt);
     AllActin.Diffuse(dt);
     
 AllX[nSaves*Nmon:(nSaves+1)*Nmon,:] = AllActin.getX();  
 AllIDs[nSaves*Nmon:(nSaves+1)*Nmon] = AllActin.getStructureIDs(); 
+nFibs[nSaves]=nFibsNow;
 np.savetxt('Dt'+str(logdt)+'X_'+str(seed)+'.txt',AllX);
 np.savetxt('Dt'+str(logdt)+'IDs_'+str(seed)+'.txt',AllIDs);
 np.savetxt('Dt'+str(logdt)+'Fibers_'+str(seed)+'.txt',nFibs);
