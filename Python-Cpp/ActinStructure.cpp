@@ -91,6 +91,19 @@ class Fiber: public ActinStructure{
         _X = vec(3*_nMonomers);
     }
     
+    Fiber(vec3 X0, vec3 tau, uint nMonomers, double spacing, double a, double mu, double kbT){
+        _tau = vec(3);
+        for (int d=0; d< 3; d++){
+            _tau[d] = tau[d];
+        }
+        std::memcpy(_X0.data(),X0.data(),X0.size()*sizeof(double)); 
+        _spacing = spacing;
+        _nMonomers = nMonomers;
+        _Mobility = 1.0/(6*M_PI*mu*a);
+        _kbT = kbT;
+        _X = vec(3*_nMonomers);
+    }
+    
     int NumberRand(){
         return 6;
     }
@@ -190,6 +203,31 @@ class Fiber: public ActinStructure{
         }
     }
     
+    void addMonomer(bool PointedEnd){
+        _nMonomers++;
+        _X.resize(3*_nMonomers);
+        if (PointedEnd) {// adjust the start point
+            for (int d=0; d < 3; d++){
+                _X0[d]-=_spacing*_tau[d];
+            }
+        }
+    }
+    
+    void removeMonomer(bool PointedEnd, int &MonIndex){
+        _nMonomers--;
+        _X.resize(3*_nMonomers);
+        if (PointedEnd) {// adjust the start point
+            for (int d=0; d < 3; d++){
+                _X0[d]+=_spacing*_tau[d];
+            }
+            MonIndex=_MonomerIndices[0];
+            _MonomerIndices.erase(_MonomerIndices.begin());
+        } else {
+            MonIndex=_MonomerIndices[_nMonomers-1];
+            _MonomerIndices.erase(_MonomerIndices.begin()+_nMonomers);
+        }
+    }
+    
     void removeMonomer(bool PointedEnd){
         _nMonomers--;
         _X.resize(3*_nMonomers);
@@ -197,9 +235,6 @@ class Fiber: public ActinStructure{
             for (int d=0; d < 3; d++){
                 _X0[d]+=_spacing*_tau[d];
             }
-            _MonomerIndices.erase(_MonomerIndices.begin());
-        } else {
-            _MonomerIndices.erase(_MonomerIndices.begin()+_nMonomers);
         }
     }
     

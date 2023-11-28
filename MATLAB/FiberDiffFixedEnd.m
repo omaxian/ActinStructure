@@ -1,9 +1,10 @@
 nTrial = 10;
-nSeed = 10;
-nSteps = 1000;
+nSeed = 20;
+nSteps = 2000;
 RotStat = zeros(nSeed,nSteps);
 AllRotStats = zeros(nTrial,nSteps);
 for iTrial=1:nTrial
+MeanDrift=zeros(3,1);
 for seed=1:nSeed
 a = 4e-3;
 X0 = [0 0 0];
@@ -40,7 +41,8 @@ for iT=1:nSteps
     NTilde = pinv(KTilde'*MInverse*KTilde);
     Wn =randn(3,1);%load('W1.txt');
     %Wn=Wn(7:12);
-    v = sqrt(2*kbT/dt)*real(Nnow^(1/2))*Wn;% + kbT/delta*(NTilde-Nnow)*vtilde;
+    MeanDrift = MeanDrift+ kbT/delta*(NTilde-Nnow)*vtilde;
+    v = sqrt(2*kbT/dt)*real(Nnow^(1/2))*Wn + kbT/delta*(NTilde-Nnow)*vtilde;
     % Update COM
     %X0 = Xc+dt*v(4:6)'+rotate(X0-Xc,dt*v(1:3)');
     Tau = rotate(Tau,dt*v(1:3)');
@@ -52,6 +54,7 @@ for iT=1:nSteps
     RotStat(seed,iT)=dot(Tau,Tau0);
 end
 end
+AllMeanDrifts(:,iTrial)=MeanDrift;
 AllRotStats(iTrial,:) = mean(RotStat);
 end
 % TODO: rotational diffusion

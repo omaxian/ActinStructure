@@ -1,29 +1,45 @@
 % Parameters
-Nmon=6000;
-a = 4e-3;
-Raa = 2*a;
-dplus = 10;
-on_m = 0.005420;
-off_m = 0.041;
-on_p = 1006.570112+8981.702539;
-off_p = 2.2;
-mu = 0.01;
-kbT = 4.1e-3;
-R=on_m*Raa^2;
-D=2*kbT/(6*pi*mu*a);
-r=R/D % << 1 is reaction limited, >> 1 is diffusion limited
-% Determine effective on rate
+Conc = 2; % in uM
+LBox = 2;
+
+% Parameters 
+kplusDimer = 3.5e-3; % uM^(-1)*s^(-1) 
+kminusDimer = 0.041; %s^(-1)
+kplusTrimer = 13e-1; % uM^(-1)*s^(-1) 
+kminusTrimer = 22; %s^(-1)
+kplusBarbed = 11.6; % uM^(-1)*s^(-1) 
+kminusBarbed = 1.4; %s^(-1)
+kplusPointed = 1.3; %uM^(-1)*s^(-1)
+kminusPointed = 0.8; %s^(-1)
+
+% Convert to microscopic assuming well-mixed system
+Volume = LBox^3;
 uMInvToMicron3 = 1.0e15/(6.022e17);
-kplus_d = 3.5e-6*uMInvToMicron3;%1/2*4*pi/3*Raa^3*on_m;
-kminus_d = 0.041;%off_m;
-kplus_p = 12.9*uMInvToMicron3;%4*pi/3*Raa^3*on_p;
-kminus_p = 2.2;%off_p;
+ConversionFactor = uMInvToMicron3/Volume; % everything will be in s^(-1)
+RxnRates=[kplusDimer*ConversionFactor; kminusDimer; kplusTrimer*ConversionFactor; ...
+    kminusTrimer; kplusBarbed*ConversionFactor; kminusBarbed; ...
+    kplusPointed*ConversionFactor; kminusPointed];
+
+Nmon = floor(Conc*Volume/uMInvToMicron3);
+V = 4^3;
+nMax=5;
 % Steady state equations
-myfun = @(c) EqFcn(c,kplus_p,kminus_p,kplus_d,kminus_d,Nmon);
-nMax=Nmon;
-c0=ones(nMax,1);
-x = fsolve(myfun,c0);
-alpha=(kplus_p*x(1)/kminus_p);
+alphafun = @(alp) OneDFcn(alp,RxnRates,Nmon,nMax);
+alpha = fsolve(alphafun,1);
+Nums = zeros(nMax,1);
+PolyOn = RxnRates(5)+RxnRates(7);
+PolyOff = RxnRates(6)+RxnRates(8);
+Nums(1) = alpha*(PolyOff/PolyOn);
+Nums(2) = Nums(1).^2*RxnRates(1)/RxnRates(2);
+Nums(3) = Nums(2).*Nums(1)*RxnRates(3)/RxnRates(4);
+for iD=4:nMax
+    Nums(iD)=Nums(iD-1)*Nums(1)*PolyOn/PolyOff;
+end
+% Solve the ODEs
+RHSFcn = @(t,y) RHS(t,y,RxnRates);
+y0 = [Nmon;zeros(nMax-1,1)];
+[tvals,yvals] = ode45(RHSFcn,[0 200],y0);
+
 %nMons=[nMons;Nmon];
 %alphas=[alphas;alpha];
 
@@ -57,23 +73,46 @@ alpha=(kplus_p*x(1)/kminus_p);
 % mean(MeanOfAll(:,(end-1)/2+1:end)')
 % StdOfAll(:,(end-1)/2+1:end)'
 
-function [val1,val] =  EqFcnC(c,kplus_p,kminus_p,kplus_d,kminus_d,Nmon)
-    val1=0*c;
-    nMax=length(c);
-    val = zeros(nMax,1);
-    val(1) = sum((1:nMax)'.*c)-Nmon;
-    val(2) = kminus_d*c(2)-kplus_d.*c(1).^2;   % Dimers
-    for iP=2:nMax-1
-        val(iP+1) = kminus_p*c(iP+1)-kplus_p*c(iP).*c(1);
+function dydt = RHS(t,y,RxnRates)
+    nMax = length(y);
+    dydt=zeros(length(y),1);
+    PolyOn = RxnRates(5)+RxnRates(7);
+    PolyOff = RxnRates(6)+RxnRates(8);
+    dydt(1) = -2*RxnRates(1)*y(1).^2 + 2*RxnRates(2)*y(2) ...
+        -RxnRates(3)*y(1)*y(2) + RxnRates(4)*y(3);
+    % Dimers: form, unform, form trimers, unform trimers
+    dydt(2) = RxnRates(1)*y(1).^2 + RxnRates(4)*y(3) ...
+        - RxnRates(2)*y(2) - RxnRates(3)*y(1)*y(2);
+    % Trimers: form, unform, form tetramers, unform tetramers
+    dydt(3) = RxnRates(3)*y(1)*y(2) - RxnRates(4)*y(3) ...
+        - PolyOn*y(1)*y(3) + PolyOff*y(4); % trimers
+    for iD = 4:nMax-1
+        dydt(iD)=PolyOn*y(iD-1)*y(1) - PolyOff*y(iD) - PolyOn*y(iD)*y(1) + PolyOff*y(iD+1);
+    end
+    iD = nMax;
+    dydt(iD)=PolyOn*y(iD-1)*y(1) - PolyOff*y(iD);
+    for iD = 4:nMax
+        dydt(1) = dydt(1) - PolyOn*y(iD-1)*y(1) + PolyOff*y(iD);
     end
 end
 
-function val = EqFcn(c,kplus_p,kminus_p,kplus_d,kminus_d,Nmon)
-    nMax=length(c);
-    val = zeros(nMax,1);
-    val(1) = sum((1:nMax)'.*c)-Nmon;
-    val(2) = kminus_d*c(2)-kplus_d.*c(1).^2;   % Dimers
-    for iP=2:nMax-1
-        val(iP+1) = kminus_p*c(iP+1)-kplus_p*c(iP).*c(1);
+function val = OneDFcn(alpha,RxnRates,Nmon,nMax)
+    PolyOn = RxnRates(5)+RxnRates(7);
+    PolyOff = RxnRates(6)+RxnRates(8);
+    Nums = zeros(nMax,1);
+    Nums(1) = alpha*(PolyOff/PolyOn);
+    Nums(2) = Nums(1).^2*RxnRates(1)/RxnRates(2);
+    Nums(3) = Nums(2).*Nums(1)*RxnRates(3)/RxnRates(4);
+    for iD=4:nMax
+        Nums(iD)=Nums(iD-1)*Nums(1)*PolyOn/PolyOff;
     end
+    val = sum((1:nMax)'.*Nums)-Nmon;
+    return
+    Numerator = 2*alpha-alpha.^2-(1+Nmon)*alpha.^(Nmon)+Nmon*alpha.^(Nmon+1);
+    Num1 = Numerator./(1-alpha).^2;
+    if (alpha==1)
+        Num1=1/2*(-2 + Nmon + Nmon^2);
+    end
+    val = -Nmon+kminus_p/kplus_p*alpha ...
+        + (kplus_d/kminus_d)*(kminus_p/kplus_p)^2*alpha.*Num1;
 end

@@ -1,17 +1,18 @@
 % Simulation data
-Nmon=6000;
+Nmon=8000;
 nTs = 1001;
 nTrial=2;
-nSeed=4;
+nSeed=5;
 MeanNumMonomers = zeros(nTrial,nTs);
 MeanFiberLengths = zeros(10,nTs,nTrial);
 maxFibs=0;
 for iTrial=1:nTrial
     NumMonomers = zeros(nTs,nSeed);
     FiberLengths = zeros(10,nTs,nSeed);
+    AllLengthsTrial = [];
     for iseed=1:nSeed
         thisSeed = (iTrial-1)*nSeed+iseed;
-        IDs = load(strcat('6000Dt4IDs_',num2str(thisSeed),'.txt'));
+        IDs = load(strcat('8000Ld2Dt4IDs_',num2str(thisSeed),'.txt'));
         % Find all the monomers
         for iT=1:nTs
             inds = (iT-1)*Nmon+1:iT*Nmon;
@@ -33,10 +34,14 @@ for iTrial=1:nTrial
                 end
             end
             FiberLengths(1:length(uIDs)-1,iT,iseed)=sort(nMonsbyID,'descend');
+            if (iT > (nTs-1)/2) % Steady state length distribution
+                AllLengthsTrial=[AllLengthsTrial;nMonsbyID];
+            end
         end
     end
     MeanNumMonomers(iTrial,:)=mean(NumMonomers,2);
     MeanFiberLengths(:,:,iTrial)=mean(FiberLengths,3);
+    AllLengthsByTrial{iTrial}=AllLengthsTrial;
 end
 MeanFiberLengths = MeanFiberLengths(1:maxFibs,:,:);
 % Plot the mean and standard deviation and compare to theory
@@ -47,7 +52,6 @@ for iFib=1:maxFibs
     arr = reshape(MeanFiberLengths(iFib,:,:),nTs,nTrial)';
     StdOfAll(iFib,:)=std(arr);
 end
-return
 
 meanMon = mean(MeanNumMonomers);
 stdMon = std(MeanNumMonomers);
@@ -64,7 +68,7 @@ start = 25;
 set(gca,'ColorOrderIndex',1)
 errorbar(ts(start:skip:end),meanMon(start:skip:end),...
     2*stdMon(start:skip:end)/sqrt(nTrial),'o','MarkerSize',0.1,'LineWidth',2.0)
-plot(xlim,xBar*[1 1],':k')
+%plot(xlim,xBar*[1 1],':k')
 title('Free monomers')
 xlabel('$t$ (s)')
 ylabel('Number of monomers')
