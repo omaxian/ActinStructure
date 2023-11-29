@@ -38,7 +38,33 @@ end
 % Solve the ODEs
 RHSFcn = @(t,y) RHS(t,y,RxnRates);
 y0 = [Nmon;zeros(nMax-1,1)];
-[tvals,yvals] = ode45(RHSFcn,[0 200],y0);
+tf=200;
+[tvals,yvals] = ode45(RHSFcn,[0 tf],y0);
+plot(tvals,yvals/LBox^3,'-.')
+hold on
+%plot(tf*ones(5,1),Nums/LBox^3,'ko')
+
+% Import the data
+load('StructInfo.txt');
+load('NumFibs.txt');
+nT = length(NumFibs);
+NumOfEach = zeros(5,nT);
+TotalEntries = NumFibs+3;
+StartIndex = [0;cumsum(TotalEntries)];
+for iT=1:nT
+    StartInd = StartIndex(iT)+1;
+    EndInd = StartIndex(iT)+TotalEntries(iT);
+    for iS=0:2
+        NumOfEach(1+iS,iT)=StructInfo(StartInd+iS);
+    end
+    rest = StructInfo(StartInd+3:EndInd);
+    NumOfEach(4,iT)=sum(rest==4);
+    NumOfEach(5,iT)=sum(rest==5);
+end
+ts=5:5:tf;
+set(gca,'ColorOrderIndex',1)
+plot(ts,NumOfEach/LBox^3)
+
 
 %nMons=[nMons;Nmon];
 %alphas=[alphas;alpha];

@@ -104,12 +104,12 @@ class ActinMixedNucleates {
                 RateDimerForm = 0;
             }    
             double deltaT = logrand()/RateDimerForm;
-            std::cout << "Time dimer formation " << deltaT << std::endl;
+            //std::cout << "Time dimer formation " << deltaT << std::endl;
             uint index = 0;
             // Reaction 1: break-up of dimers
             double RateDimerBreakup = _DimerOffRate*_nDimers;
             double TryDeltaT = logrand()/RateDimerBreakup; 
-            std::cout << "Time dimer breakup " << TryDeltaT << std::endl;
+            //std::cout << "Time dimer breakup " << TryDeltaT << std::endl;
             if (TryDeltaT < deltaT){
                 deltaT = TryDeltaT;
                 index = 1;
@@ -117,7 +117,7 @@ class ActinMixedNucleates {
             // Reaction 2: trimer formation
             double RateTrimerForm = _TrimerOnRate*_FreeMonomers*_nDimers;
             TryDeltaT = logrand()/RateTrimerForm; 
-            std::cout << "Time trimer form " << TryDeltaT << std::endl;
+            //std::cout << "Time trimer form " << TryDeltaT << std::endl;
             if (TryDeltaT < deltaT){
                 deltaT = TryDeltaT;
                 index = 2;
@@ -125,7 +125,7 @@ class ActinMixedNucleates {
             // Reaction 3: trimer breakup
             double RateTrimerBreakup = _TrimerOffRate*_nTrimers;
             TryDeltaT = logrand()/RateTrimerBreakup; 
-            std::cout << "Time trimer breakup " << TryDeltaT << std::endl;
+            //std::cout << "Time trimer breakup " << TryDeltaT << std::endl;
             if (TryDeltaT < deltaT){
                 deltaT = TryDeltaT;
                 index = 3;
@@ -133,28 +133,29 @@ class ActinMixedNucleates {
             // Reaction 4: tetramer formation
             double RateTetramerForm = (_BarbedBindingRate + _PointedBindingRate)*_nTrimers*_FreeMonomers;
             TryDeltaT = logrand()/RateTetramerForm; 
-            std::cout << "Time tetramer form " << TryDeltaT << std::endl;
+            //std::cout << "Time tetramer form " << TryDeltaT << std::endl;
             if (TryDeltaT < deltaT){
                 deltaT = TryDeltaT;
                 index = 4;
             }
             // Add/subtract from existing fibers
             uint nFib = _Fibers.size();
-            std::cout << "Number of fibers " << nFib << std::endl;
+            //std::cout << "Number of fibers " << nFib << std::endl;
             if (_FreeMonomers > _TotalMonomers){
+                std::cout << "Error - more monomers than total!" << std::endl;
                 return 0;
             }
             for (uint iFib = 0; iFib < nFib; iFib++){
                 double RateAdd = (_BarbedBindingRate + _PointedBindingRate)*_FreeMonomers;
                 TryDeltaT = logrand()/RateAdd; 
-                std::cout << "Time add to fiber " << TryDeltaT << std::endl;
+                //std::cout << "Time add to fiber " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
                     index = 5+2*iFib;
                 }
                 double RateSubtract = _BarbedUnbindingRate + _PointedUnbindingRate;
                 TryDeltaT = logrand()/RateSubtract; 
-                std::cout << "Time remove from fiber " << TryDeltaT << std::endl;
+                //std::cout << "Time remove from fiber " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
                     index = 5+2*iFib+1;
@@ -163,29 +164,29 @@ class ActinMixedNucleates {
             // All reactions complete -- process the next one
             t+=deltaT;
             if (t < dt){
-                std::cout << "Reaction within the time step, at time " << t << std::endl;
-                std::cout << "Index " << index << std::endl;
+                //std::cout << "Reaction within the time step, at time " << t << std::endl;
+                //std::cout << "Index " << index << std::endl;
                 if (index == 0){
                     // Dimer formation
-                    std::cout << "Forming dimer " << std::endl;
+                    //std::cout << "Forming dimer " << std::endl;
                     _FreeMonomers-=2;
                     _nDimers++;
                 } else if (index == 1){
-                    std::cout << "Removing dimer " << std::endl;
+                    //std::cout << "Removing dimer " << std::endl;
                     _FreeMonomers+=2;
                     _nDimers--;
                 } else if (index == 2){
-                    std::cout << "Forming trimer " << std::endl;
+                    //std::cout << "Forming trimer " << std::endl;
                     _FreeMonomers--;
                     _nDimers--;
                     _nTrimers++;
                 } else if (index == 3){
-                    std::cout << "Removing trimer " << std::endl;
+                    //std::cout << "Removing trimer " << std::endl;
                     _FreeMonomers++;
                     _nDimers++;
                     _nTrimers--;
                 } else if (index == 4){
-                    std::cout << "Forming tetramer and fiber object " << std::endl;
+                    //std::cout << "Forming tetramer and fiber object " << std::endl;
                     // Forming tetramer - establish object for it
                     _FreeMonomers--;
                     _nTrimers--;
@@ -196,52 +197,47 @@ class ActinMixedNucleates {
                     // Identify fiber number and if it's addition or subtraction
                     int FibNum = (index-5)/2;
                     bool Addition = index % 2; // 1 for subtraction, 0 for addition
-                    std::cout << "Fiber number " << FibNum << std::endl;
+                    //std::cout << "Fiber number " << FibNum << std::endl;
                     if (!Addition){
-                        std::cout << "Subtraction!" << std::endl;
+                        //std::cout << "Subtraction!" << std::endl;
                         // If it's a tetramer that is breaking up, then remove it from the list and be done
                         double nMon = _Fibers[FibNum].NumMonomers();
                         if (nMon == 4){ 
-                            std::cout << "Breaking up a tetramer " << std::endl;
+                            //std::cout << "Breaking up a tetramer " << std::endl;
                             _Fibers.erase(_Fibers.begin() + FibNum);   
                             _FreeMonomers++;
                             _nTrimers++;
                         } else { // Structure stays the same
                             _FreeMonomers++;
-                            std::cout << "Removing monomer from longer fiber " << std::endl;
+                            //std::cout << "Removing monomer from longer fiber " << std::endl;
                             double pPointed = _PointedUnbindingRate/(_PointedUnbindingRate+_BarbedUnbindingRate);
-                            std::cout << "Prob pointed end " << pPointed << std::endl;
+                            //std::cout << "Prob pointed end " << pPointed << std::endl;
                             bool FromPointedEnd = unifdist(rngu) < pPointed;
-                            std::cout << "FromPointedEnd " << FromPointedEnd << std::endl;
+                            //std::cout << "FromPointedEnd " << FromPointedEnd << std::endl;
                             _Fibers[FibNum].removeMonomer(FromPointedEnd);
                         }
                     } else { // Addition
                         _FreeMonomers--;
-                        std::cout << "Addition!" << std::endl;
+                        //std::cout << "Addition!" << std::endl;
                         double pPointed = _PointedBindingRate/(_PointedBindingRate+_BarbedBindingRate);
-                        std::cout << "Prob pointed end " << pPointed << std::endl;
+                        //std::cout << "Prob pointed end " << pPointed << std::endl;
                         bool ToPointedEnd = unifdist(rngu) < pPointed;
-                        std::cout << "ToPointedEnd " << ToPointedEnd  << std::endl;
+                        //std::cout << "ToPointedEnd " << ToPointedEnd  << std::endl;
                         _Fibers[FibNum].addMonomer(ToPointedEnd);
                     }
                 } // end fiber
             } else {// end if reaction is within time
-                std::cout << "Time " << t << "is too long - no rxn " << std::endl;
+                //std::cout << "Time " << t << "is too long - no rxn " << std::endl;
             }
             // Check conservation of monomers
-            nFib = _Fibers.size();
+            /*nFib = _Fibers.size();
             uint nMon = 0;
             for (uint iFib=0; iFib < nFib; iFib++){
                 nMon+=_Fibers[iFib].NumMonomers();
             }
             uint nInFib = nMon;
-            nMon+=_FreeMonomers+2*_nDimers+3*_nTrimers;
-            if (nMon!=_TotalMonomers){
-                throw std::runtime_error("Number of monomers not conserved");
-            }
-            std:: cout << "Number mon, dim, tri, in fib: " << _FreeMonomers << " , " << _nDimers << " , " << _nTrimers << " , " << nInFib << std::endl;
+            std:: cout << "Number mon, dim, tri, in fib: " << _FreeMonomers << " , " << _nDimers << " , " << _nTrimers << " , " << nInFib << std::endl;*/
         } // end while loop              
-        
         return _Fibers.size();
     }
     
@@ -253,6 +249,18 @@ class ActinMixedNucleates {
             AllX.insert(AllX.end(), XFib.begin(), XFib.end());
         }
         return makePyDoubleArray(AllX);
+    }
+    
+    npInt getStructureInfo(){
+        uint nFib = _Fibers.size();
+        intvec Info(3+nFib);
+        Info[0]=_FreeMonomers;
+        Info[1]=_nDimers;
+        Info[2]=_nTrimers;
+        for (uint iFib=0; iFib < nFib; iFib++){
+            Info[3+iFib]=_Fibers[iFib].NumMonomers();
+        }    
+        return makePyArray(Info);
     }
     
         
@@ -337,5 +345,6 @@ PYBIND11_MODULE(ActinMixedNucleates, m) {
         .def(py::init<uint, intvec, vec3, double, double, double, vec,int,int>())
         .def("Diffuse",&ActinMixedNucleates::Diffuse)
         .def("React",&ActinMixedNucleates::React)
-        .def("getX", &ActinMixedNucleates::getX);
+        .def("getX", &ActinMixedNucleates::getX)
+        .def("getStructureInfo", &ActinMixedNucleates::getStructureInfo);
 }    
