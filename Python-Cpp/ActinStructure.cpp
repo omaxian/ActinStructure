@@ -8,6 +8,9 @@
 
 /**
 ActinStructure.cpp
+
+This needs to be rewritten so that we never create an array with nMonomers size.
+It should just be the tangent vectors we are tracking and the length (in monomers)
 **/
 
 // Global variables for periodic ActinStructure
@@ -102,6 +105,15 @@ class Fiber: public ActinStructure{
         _Mobility = 1.0/(6*M_PI*mu*a);
         _kbT = kbT;
         _X = vec(3*_nMonomers);
+        _ForminOn = false;
+    }
+    
+    void BindFormin(){
+        _ForminOn = true;
+    }    
+    
+    void UnbindFormin(){
+        _ForminOn = false;
     }
     
     int NumberRand(){
@@ -169,6 +181,10 @@ class Fiber: public ActinStructure{
     vec3 getPointedEnd(){
         return _X0;
     } 
+    
+    bool ForminBound(){
+        return _ForminOn;
+    }
     
     vec3 getBarbedEnd(){
         vec3 Be;
@@ -295,6 +311,7 @@ class Fiber: public ActinStructure{
         }
         
     private:
+        bool _ForminOn;
         
         virtual void computeX(const vec3 &X0, const vec &tau, vec &X){
             for (int i=0; i < _nMonomers; i++){

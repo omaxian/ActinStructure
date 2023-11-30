@@ -66,8 +66,21 @@ class ActinMixedNucleates {
         _BarbedUnbindingRate = RxnRates[5];
         _PointedBindingRate = RxnRates[6];
         _PointedUnbindingRate = RxnRates[7];
+        _TotalFormins = 0;
+        _FreeFormins = 0;
+        _nForminNucleates = 0;
         
     }
+    
+    void InitializeFormins(uint nFormin, vec ForminRates){
+        _TotalFormins = nFormin;
+        _FreeFormins = nFormin;
+        _ForminNucleationRate = ForminRates[0];
+        _ForminBindRate = ForminRates[1];
+        _ForminUnbindRate = ForminRates[2];
+        _ForminEnhancement = ForminRates[3];
+    }
+        
     
     void Diffuse(double dt){
         // Diffuse the fibers
@@ -98,14 +111,94 @@ class ActinMixedNucleates {
         
         double t = 0;
         while (t < dt){
+            uint index = 0;
+            double deltaT = TimeNucleationReactions(index);
+            deltaT = TimeForminNucleationReactions(index,deltaT);
+            int nRxnsPerFiber = 3;
+            int numSingleRxns = 6;
+            deltaT = TimeFiberBindUnbindReactions(index,deltaT,numSingleRxns,nRxnsPerFiber);
+            // All reactions listed -- process the next one
+            if (t > dt){
+                return _Fibers.size();
+            }
+            bool EventHappened = false;
+            //std::cout << "Time " << deltaT << " for total " << t << " and index " << index << std::endl;
+            if (index < 5){
+                // Nucleation reaction
+                EventHappened = ProcessNucleationReaction(index);
+            } else if (index == 5){
+                EventHappened = ProcessForminNucleationReaction();
+            } else { // Working with index > 5
+                EventHappened = ProcessFiberBindUnbindReaction(index,numSingleRxns,nRxnsPerFiber);
+            } // end fiber
+            // Check conservation of monomers
+            if (_FreeMonomers > _TotalMonomers){
+                std::cout << "Error - more monomers than total!" << std::endl;
+                return 0;
+            }
+            if (EventHappened){
+                t+=deltaT;
+            } 
+        } // end while loop   
+        return _Fibers.size();           
+    }
+    
+    npDoub getX(){
+        uint nFib = _Fibers.size();
+        vec AllX(0);
+        for (uint iFib=0; iFib < nFib; iFib++){
+            vec XFib = _Fibers[iFib].getX();
+            AllX.insert(AllX.end(), XFib.begin(), XFib.end());
+        }
+        return makePyDoubleArray(AllX);
+    }
+    
+    npInt getStructureInfo(){
+        uint nFib = _Fibers.size();
+        intvec Info(3+nFib);
+        Info[0]=_FreeMonomers;
+        Info[1]=_nDimers;
+        Info[2]=_nTrimers;
+        for (uint iFib=0; iFib < nFib; iFib++){
+            Info[3+iFib]=_Fibers[iFib].NumMonomers();
+        }    
+        return makePyArray(Info);
+    }
+    
+    npInt getBoundFormins(){
+        uint nFib = _Fibers.size();
+        intvec Info(nFib);
+        for (uint iFib=0; iFib < nFib; iFib++){
+            Info[iFib]=_Fibers[iFib].ForminBound();
+        }    
+        return makePyArray(Info); 
+    }
+    
+        
+    private:
+        std::vector <Fiber> _Fibers;
+        std::vector <BranchedFiber> _BranchedFibers;
+        uint _TotalMonomers, _FreeMonomers, _nDimers, _nTrimers;
+        uint _TotalFormins, _FreeFormins, _nForminNucleates;
+        double _a, _kbT, _mu, _spacing;
+        vec3 _Lens;
+        double _DimerOnRate, _DimerOffRate, _TrimerOnRate, _TrimerOffRate;
+        double _BarbedBindingRate, _BarbedUnbindingRate, _PointedBindingRate, _PointedUnbindingRate;
+        double _ForminNucleationRate, _ForminBindRate, _ForminUnbindRate, _ForminEnhancement;
+        vec _X; 
+        std::normal_distribution<double> normaldist;
+        std::mt19937_64 rng;
+        std::uniform_real_distribution<double> unifdist;
+        std::mt19937_64 rngu;
+        
+        double TimeNucleationReactions(uint &index){
             // Reaction 0: formation of dimers
+            //std::cout << "Time dimer formation " << deltaT << std::endl;
             double RateDimerForm = _DimerOnRate*_FreeMonomers*_FreeMonomers;
             if (_FreeMonomers < 2){
                 RateDimerForm = 0;
             }    
             double deltaT = logrand()/RateDimerForm;
-            //std::cout << "Time dimer formation " << deltaT << std::endl;
-            uint index = 0;
             // Reaction 1: break-up of dimers
             double RateDimerBreakup = _DimerOffRate*_nDimers;
             double TryDeltaT = logrand()/RateDimerBreakup; 
@@ -138,146 +231,166 @@ class ActinMixedNucleates {
                 deltaT = TryDeltaT;
                 index = 4;
             }
+            return deltaT;
+        }
+        
+        bool ProcessNucleationReaction(uint index){
+            if (index == 0){
+                // Dimer formation
+                //std::cout << "Forming dimer " << std::endl;
+                _FreeMonomers-=2;
+                _nDimers++;
+            } else if (index == 1){
+                //std::cout << "Removing dimer " << std::endl;
+                _FreeMonomers+=2;
+                _nDimers--;
+            } else if (index == 2){
+                //std::cout << "Forming trimer " << std::endl;
+                _FreeMonomers--;
+                _nDimers--;
+                _nTrimers++;
+            } else if (index == 3){
+                //std::cout << "Removing trimer " << std::endl;
+                _FreeMonomers++;
+                _nDimers++;
+                _nTrimers--;
+            } else if (index == 4){
+                //std::cout << "Forming tetramer and fiber object " << std::endl;
+                // Forming tetramer - establish object for it
+                _FreeMonomers--;
+                _nTrimers--;
+                vec3 tau = PointOnUnitSphere();
+                vec3 X0 = UniformPointInBox();
+                _Fibers.push_back(Fiber(X0, tau, 4, _spacing, _a, _mu, _kbT));
+            } else {
+                std::cout << "Doing a nucleation reaction but can't find the option?!" << std::endl;
+            }
+            return true;
+        }
+        
+        double TimeForminNucleationReactions(uint &index, double deltaT){
+            // Reaction 5: formin nucleate formation (irreversible reaction; instantiates a fiber object with 2 monomers)
+            if (_TotalFormins > 0){
+                double RateForminNucleate = _ForminNucleationRate*_FreeMonomers*_FreeMonomers*_FreeFormins;
+                double TryDeltaT = logrand()/RateForminNucleate;
+                if (TryDeltaT < deltaT){
+                    deltaT = TryDeltaT;
+                    index = 5;
+                }
+            }
+            return deltaT;
+        }
+        
+        bool ProcessForminNucleationReaction(){
+            _FreeMonomers-=2;
+            _FreeFormins--;
+            // Initialize a fiber and bind a formin to it
+            vec3 tau = PointOnUnitSphere();
+            vec3 X0 = UniformPointInBox();
+            _Fibers.push_back(Fiber(X0, tau, 2, _spacing, _a, _mu, _kbT));
+            _Fibers[_Fibers.size()-1].BindFormin();
+            return true;
+        }
+        
+        double TimeFiberBindUnbindReactions(uint &index, double deltaT, int numBefore, int nRxnsPerFiber){
             // Add/subtract from existing fibers
             uint nFib = _Fibers.size();
             //std::cout << "Number of fibers " << nFib << std::endl;
-            if (_FreeMonomers > _TotalMonomers){
-                std::cout << "Error - more monomers than total!" << std::endl;
-                return 0;
-            }
             for (uint iFib = 0; iFib < nFib; iFib++){
-                double RateAdd = (_BarbedBindingRate + _PointedBindingRate)*_FreeMonomers;
-                TryDeltaT = logrand()/RateAdd; 
+                bool BoundFormin = _Fibers[iFib].ForminBound();
+                double BarbedBindRate = _BarbedBindingRate;
+                if (BoundFormin){
+                    BarbedBindRate*=_ForminEnhancement;
+                }    
+                double RateAdd = (BarbedBindRate + _PointedBindingRate)*_FreeMonomers;
+                int nMon = _Fibers[iFib].NumMonomers();
+                if (nMon == 5){
+                    std::cout << "MAX 5 MONOMERS " << std::endl;
+                    RateAdd = 0;
+                }
+                double TryDeltaT = logrand()/RateAdd; 
                 //std::cout << "Time add to fiber " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
-                    index = 5+2*iFib;
+                    index = numBefore+nRxnsPerFiber*iFib;
                 }
                 double RateSubtract = _BarbedUnbindingRate + _PointedUnbindingRate;
                 TryDeltaT = logrand()/RateSubtract; 
                 //std::cout << "Time remove from fiber " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
-                    index = 5+2*iFib+1;
+                    index = numBefore+nRxnsPerFiber*iFib+1;
+                }
+                // Reaction with formin
+                if (_TotalFormins > 0){
+                    // There is one rate. Unbinding if already bound, binding otherwise.
+                    double ForminRate = _ForminUnbindRate;
+                    if (!BoundFormin){
+                        ForminRate = _ForminBindRate*_FreeFormins;
+                    } else if (nMon < 4){
+                        ForminRate = 0;
+                    }
+                    TryDeltaT = logrand()/ForminRate;
+                    if (TryDeltaT < deltaT){
+                        deltaT = TryDeltaT;
+                        index = numBefore+nRxnsPerFiber*iFib+2;
+                    } 
                 }
             }
-            // All reactions complete -- process the next one
-            t+=deltaT;
-            if (t < dt){
-                //std::cout << "Reaction within the time step, at time " << t << std::endl;
-                //std::cout << "Index " << index << std::endl;
-                if (index == 0){
-                    // Dimer formation
-                    //std::cout << "Forming dimer " << std::endl;
-                    _FreeMonomers-=2;
-                    _nDimers++;
-                } else if (index == 1){
-                    //std::cout << "Removing dimer " << std::endl;
-                    _FreeMonomers+=2;
-                    _nDimers--;
-                } else if (index == 2){
-                    //std::cout << "Forming trimer " << std::endl;
-                    _FreeMonomers--;
-                    _nDimers--;
-                    _nTrimers++;
-                } else if (index == 3){
-                    //std::cout << "Removing trimer " << std::endl;
-                    _FreeMonomers++;
-                    _nDimers++;
-                    _nTrimers--;
-                } else if (index == 4){
-                    //std::cout << "Forming tetramer and fiber object " << std::endl;
-                    // Forming tetramer - establish object for it
-                    _FreeMonomers--;
-                    _nTrimers--;
-                    vec3 tau = PointOnUnitSphere();
-                    vec3 X0 = UniformPointInBox();
-                    _Fibers.push_back(Fiber(X0, tau, 4, _spacing, _a, _mu, _kbT));
-                } else { // Working with index > 4
-                    // Identify fiber number and if it's addition or subtraction
-                    int FibNum = (index-5)/2;
-                    bool Addition = index % 2; // 1 for subtraction, 0 for addition
-                    //std::cout << "Fiber number " << FibNum << std::endl;
-                    if (!Addition){
-                        //std::cout << "Subtraction!" << std::endl;
-                        // If it's a tetramer that is breaking up, then remove it from the list and be done
-                        double nMon = _Fibers[FibNum].NumMonomers();
-                        if (nMon == 4){ 
-                            //std::cout << "Breaking up a tetramer " << std::endl;
-                            _Fibers.erase(_Fibers.begin() + FibNum);   
-                            _FreeMonomers++;
-                            _nTrimers++;
-                        } else { // Structure stays the same
-                            _FreeMonomers++;
-                            //std::cout << "Removing monomer from longer fiber " << std::endl;
-                            double pPointed = _PointedUnbindingRate/(_PointedUnbindingRate+_BarbedUnbindingRate);
-                            //std::cout << "Prob pointed end " << pPointed << std::endl;
-                            bool FromPointedEnd = unifdist(rngu) < pPointed;
-                            //std::cout << "FromPointedEnd " << FromPointedEnd << std::endl;
-                            _Fibers[FibNum].removeMonomer(FromPointedEnd);
-                        }
-                    } else { // Addition
-                        _FreeMonomers--;
-                        //std::cout << "Addition!" << std::endl;
-                        double pPointed = _PointedBindingRate/(_PointedBindingRate+_BarbedBindingRate);
-                        //std::cout << "Prob pointed end " << pPointed << std::endl;
-                        bool ToPointedEnd = unifdist(rngu) < pPointed;
-                        //std::cout << "ToPointedEnd " << ToPointedEnd  << std::endl;
-                        _Fibers[FibNum].addMonomer(ToPointedEnd);
-                    }
-                } // end fiber
-            } else {// end if reaction is within time
-                //std::cout << "Time " << t << "is too long - no rxn " << std::endl;
-            }
-            // Check conservation of monomers
-            /*nFib = _Fibers.size();
-            uint nMon = 0;
-            for (uint iFib=0; iFib < nFib; iFib++){
-                nMon+=_Fibers[iFib].NumMonomers();
-            }
-            uint nInFib = nMon;
-            std:: cout << "Number mon, dim, tri, in fib: " << _FreeMonomers << " , " << _nDimers << " , " << _nTrimers << " , " << nInFib << std::endl;*/
-        } // end while loop              
-        return _Fibers.size();
-    }
-    
-    npDoub getX(){
-        uint nFib = _Fibers.size();
-        vec AllX(0);
-        for (uint iFib=0; iFib < nFib; iFib++){
-            vec XFib = _Fibers[iFib].getX();
-            AllX.insert(AllX.end(), XFib.begin(), XFib.end());
+            return deltaT;
         }
-        return makePyDoubleArray(AllX);
-    }
-    
-    npInt getStructureInfo(){
-        uint nFib = _Fibers.size();
-        intvec Info(3+nFib);
-        Info[0]=_FreeMonomers;
-        Info[1]=_nDimers;
-        Info[2]=_nTrimers;
-        for (uint iFib=0; iFib < nFib; iFib++){
-            Info[3+iFib]=_Fibers[iFib].NumMonomers();
-        }    
-        return makePyArray(Info);
-    }
-    
         
-    private:
-        std::vector <Fiber> _Fibers;
-        std::vector <BranchedFiber> _BranchedFibers;
-        uint _TotalMonomers, _FreeMonomers, _nDimers, _nTrimers;
-        double _a, _kbT, _mu, _spacing;
-        vec3 _Lens;
-        double _DimerOnRate, _DimerOffRate, _TrimerOnRate, _TrimerOffRate;
-        double _BarbedBindingRate, _BarbedUnbindingRate, _PointedBindingRate, _PointedUnbindingRate;
-        vec _X; 
-        std::normal_distribution<double> normaldist;
-        std::mt19937_64 rng;
-        std::uniform_real_distribution<double> unifdist;
-        std::mt19937_64 rngu;
-        
+        bool ProcessFiberBindUnbindReaction(uint index, int numBefore, int nRxnsPerFiber){
+            // Identify fiber number and if it's addition or subtraction
+            int FibNum = (index-numBefore)/nRxnsPerFiber;
+            int RxnType = (index-numBefore) % nRxnsPerFiber; // 0 for addition, 1 for subtraction, 2 for formin
+            int nMon = _Fibers[FibNum].NumMonomers();
+            bool HasFormin = _Fibers[FibNum].ForminBound();
+            //std::cout << "Fiber number " << FibNum << std::endl;
+            if (RxnType==2){
+                if (HasFormin){
+                    _FreeFormins++;
+                    _Fibers[FibNum].UnbindFormin();  
+                } else {
+                    _FreeFormins--;
+                    _Fibers[FibNum].BindFormin();
+                }  
+            } else if (RxnType==1){
+                //std::cout << "Subtraction!" << std::endl;
+                // If it's a tetramer that is breaking up, then remove it from the list and be done
+                if (nMon == 4 && !HasFormin){ 
+                    //std::cout << "Breaking up a tetramer " << std::endl;
+                    _Fibers.erase(_Fibers.begin() + FibNum);   
+                    _FreeMonomers++;
+                    _nTrimers++;
+                } else if (nMon == 2 && HasFormin){
+                    std::cout << "Can't break formin bound dimer - event rejected" << std::endl;
+                    return false;
+                } else { // Structure stays the same
+                    _FreeMonomers++;
+                    //std::cout << "Removing monomer from longer fiber " << std::endl;
+                    double pPointed = _PointedUnbindingRate/(_PointedUnbindingRate+_BarbedUnbindingRate);
+                    //std::cout << "Prob pointed end " << pPointed << std::endl;
+                    bool FromPointedEnd = unifdist(rngu) < pPointed;
+                    //std::cout << "FromPointedEnd " << FromPointedEnd << std::endl;
+                    _Fibers[FibNum].removeMonomer(FromPointedEnd);
+                }
+            } else if (RxnType==0){ // Addition
+                _FreeMonomers--;
+                //std::cout << "Addition!" << std::endl;
+                bool BoundFormin = _Fibers[FibNum].ForminBound();
+                double BarbedBindRate = _BarbedBindingRate;
+                if (BoundFormin){
+                    BarbedBindRate*=_ForminEnhancement;
+                }    
+                double pPointed = _PointedBindingRate/(_PointedBindingRate+BarbedBindRate);
+                //std::cout << "Prob pointed end " << pPointed << std::endl;
+                bool ToPointedEnd = unifdist(rngu) < pPointed;
+                //std::cout << "ToPointedEnd " << ToPointedEnd  << std::endl;
+                _Fibers[FibNum].addMonomer(ToPointedEnd);
+            }
+            return true;
+        }
                
         vec3 PointOnUnitSphere(){
             vec3 tau;
@@ -343,8 +456,10 @@ class ActinMixedNucleates {
 PYBIND11_MODULE(ActinMixedNucleates, m) {
     py::class_<ActinMixedNucleates>(m, "ActinMixedNucleates")
         .def(py::init<uint, intvec, vec3, double, double, double, vec,int,int>())
+        .def("InitializeFormins",&ActinMixedNucleates::InitializeFormins)
         .def("Diffuse",&ActinMixedNucleates::Diffuse)
         .def("React",&ActinMixedNucleates::React)
         .def("getX", &ActinMixedNucleates::getX)
-        .def("getStructureInfo", &ActinMixedNucleates::getStructureInfo);
+        .def("getStructureInfo", &ActinMixedNucleates::getStructureInfo)
+        .def("getBoundFormins",&ActinMixedNucleates::getBoundFormins);
 }    
