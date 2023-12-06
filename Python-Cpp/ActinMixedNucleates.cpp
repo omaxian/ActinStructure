@@ -118,9 +118,6 @@ class ActinMixedNucleates {
             int numSingleRxns = 6;
             deltaT = TimeFiberBindUnbindReactions(index,deltaT,numSingleRxns,nRxnsPerFiber);
             // All reactions listed -- process the next one
-            if (t > dt){
-                return _Fibers.size();
-            }
             bool EventHappened = false;
             //std::cout << "Time " << deltaT << " for total " << t << " and index " << index << std::endl;
             if (index < 5){
@@ -304,10 +301,10 @@ class ActinMixedNucleates {
                 }    
                 double RateAdd = (BarbedBindRate + _PointedBindingRate)*_FreeMonomers;
                 int nMon = _Fibers[iFib].NumMonomers();
-                if (nMon == 5){
+                /*if (nMon == 5){
                     std::cout << "MAX 5 MONOMERS " << std::endl;
                     RateAdd = 0;
-                }
+                }*/
                 double TryDeltaT = logrand()/RateAdd; 
                 //std::cout << "Time add to fiber " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
@@ -364,7 +361,7 @@ class ActinMixedNucleates {
                     _FreeMonomers++;
                     _nTrimers++;
                 } else if (nMon == 2 && HasFormin){
-                    std::cout << "Can't break formin bound dimer - event rejected" << std::endl;
+                    //std::cout << "Can't break formin bound dimer - event rejected" << std::endl;
                     return false;
                 } else { // Structure stays the same
                     _FreeMonomers++;

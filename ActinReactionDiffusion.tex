@@ -1,0 +1,244 @@
+\documentclass[11pt]{article}
+\linespread{1.5} 
+\usepackage{graphicx,epstopdf,subfigure,mathtools,mathrsfs, arydshln, amsmath, amssymb} 
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{float}
+\usepackage{authblk}
+\usepackage[title]{appendix}
+\PassOptionsToPackage{usenames,dvipsnames}{xcolor}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage[normalem]{ulem}
+
+\usepackage{amsfonts}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=false,
+    pdfborder={0 0 0},
+}
+\newcommand{\new}[1]{\color{blue}#1\normalcolor}
+\newcommand{\red}[1]{\color{red}#1\normalcolor}
+\newcommand{\delete}[1]{}
+\newcommand{\change}[1]{\color{black}#1\normalcolor}
+\newcommand{\rev}[1]{\color{black}#1\normalcolor}
+
+
+% VECTOR AND MATRIX NOTATION
+\newcommand{\V}[1]{\boldsymbol{#1}}                 % vector notation
+\newcommand{\M}[1]{\boldsymbol{#1}}
+\global\long\def\Xin{\V{X}^\text{(in)}}
+\global\long\def\Xout{\V{X}^\text{(out)}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert} 
+\newcommand{\Lop}[1]{\boldsymbol{\mathcal{#1}}}
+\newcommand{\C}[1]{c_{#1}} 
+\global\long\def\Rrxn{R_\text{rxn}}
+\global\long\def\kdp{k_d^+}
+\global\long\def\kdm{k_d^-}
+\global\long\def\ktrp{k_\text{tr}^+}
+\global\long\def\ktrm{k_\text{tr}^-}
+\global\long\def\kfp{k_f^+}
+\global\long\def\kfm{k_f^-}
+\global\long\def\kbp{k_b^+}
+\global\long\def\kbm{k_b^-}
+\global\long\def\kpp{k_p^+}
+\global\long\def\kpm{k_p^-}
+\global\long\def\kforn{k_\text{for}^{(n)}}
+\global\long\def\kforp{k_\text{for}^+}
+\global\long\def\kform{k_\text{for}^-}
+\global\long\def\afor{\alpha_\text{for}}
+\global\long\def\Nm{N_1}
+\global\long\def\Nd{N_2}
+\global\long\def\Ntr{N_3}
+
+\title{How cells regulate the type and size of actin structures  \vspace{-0.5 cm}}
+\author{Ondrej Maxian  \vspace{-0.75 cm}}
+
+\begin{document}
+\maketitle
+
+The goal of this write-up is to explore how modeling can help us understand \emph{in vivo} regulation of actin structure and size. We focus on the two predominant types of actin networks: branched structures (which tend to condense into endocytic patches sometimes referred to as ``mini-comets''), and linear structures (which form filopodia and the contractile ring). The branched structures are mediated by the arp 2/3 complex, which binds to existing mother filaments to form branches \cite{pollard2007regulation}, while the latter are mediated by formins, which make screw-like rotations to allow monomers to enter \cite{shemesh2005novel, li2022torque}. Our research question is as follows: how does the cell use a limiting pool of monomers to regulate the type and size of branched vs.\ linear actin structures?
+
+\section{Introduction} 
+Actin can assemble into filamentous structures both via spontaneous nucleation and via formin-mediated assembly \cite{rosenbloom2021mechanism, pollard2007regulation}, after which monomeric actin can bind to the barbed or pointed end. In both nucleation and elongation, the bulk rate is proportional to the amount of available (free) actin monomers \cite{suarez2016internetwork}. As the dissociation rate is not a function of bulk concentration, an equilibrium exists around bulk concentration of 0.1 $\mu$M where a fixed percentage of actin is in monomeric form, with the rest in polymerized form. While the total amount of incorporated actin is therefore fixed, these kinetics do not provide a mechanism for the controlling the size (length) or type (linear vs.\ branched) of actin structures \cite{mohapatra2017limiting}. To control this, the conventional viewpoint is that external or internal signals activate signaling cascades which eventually cause the cell to produce more or less of a particular type of network \cite{martin2005tea4p, pollard2007regulation, suarez2016internetwork}. However, recent experimental evidence has shown that a limiting actin pool must also control the types of structures being produced \cite{burke2014homeostatic}. 
+
+Experiments show that depleting the arp 2/3 complex leads to more filamentous actin networks \cite{rotty2015competition}. Specifically, in fission yeast, inhibition of arp 2/3 by the drug CK-666 leads to new assembly of F-actin, as long as there is sufficient formin present. Subsequent washing out of CK-666 gives disassembly of the ``ectopic'' F-actin and reassembly of dense actin patches \cite{burke2014homeostatic}, indicating that the release of F-actin via disassembly is important for the assembly of new structures \cite{suarez2016internetwork}. On the opposite end, formin depletion also enhances arp 2/3-mediated assembly. In single-mutant formin cells, the density of endocytic actin patches roughly doubles, but the size and lifetime of the patches remains the same \cite{burke2014homeostatic}. This suggests that the mechanism of size control is independent from the mechanism of choosing filamentous vs.\ branched structures. 
+
+The most curious experimental observations have to do with changes in structure when the actin pool changes. If the structures are a function only of the arp 2/3 and formin concentrations, then we would expect changes in actin concentration to decrease each kind of structure in roughly the same proportion. However, experiments in fission yeast show that underexpression of actin favors formin-mediated contractile rings, while overexpression favors arp 2/3 complex mediated actin patches \cite{burke2014homeostatic}. These observations imply that the cell assembles formin-mediated structures ``first'' in some sense, and then assembles arp 2/3 structures with the excess actin, but the kinetics of this process remain unclear.
+
+%\red{There are additional confounding agents that could tip the scales in one direction or the other. We focus on two: profilin and capping protein. In general, the presence of profilin correlates with more filamentous actin structures \cite{suarez2016internetwork}, as actin binding to profilin prevents filament nucleation but allows for barbed end growth \cite{pollard2007regulation}. Depletion of capping protein increases arp 2/3-mediated patches by at least 35\% \cite{suarez2016internetwork}. This is confusing because capping protein competes with formin for barbed ends \cite{kovar2005profilin}, and so we would expect depleting capping protein to increase formin levels and lead to more filamentous actin.}
+
+In addition to reconstituted \emph{in vitro} actin networks, simulations provide a valuable tool to assess the various hypotheses about the kinetics of the competition between arp 2/3 and formin-mediated networks. There is an extensive literature in this area on the size control of \emph{filamentous} actin structures, the results of which can be summarized as follows: when there is competition for a finite pool of subunits, only one quantity is well-defined at steady state, the \emph{total} amount of monomer that is found in filamentous form. This means that the steady state length distribution of individual filaments (or structures) is not well defined \cite{mohapatra2017limiting,harbage2016exact}. In fact, the limiting pool hypothesis predicts that structures with slightly higher on rates will capture all of the monomers at equilibrium, with structures with smaller recruitment rates capturing less. But this is not the behavior we observe \emph{in vivo}, where the balance between branched and filamentous actin is maintained at a relative steady state in time. 
+
+There are a number of potential workarounds to this problem. As shown in \cite{banerjee2022size}, having some inherent mechanism of size control for each individual filament or structure will give a steady state with a unique filament size. One possible mechanism could be fragmentation and annealing, where larger segments, rather than monomers, attach and detach from filaments. At the unique steady state length, fragmentation of longer filaments balances annealing of shorter ones \cite{fass2008stochastic}. Another mechanism for length-dependent attachment rate could occur in vivo from sensing of the cell boundary \cite{mcinally2021scaling}. It has also been shown that considering filaments as part of bundles, whose longest fiber sets the length of the bundle, is able to explain the variance of fiber length in actin bundles  \cite{rosario2023universal}.
+
+Another possibility is that intermediate filament lengths, which occur on timescales of a few hours, are quasi-stable, and that the drift to steady state occurs on very long timescales \cite{hu2007theoretical,suarez2017enough}. This is exactly the case studied in \cite{banerjee2022emergence}, where it was found that spontaneous nucleation of actin filaments gives rise to a quasi-stable, near-uniform length distribution, which can change to exponential in the presence of capping protein. This kind of length-distribution does not match the expected steady state exponential one \cite{edelstein1998models}, because it is only stable on intermediate timescales. Nevertheless, these timescales, which are on the order of tens of minutes to a few hours, are the most relevant in \emph{in vitro} experiments and in the cell itself, where cell-cycle cues typically take place every few hours to change the environment. 
+
+\subsection{The key questions}
+It's clear from these observations that the partitioning between branched and filamentous actin structures is a function of three variables: (1) the bulk actin concentration, (2) the arp 2/3 concentration, and (3) the formin concentration. What we want to use modeling to understand is \emph{how} these three agents combine to generate steady state (or quasi-steady state) structures, and in particular explain the following experimental observations
+\begin{enumerate}
+\item Less arp 2/3 gives more filamentous actin structures. 
+\item Less formins give more branched structures. 
+\item Underexpression of actin gives more filamentous structures.
+\item Overexpression of actin gives more branched structures. 
+\end{enumerate}
+To simulate the dynamics of filamentous and branched actin assembly, in this work we utilize a stochastic simulation algorithm that is based on previous work \cite{fass2008stochastic, banerjee2022emergence} in filamentous structures. Our main contribution here is the simulation of a branched actin network, which is fundamentally different from a filament because its geometry (the number of branches and length of each branch) determines the rate of monomer binding and the possibility of arp 2/3 complex binding to form another branch. 
+
+Because some of the \emph{in vitro} experiments on these systems pattern formin in one place and arp 2/3 complex in another, it will be important to look at the spatial dynamics of the filaments. Yet, because the nucleation reactions are reaction-limited, and because most reaction rates are reported in terms of bulk concentrations, it makes little sense to explicitly track actin monomers in space. Because of this, we settle on a hybrid approach where we treat actin nucleates as bulk quantities, which form fibers at random points in space. Once the fibers form, we track their diffusion explicitly. Because we will not consider hydrodynamic interactions in this system, the Brownian dynamics approach is straightforward \cite{makino2004brownian, delong2015brownian}. While we will not do so in this work, our approach can easily be extended to incorporate explicit forces on the filaments which affect their dynamics. 
+
+We begin this report where others have left off: stochastic simulation of actin filament dynamics. In Section \ref{sec:FilAct}, we review what by now is a well-established approach to the simulation of filament assembly, except that we incorporate the most complete picture of spontaneous nucleation developed in \cite{rosenbloom2021mechanism}. We simulate the dynamics of F-actin assembly both with and without formins, which we assume can both nucleate new filaments and speed the rate of elongation at the barbed end. Then, in Section\ \ref{sec:BF}, we lay out our model of branched filaments, including how they form from a combination of arp 2/3 complex and existing filaments. We then simulate the formation of branched actin structures with and without formin.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}\hline
+Parameter & Description & Value & Units & Ref & Notes \\ \hline
+$a$ & Actin diameter & 4 & nm & & \\
+$\Rrxn$ & Reaction radius & 8 & nm & & One diameter \\
+$k_B T$ & Thermal energy & $4.1 \times 10^{-3}$ & pN$\cdot \mu$m & & \\ 
+$\mu$ & Fluid viscosity & 0.01 & Pa$\cdot$s & & $D=2k_BT/(6 \pi \mu a)\approx 11$ $\mu$m$^2$/s \\  \hline
+$\kdp$ & Dimer formation rate& $3.5 \times 10^{-6}$ & $\mu$M$^{-1}\cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & \\ 
+$\kdp$ & Dimer formation rate& $5.8 \times 10^{-9}$ & $\mu$m$^{3} \cdot$s$^{-1}$ & & 1 $\mu$M=602.2 $\mu$m$^{-3}$ \\
+$\kdm$ & Dimer dissociation rate & 0.041 & s$^{-1}$ & \cite{rosenbloom2021mechanism} &\\ \hline
+$\ktrp$ & Trimer formation rate& $13 \times 10^{-5}$ & $\mu$M$^{-1}\cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & \\ 
+$\ktrp$ & Trimer formation rate& $2.2 \times 10^{-7}$ & $\mu$m$^{3} \cdot$s$^{-1}$ &  & 1 $\mu$M=602.2 $\mu$m$^{-3}$ \\
+$\ktrm$ & Trimer dissociation rate & 22 & s$^{-1}$ & \cite{rosenbloom2021mechanism} &\\ \hline
+$k_b^+$ & Barbed end addition rate& 11.6 & $\mu$M$^{-1}\cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & \\ 
+$k_b^+$ &  Barbed end addition rate& 0.019 & $\mu$m$^{3} \cdot$s$^{-1}$ &  & 1 $\mu$M=602.2 $\mu$m$^{-3}$ \\
+$k_b^-$ & Barbed end dissociation rate & 1.4 & s$^{-1}$ & \cite{rosenbloom2021mechanism} &\\ \hline
+$k_p^+$ & Pointed end addition rate& 1.3& $\mu$M$^{-1}\cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & \\ 
+$k_p^+$ &  Pointed end addition rate& $2.2 \times 10^{-3}$ & $\mu$m$^{3} \cdot$s$^{-1}$ & & 1 $\mu$M=602.2 $\mu$m$^{-3}$ \\
+$k_p^-$ & Pointed end dissociation rate & 0.8 & s$^{-1}$ & \cite{rosenbloom2021mechanism} &\\ \hline
+\end{tabular}
+\caption{\label{tab:params} Parameter values. The trimer rates are only used in simulations with well-mixed monomers and nucleates (Section\ \ref{sec:FilAct} onward). In Section\ \ref{sec:RTM}, we skip the trimer step and treat a dimer as a filament with a barbed and pointed end.}
+\end{center}
+\end{table}
+
+
+
+\section{Stochastic simulations of filamentous actin \label{sec:FilAct}}
+%The previous section showed that the actin nucleation reaction is severely reaction-limited, and that the steady state can be well-approximated assuming that the system is well mixed. Because of this, we seem to be wasting quite a lot of effort tracking the diffusion of individual monomers, especially since tracking them requires us to search for neighbors at every time step. The need to search for reaction neighbors led us to a first-order accurate reaction scheme for simplicity, which limits the time step size so that $k\Delta t \ll 1$, where $k$ is the \emph{fastest} reaction rate (binding of a monomer to a barbed end). Figure\ \ref{fig:FiveRealP} showed that this requires $\Delta t \approx 10^{-4}$ s, and we are interested in simulating timescales on the order of $10^3$ to $10^4$ s. These simulations, while doable, would be quite costly. 
+This section discusses our algorithm for linear filaments. The process of actin polymerization can be separated into a nucleation step and elongation step. In the nucleation step, two actin monomers come together to form a dimer, which then must be joined by another monomer to form a trimer. A trimer has a barbed and pointed end, and monomers can associate at those ends with the same rate as longer filaments. Recently, a fresh look at the parameters for these reactions revealed that the association rates for dimers and trimers are slow \cite{rosenbloom2021mechanism}, such that the rate-limiting step for actin filament formation is the nucleation step. Thus, once filaments are nucleated, they start to grow rapidly, and in small enough systems the dynamics could even reduce to a single filament elongating until the free actin comes to equilibrium. 
+
+As already mentioned in the introduction, we do not explicitly track ``filaments'' (really nucleates) of length 3 or smaller, instead only keeping a count of how many are in the system. Once a tetramer forms, we insert it randomly into the spatial domain and start to track its location explicitly. This allows us to retain some spatial dependence (which will be necessary later when we try to mimic \emph{in vitro} experiments) while not wasting computational time on steps we know are well mixed. Thus, in our system, the key unknowns are the number of monomers, dimers, and trimers, and the length (and coordinates in space) of each filament. 
+
+\subsection{Stochastic simulation algorithm \label{sec:SSA}}
+Let $\Nm$ be the number of free monomers, $\Nd$ be the number of dimers, and $\Ntr$ be the number of trimers. Then the full reaction list is as follows:
+\begin{enumerate}
+\item Dimer formation occurs with rate $(\kdp/V)\Nm^2$. If this reaction is chosen, $\Nm$ decreases by 2 and $\Nd$ increases by 1. 
+\item Dimer breakup occurs with rate $\kdm \Nd$. If this reaction is chosen, $\Nm$ increases by 2 and $\Nd$ decreases by 1. 
+\item Trimer formation occurs with rate $(\ktrp/V)\Nm \Nd $. If this reaction is chosen, $\Nd$ and $\Nm$ decrease by 1 and $\Ntr$ increases by 1. 
+\item Trimer breakup occurs with rate $\ktrm \Ntr$. . If this reaction is chosen, $\Nd$ and $\Nm$ increase by 1 and $\Ntr$ decreases by 1. 
+\item Tetramer formation occurs with rate $(\kfp/V) \Ntr \Nm$, where $\kfp=\kpp+\kbp$ is the rate at which polymers add monomers to the barbed or pointed end. This reaction decreases $\Nm$ and $\Ntr$ by 1. Once a tetramer is created, we track it as an individual entity which can diffuse in space. We refer to these entities as fibers. 
+\item For each fiber, addition of monomers occurs at a rate $(\kfp/V) \Nm$. If this reaction is selected, we add a monomer to the pointed end with probability $p_p^+= \kpp/\kfp$, and add to the barbed end otherwise. We also decrease $\Nm$ by 1. 
+\item For each fiber, removal of monomers occurs at rate $\kfm$, where $\kfm=\kpm+\kbm$.  If this reaction is selected, we remove a monomer from the pointed end with probability $p_p^-=\kpm/\kfm$, and remove from the barbed end otherwise. We also increase $\Nm$ by 1. 
+\end{enumerate}
+We use an exact Gillespie simulation algorithm \cite{gillespie2007stochastic} to simulate these reactions. Letting $F$ be the number of fibers, there are $2F+5$ total reactions with rates $r_i$. We sample a time for these reactions according to an exponential distribution, $\Delta t_i=-\log(u)/r_i$, where $u \in (0,1]$. The reaction chosen is then the one that occurs soonest. We increment time by this minimum amount, then recompute all of the rates and times, repeating until the time step is complete.
+
+\subsection{Validating stochastic simulations with ODEs}
+The algorithm in Section\ \ref{sec:SSA} is a stochastic version of the following ODEs \cite{edelstein1998models}
+\begin{subequations}
+\label{eq:ODEsMix}
+\begin{align}
+\frac{d \Nm}{dt} &= -2 (\kdp/V) \Nm^2 + 2 \kdm \Nd - (\ktrp/V) \Nm \Nd + \ktrm \Ntr + \sum_{j=4}^M \left(- (\kfp/V) \Nm N_{j-1}+\kfm N_j\right)\\
+\frac{d \Nd}{dt} &= (\kdp/V) \Nm^2 - \kdm \Nd -(\ktrp/V) \Nd \Nm + \ktrm \Ntr \\
+\frac{d \Ntr}{dt} &= (\ktrp/V) \Nm \Nd - \ktrm \Ntr - (\kfp/V) \Ntr \Nm + \kfm N_4 \\
+\frac{d N_j}{dt} & = (\kfp/V) \Nm N_{j-1} - \kfm N_j - (\kfp/V) N_j \Nm + \kfm N_{j+1} \qquad 4 \leq j < M \\
+\frac{d N_M}{dt} & = (\kfp/V) \Nm N_{M-1} - \kfm N_M
+\end{align}
+\end{subequations}
+where $M$ represents the maximum number of monomers. Here the cap on the number of monomers is chosen to close the system of equations. Note that these equations could also be written in terms of concentrations instead of number by dividing each side of the equations by the system volume. 
+
+We now validate our stochastic simulations using the ODE system\ \eqref{eq:ODEsMix}. We consider the parameters in Table\ \ref{tab:params}, except that we make the formation of dimers and trimers more favorable by setting $\kdp = 3.5 \times 10^{-3}$ $\mu$M$^{-1}\cdot$s$^{-1}$ and $\ktrp = 1.3$ $\mu$M$^{-1}\cdot$s$^{-1}$ (this represents a factor of 1000 and 10,000 increase over the true values in Table\ \ref{tab:params}, respectively), and use a maximum of $M=5$ monomers per fiber. 
+
+\begin{figure}
+\centering
+\includegraphics[width=0.6\textwidth]{MixedSims.eps}
+\caption{\label{fig:MixedSims}Validating the stochastic simulation algorithm for well-mixed systems. We consider the parameters in Table\ \ref{tab:params}, except that we make the formation of dimers and trimers more favorable by setting $\kdp = 3.5 \times 10^{-3}$ $\mu$M$^{-1}\cdot$s$^{-1}$ and $\ktrp = 1.3$ $\mu$M$^{-1}\cdot$s$^{-1}$, and use a maximum of $M=5$ monomers per fiber. The solution of the ODEs\ \eqref{eq:ODEsMix} is shown as a dashed-dotted line, while the results of stochastic simulations with $\Delta t = 5$ s and $\Delta t = 0.5$ s are shown as circles and solid lines, respectively.  }
+\end{figure}
+
+Using these parameters, we run the stochastic simulation algorithm in Section \ref{sec:SSA} and compare the results to the ODEs\ \eqref{eq:ODEsMix} in Fig.\ \ref{fig:MixedSims}. We observe agreement between the solution of the deterministic ODEs (dashed-dotted lines) and stochastic simulations with arbitrary time step sizes (Fig.\ \ref{fig:MixedSims} shows $\Delta t=5$ and 0.5 s), validating our implementation. Because our stochastic simulation algorithm is exact, there is no temporal error, and we can make the time step arbitrarily large and still obtain the correct results.
+
+\subsection{Simulations of actin polymerization without spatial dynamics}
+We now perform stochastic simulations of actin polymerization using the algorithm in Section\ \ref{sec:SSA} and the real parameters for actin in Table\ \ref{tab:params}. In these simulations, we do not simulate the diffusion of the fibers, as there is no reason to do so if we are not interested in spatial information. We consider systems with various concentrations of monomers (2,5, and 10 $\mu$M) in a box of size $125$ $\mu$m$^3$ (5 $\mu$m on each side, although this is not relevant when we do not have diffusion). 
+
+\begin{figure}
+\centering
+\subfigure[Dynamics of polymerization]{
+\includegraphics[width=0.48\textwidth]{FreeActinTimeConc.eps}
+\includegraphics[width=0.48\textwidth]{FibersTimeConc.eps}}
+\subfigure[Distribution of fiber sizes]{
+\includegraphics[width=\textwidth]{LengthDistsConc.eps}}
+\caption{\label{fig:ActinPolyMix}Stochastic simulations of polymerization dynamics at three different concentrations. (a) The dynamics of polymerization, with the concentration of free monomers shown at left and the number of fibers per unit volume (1 $\mu$m$^3$) shown at right. The number of fibers comes to a steady state when about half the actin is depleted. (b) The distribution of fiber sizes (in terms of the number of monomers) at three different time points for each concentration.}
+\end{figure}
+
+Figure\ \ref{fig:ActinPolyMix} shows the results of our simulations. The top set of plots (Fig.\ \ref{fig:ActinPolyMix}) shows the concentration of free actin and the number of fibers over time. There we see that the number of fibers per volume reaches a steady state before the concentration of free actin does, which indicates that the second half of the decrease in free actin is driven exclusively by incorporation into existing fibers. After a certain amount of time (which depends on the concentration), the concentration of free actin remains relatively constant at 0.17 $\mu$M, and the fibers must exchange monomers with other fibers to grow in length \cite{hu2007theoretical}. 
+
+Similar to \cite{banerjee2022emergence}, we do not concern ourselves with the long-time ``steady state'' distribution of actin filament lengths, which can take days to reach \cite{hu2007theoretical, fass2008stochastic, mohapatra2017limiting}, and instead focus on the length distributions on an intermediate timescale of a 30 minutes to 3 hours, which corresponds to a typical timescale for \emph{in vitro} experiments. Our results for the filament length distributions, which are shown in Fig.\ \ref{fig:ActinPolyMix}(b), match those of \cite{banerjee2022emergence} for spontaneous nucleation of filaments: intermediate timescales show a quasi-stable length distribution which is skewed to the left and quite broad (c.f.\ \cite[Fig.~2c]{banerjee2022emergence}), and higher concentrations have lower mean filament lengths (since more filaments are nucleated faster, the filaments that are nucleated first do not suck up as many monomers prior to nucleation of other filaments). 
+
+\subsection{Incorporating formins}
+We now incorporate formin into the filament dynamics. We assume that formin can do three things,
+\begin{enumerate}
+\item Formin can nucleate filaments by binding two actin monomers in the reaction $F+A+A \rightarrow FA_2$, which is irreversible and has rate $\kforn$ \cite{paul2008role, zweifel2021nucleation}. To accomplish this, we add a reaction to our stochastic simulations in Section \ref{sec:SSA} which describes the binding of formin to two actin monomers with rate $\left(\kforn/V^2\right)N_\text{for}\Nm^2 $. If chosen, we decrease the number of formins by 1 and the number of monomers by 2 and instantiate a fiber with two monomers and formin bound to the bound end. 
+\item This fiber can add monomers to the barbed and pointed ends, with an accelerated rate at the barbed end $\alpha_\text{for}\kbp$. It can also depolymerize from both ends with the normal rates, except that we do not allow formin nucleates (2 monomers + formin) to break apart.
+\item Formin can bind and unbind from existing filament barbed ends, with rates $\kforp$ and $\kform$, respectively. According to our previous definition, a ``filament'' has 4 or more monomers. As such, we only allow formin to bind/unbind from filaments with 4 or more monomers.
+\end{enumerate}
+
+\begin{table}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}\hline
+Parameter & Description & Value & Units & Ref & Notes \\ \hline
+$\kforn$ & Filament nucleation by formin & $2 \times 10^{-4}$ & $\mu$M$^{-2}\cdot$s$^{-1}$& \cite{paul2008role} & \\ 
+$\kforn$ & Filament nucleation by formin & $5.5 \times 10^{-10}$ & $\mu$m$^{6} \cdot$s$^{-1}$ & \cite{paul2008role} & 1 $\mu$M=602.2 $\mu$m$^{-3}$ \\ 
+$\kforp$ & Formin association to barbed ends& 29.1 & $\mu$M$^{-1} \cdot $s$^{-1}$ & \cite{shekhar2015formin}& \\
+$\kforp$ & Formin association to barbed ends&0.048 & $\mu$m$^{3} \cdot$s$^{-1}$ & \cite{shekhar2015formin}& 1 $\mu$M=602.2 $\mu$m$^{-3}$ \\
+$\kform$ & Formin dissociation from barbed ends& $8.1 \times 10^{-5}$ & s $^{-1}$ & \cite{shekhar2015formin}& \\
+$\afor$ & Enhanced growth for formin barbed ends & 1--10 & & &\\ \hline
+\end{tabular}
+\caption{\label{tab:paramsF} Parameter values for formin.}
+\end{center}
+\end{table}
+
+\subsection{Results with formin filament nucleation}
+\begin{figure}
+\centering
+\includegraphics[width=0.48\textwidth]{FreeMonConcFormin.eps}
+\includegraphics[width=0.48\textwidth]{FractionFreeFormin.eps}
+\includegraphics[width=0.6\textwidth]{FibersPerVolFormin.eps}
+\caption{\label{fig:ActinNucWithFormin}Dynamics of actin polymerization (at 5 $\mu$M) when formin nucleates actin filaments. Top left: the concentration of free actin monomers over time. The colors correspond to different formin concentrations. Top right: the fraction of free formins over time. Bottom: the number of fibers per unit volume. Once again, each color represents a different formin concentration. Here, however, the solid lines give the total density of filaments per volume, while the dotted lines give the density of formin-bound filaments.}
+\end{figure}
+
+We now consider how nucleating filaments with formin affects the dynamics of actin polymerization at a fixed actin concentration of 5 $\mu$M. Figure\ \ref{fig:ActinNucWithFormin} shows the concentration of free monomers, fraction of free formins, and fiber density (with and without bound formins) from simulations lasting 2000 s, in which we include formin at concentrations varying from 0 to 5 nM. At low ($\leq 0.2$ nM) formin concentrations, the dynamics closely resemble the spontaneous nucleation case; we see that it takes about 1500 s to reach the steady state concentration of free monomers, and that at these time points all of the formins are bound to filaments (the fraction of free formins is about zero). At these low formin concentrations, there are a substantial number of filaments which are \emph{not} attached to formin, since there are not enough formins available to bind all the filaments. As we increase the formin concentration, more formins become available. These formins bind rapidly to actin monomers to nucleate filaments, and the time to reach the steady state free monomer concentration drops drastically. At high formin (1 nM or higher) concentrations, there are at least 50\% free formins at all times, and every filament has an attached formin. 
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{LengthHistsFormin.eps}
+\caption{\label{fig:HistsWithFormin}Length distribution for actin filaments in simulations with formin of varying concentrations. We show the distributions at three time points ($t=500$ s in blue, $t=1000$ s in red, and $t=2000$ s in yellow) of fiber sizes (in terms of the number of monomers) at three different time points for each concentration. The distributions become more uniform (smaller range) as the formin concentration increases.}
+\end{figure}
+
+How do these dynamics affect the length distribution of fibers? As shown in Fig.\ \ref{fig:HistsWithFormin}, and as previously reported in \cite{banerjee2022emergence}, an increase in the formin concentration leads to the nucleation of more filaments at early times, which translates to a smaller mean and standard deviation in the number of monomers per filament (a more uniform distribution of filament lengths). In our results, at high formin concentrations we start to see a drift in the distribution at late times (see $t=2000$ for 5 nM formin), which reflects the fact that the length distribution we report here is \emph{not} the true steady state, but the quasi-steady state that is reached before the exchange of monomers on existing fibers \cite{mohapatra2017limiting}.
+
+\subsubsection{Faster formin-induced elongation}
+Now that we have looked at the role of formin in \emph{nucleating} filaments, we need to consider its role in \emph{lengthening} filaments. As has already been noted \cite{banerjee2022emergence}, when all the fibers have bound formins, the dynamics are relatively uninteresting, since the elongation rate, though faster than the base rate, is still the same on every filament. The interesting dynamics come when some of the filaments are formin-bound and others are not. For this reason, in this section we fix the actin concentration at 5 $\mu$M and the formin concentration at 0.12 nM, so that we would expect about 1/2 of the filaments to be formin bound (this is an interpolation between 0.1 nM and 0.2 nM in Fig.\ \ref{fig:ActinNucWithFormin}). 
+
+\begin{figure}
+\centering
+\subfigure[Dynamics of polymerization]{
+\includegraphics[width=0.48\textwidth]{FreeMonForminAlpha.eps}
+\includegraphics[width=0.48\textwidth]{NFibsForminAlpha.eps}}
+\subfigure[Distribution of fiber sizes]{
+\includegraphics[width=\textwidth]{LengthDistsForminAlpha.eps}}
+\caption{\label{fig:ForminAlpha}How the barbed-end growth rate with formin attached affects polymerization dynamics and fiber distribution. (a) The dynamics of polymerization, with the concentration of free monomers shown at left and the number of fibers per unit volume (1 $\mu$m$^3$) shown at right (the amount of free formin, which in all cases decays to zero on the same timescale, is not shown here). In the plot at right, the colors represent the different values of $\afor$, the solid lines are the total amount of fibers, and the dotted lines are fibers with bound formins. (b) The distribution of fiber sizes (in terms of the number of monomers) at three different time points ($t=500$, $t=1000$, and $t=2000$) for the three values of $\afor$.}
+\end{figure}
+
+Based on previous studies \cite{zweifel2021nucleation, funk2019profilin}, we consider the possibility that formin could both enhance ($\afor > 1$) and reduce ($\afor < 1$) affinity for monomer binding to the barbed end. We will in particular consider values $\afor=0.5, 1$, and 2. In Fig.\ \ref{fig:ForminAlpha}, we plot the time course of polymerization and the fiber length distribution for these three values of $\afor$. In all cases, the number of \emph{formin-bound} fibers is the same, since formin is the limiting reactant here and all of it is bound to the fibers at steady state. Larger values of $\afor$ (faster speeds of polymerization at the barbed end) reduce the amount of monomers for spontaneous nucleation; consequently, the amount of fibers without formin-bound barbed ends decreases for higher barbed-end elongation rates \cite{banerjee2022emergence}.
+
+The quasi-steady length distributions are a strong function of the barbed-end elongation rate. We begin with $\afor=1$, which is the center plot in Fig.\ \ref{fig:ForminAlpha}(b), for which we see our typical quasi-steady length distribution. When we drop to $\afor=0.5$, the formin bound fibers grow more slowly, and there is more spontaneous nucleation of filaments at later times. We therefore see a decrease in the mean and peak filament lengths. On the other hand, when we increase to $\afor=2$, the peak filament length ($2 \times 10^4$ monomers) is roughly unchanged, but there emerges a certain bimodality to the distribution as formin-bound fibers grow at double the rate of non-formin-bound ones, which is responsible for the second peak at roughly $4 \times 10^4$ monomers.
+
+\section{Stochastic simulations of branched filaments \label{sec:BF}}
+
+
+\bibliographystyle{plain}
+
+\bibliography{../../PolarizationBib}
+
+
+\end{document}

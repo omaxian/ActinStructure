@@ -1,0 +1,304 @@
+\documentclass[11pt]{article}
+\linespread{1.5} 
+\usepackage{graphicx,epstopdf,subfigure,mathtools,mathrsfs, arydshln, amsmath, amssymb} 
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{float}
+\usepackage{authblk}
+\usepackage[title]{appendix}
+\PassOptionsToPackage{usenames,dvipsnames}{xcolor}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage[normalem]{ulem}
+
+\usepackage{amsfonts}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=false,
+    pdfborder={0 0 0},
+}
+\newcommand{\new}[1]{\color{blue}#1\normalcolor}
+\newcommand{\red}[1]{\color{red}#1\normalcolor}
+\newcommand{\delete}[1]{}
+\newcommand{\change}[1]{\color{black}#1\normalcolor}
+\newcommand{\rev}[1]{\color{black}#1\normalcolor}
+
+
+% VECTOR AND MATRIX NOTATION
+\newcommand{\V}[1]{\boldsymbol{#1}}                 % vector notation
+\newcommand{\M}[1]{\boldsymbol{#1}}
+\global\long\def\Xin{\V{X}^\text{(in)}}
+\global\long\def\Xout{\V{X}^\text{(out)}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert} 
+\newcommand{\Lop}[1]{\boldsymbol{\mathcal{#1}}}
+\newcommand{\C}[1]{c_{#1}} 
+\global\long\def\Rrxn{R_\text{rxn}}
+\global\long\def\kdp{k_d^+}
+\global\long\def\kdm{k_d^-}
+\global\long\def\ktrp{k_\text{tr}^+}
+\global\long\def\ktrm{k_\text{tr}^-}
+\global\long\def\kfp{k_f^+}
+\global\long\def\kfm{k_f^-}
+\global\long\def\kbp{k_b^+}
+\global\long\def\kbm{k_b^-}
+\global\long\def\kpp{k_p^+}
+\global\long\def\kpm{k_p^-}
+\global\long\def\kforn{k_\text{for}^{(n)}}
+\global\long\def\kforp{k_\text{for}^+}
+\global\long\def\kform{k_\text{for}^-}
+\global\long\def\afor{\alpha_\text{for}}
+\global\long\def\Nm{N_1}
+\global\long\def\Nd{N_2}
+\global\long\def\Ntr{N_3}
+
+\title{How cells regulate the type and size of actin structures  \vspace{-0.5 cm}}
+\author{Ondrej Maxian  \vspace{-0.75 cm}}
+
+\begin{document}
+\maketitle
+
+\section{Diffusion \label{sec:Diff}}
+The first thing we do in building up our model is to consider the diffusion of an actin structure with arbitrary configuration. We will assume that the actin structures are
+\begin{enumerate}
+\item Made of $N$ spheres of radius $a$
+\item Moving as rigid bodies
+\end{enumerate}
+
+\subsection{Kinematics and mobility}
+Let us denote the structure by the array $\V{X}$. When moving as a rigid body, the structure has velocity 
+\begin{equation}
+\V{U} = \V{U}_\text{COM}+\V{\Omega} \times \left(\V{X}-\V{X}_\text{COM}\right):=\M{K}[\V{X}]\V{\alpha}
+\end{equation}
+where $\V{X}_\text{COM}=N^{-1} \sum \V{X}_p$ denotes the center of mass and $\V{U}_\text{COM}$ denotes the velocity of the center of mass. Following the formulation in \cite{delong2015brownian}, the mobility matrix which relates the total force and torque on the body to its translational and angular velocity is given by 
+\begin{equation}
+\M{N} = \left(\M{K}^T \M{M}^{-1} \M{K}\right)^\dagger,
+\end{equation}
+where $\dagger$ denotes the pseudo-inverse and $\M{M}=\M{I}/(6\pi \mu a)$ is the mobility of the particles absent the constraint ($\M{M}^{-1}$ is the drag coefficient). Here we are not incorporating any hydrodynamics, so the mobility is simply 
+\begin{equation}
+\M{N} =\frac{1}{6 \pi \mu a} \left(\M{K}^T \M{K}\right)^\dagger = \begin{pmatrix} \M{N}_\text{tt} & \M{0} \\ \M{0} & \M{N}_\text{rr} \end{pmatrix}.
+\end{equation}
+Here there is no coupling between rotation and translation when we measure the mobility about the center of mass. This is a consequence of using the simple hydrodynamic mobility; see \cite[Sec.~IV(A)]{delong2015brownian} for more discussion.
+
+\subsection{Langevin equation}
+The Ito Langevin equation describing diffusion of the body is given by \cite{makino2004brownian}
+\begin{equation}
+d\begin{pmatrix}\V{X}_\text{COM} \\ \V{\tau} \end{pmatrix}
+ = \sqrt{2 k_B T} \M{N}^{1/2} d\Lop{W},
+\end{equation}
+where $d\Lop{W}$ is a 6-vector of Brownian motion increments with the property $\langle d\Lop{W} d\Lop{W}^T \rangle = \M{N}\Delta t$, and $\V{\tau}$ describes any material vector attached to the body. Note that there are no stochastic drift terms because the mobility is measured about the center of mobility \cite{makino2004brownian}. \red{Still not quite written correctly.} A numerical method to solve this equation is to \cite{delong2015brownian}
+\begin{enumerate}
+\item Compute $\M{N}\left[\V{X}\right]$
+\item Set $$\begin{pmatrix} \V{U}_\text{COM} \\ \V{\Omega} \end{pmatrix} = \V{\alpha} =\sqrt{\frac{2 k_B T}{\Delta t}} \M{N}^{1/2}\V{\xi},$$
+where $\V{\xi}$ is a vector of six standard i.i.d.\ Gaussian random numbers.
+\item Evolve the center of mass by $\V{X}_\text{COM}^{(n+1)}=\V{X}_\text{COM}^{(n)}+\Delta t \V{U}_\text{COM}$ and rotate the tangent vectors of each fiber by $\V{\Omega} \Delta t$.
+\end{enumerate}
+In practice, because of (de)polymerization, it will be more practical to track the endpoint $\V{X}_0$. So, we update the center of mass and evolve the tangent vectors, then compute a new $\V{X}_0$ via 
+$$\V{X}_0^{(n+1)}=\V{X}_\text{COM}^{(n+1)}+\text{rotate}\left(\V{X}_0^{(n)}-\V{X}_\text{COM}^{(n)},\Delta t \V{\Omega}\right)$$
+
+\subsection{Theory}
+We now examine the translational and rotational diffusion of particles in free space, for which we have theoretical results \cite{makino2004brownian}. Let $\Delta \V{X}_c(t) = \V{X}_\text{COM}(t)-\V{X}_\text{COM}(0)$, then 
+\begin{equation}
+\label{eq:tdiff}
+\langle \Delta \V{X}_c(t) \cdot \Delta \V{X}_c(t) \rangle = 2 k_B T \text{trace}\left( \V{N}_\text{tt}\right)t.
+\end{equation}
+Likewise, let $\V{u}_1$ be the eigenvector of $\V{N}_\text{rr}$ with maximum eigenvalue, and suppose that we express $\V{u}_1$ in terms of the material frame at $t=0$. Then 
+\begin{equation}
+\label{eq:rdiff}
+\langle \V{u}_1(t) \cdot \V{u}_1(0) \rangle = e^{-\alpha t} \qquad \alpha = k_B T \left(\lambda_2+\lambda_3\right),
+\end{equation}
+where $\lambda_2$ and $\lambda_3$ are the two smallest eigenvalues of $\M{N}_\text{rr}$.
+
+In all simulations in this section, we set $k_B T=4.1 \times 10^{-3}$ pN$\cdot \mu$m, $a=0.004$ $\mu$m and $\mu=1$ Pa$\cdot$s.  
+
+\subsection{Monomers}
+In the case of monomers, there is no rotational diffusion, $\M{N}_\text{tt}=1/(6 \pi \mu a)$ and\ \eqref{eq:tdiff} simplifies to 
+\begin{equation}
+\label{eq:tdiffMon}
+\langle \Delta \V{X}_c(t) \cdot \Delta \V{X}_c(t) \rangle = \frac{k_B T}{\pi \mu a}t
+\end{equation}
+In Fig.\ \ref{fig:MonDiff}, we perform simulations with 1000 monomers, repeated 10 times to generate error bars. We observe perfect agreement between our simulation and theory.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.6\textwidth]{MonomerDiff.eps}
+\caption{\label{fig:MonDiff}Diffusion of monomers. The blue line shows the MSD as a function of time, and the black line shows the theory\ \eqref{eq:tdiffMon}.}
+\end{figure}
+
+\subsection{Fibers}
+Continuing on to linear fibers, we perform simulations with 10 fibers, repeated 10 times to generate error bars. Each fiber contains 10 monomers. The results in Fig.\ \ref{fig:LinearDiff} show agreement between simulations and theory.
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{LinearDiffusion.eps}
+\caption{\label{fig:LinearDiff}Diffusion of linear fibers. The left plot shows translational diffusion, for which we compare the data in blue to the theory\ \eqref{eq:tdiff} in black, while the right plot shows rotational diffusion, for which we compare the data in blue to the theory\ \eqref{eq:rdiff} in black.}
+\end{figure}
+
+
+\subsection{Branched fibers}
+\begin{figure}
+\centering
+\includegraphics[width=0.6\textwidth]{TheBranchedFiber.eps}
+\caption{\label{fig:BranchFib}The branched fiber we use for our diffusion test. Axis is in $\mu$m.}
+\end{figure}
+
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{BranchedDiffusion.eps}
+\caption{\label{fig:BranchedDiff}Diffusion of branched fibers.  The left plot shows translational diffusion, for which we compare the data in blue to the theory\ \eqref{eq:tdiff} in black, while the right plot shows rotational diffusion, for which we compare the data in blue to the theory\ \eqref{eq:rdiff} in black.}
+\end{figure}
+
+We have a lot of freedom for branched fibers. We fix the geometry as shown in Fig.\ \ref{fig:BranchFib}. There are 18 monomers here, 10 on the longest fiber, then 5 on the one attached, and then 3 on the small output. As before, we simulate this fiber 10 times to generate a mean, then repeat this 10 times to generate error bars. Results in Fig.\ \ref{fig:BranchedDiff} show agreement between experiments and theory.
+
+\section{Reaction network tracking individual monomers \label{sec:RTM}}
+To begin, we will restrict our reaction kinetics to a system of monomers and \emph{linear} fibers. The formation of a ``fiber'' will occur with two monomers, after which we add monomers to the pointed and barbed ends. There are therefore six reactions in our system:
+\begin{enumerate}
+\item Two monomers becoming a fiber of length two: $A+A \xrightarrow{\lambda_m} A_2$. This reaction occurs (with rate $\lambda_m$ (units 1/time)) if two monomers are within a distance $\Rrxn$ of each other. In this case, we choose one of the two monomers at random as the fiber ``starting point,'' then choose a random tangent vector $\V{\tau}$ on the unit sphere. The second monomer is inserted a fixed spacing $\Delta s=2a$ apart in this direction $\V{\tau}$.
+\item A two-monomer fiber becoming two individual monomers: $A_2 \xrightarrow{\nu_m} A+A$. This reaction occurs with rate $\nu_m$ (units 1/time), and is the reverse of the two-monomer binding reaction. We choose one monomer at random to keep in place, then set the location of the other one in a random location inside of the reactive sphere of radius $\Rrxn$ centered around the first (fixed) particle.
+\item A fiber adding to its barbed/pointed end: $A + A_n \xrightarrow{\lambda_{b/p}} A_{n+1}$. This reaction occurs with the corresponding rate at each end if the monomer $A$ is within the reactive sphere of radius $\Rrxn$. 
+\item A fiber depolymerizing from its barbed/pointed end: $A_n \xrightarrow{\nu_{b/p}} A_{n-1}+A$. If this reaction occurs, we place the new monomer $A$ randomly in the reactive sphere of radius $\Rrxn$ centered around the barbed/pointed end of the fiber.
+\end{enumerate}
+To process these reactions efficiently, at the beginning of each time step we construct a list of all actin monomers that are within $\Rrxn$ of each other (this list includes monomers that are bound to fibers). Then, we process all possible \emph{binding} reactions. By ``process,'' we simply loop through the list of pairs of monomers. A reaction can occur between two monomers if they are either (a) both monomers or (b) one is a monomer and one is at the pointed/barbed end. If the reaction has rate $\lambda$, it occurs if $r < \lambda \Delta t$, where $r$ is a random number from the uniform distribution $U[0,1]$ and $\Delta t$ is the time step over which we evolve the reaction network. After processing the binding reactions, we then repeat for the unbinding reactions. We note that this first order way of treating the reactions avoids the complication of having to update neighbor lists when particles bind and unbind from fibers (see \cite{donev2018efficient} for such a treatment). 
+
+\subsection{Free monomers and two-monomer ``fibers''}
+As a first step toward validating the code and an exercise in computing macroscopic reaction rates from microscopic ones, we consider a simplified network where $\lambda_{b/p}=0$; i.e., where two-monomer fibers cannot add to their barbed/pointed ends. The monomers therefore cycle between dimers and free monomers, which can be described by the \emph{macroscopic} equilibrium
+\begin{subequations}
+\begin{gather}
+k_d^- \C{A_2} = k_d^+ \C{A}^2 \\
+2\C{A_2}+\C{A} = \C{0},
+\end{gather}
+\end{subequations}
+where $\C{0}$ represents the total actin concentration in units of number per volume. This is a system of two equations for the unknowns $\C{A}$ and $\C{A_2}$ and ultimately results in solving the quadratic equation
+\begin{equation}
+\label{eq:quadA}
+k_d^+ \C{A}^2 + \frac{k_d^-}{2} \C{A} - \frac{k_d^- \C{0}}{2} = 0
+\end{equation}
+for $\C{A}$. The steady state concentration of dimers is then given by $\C{A_2}=\left(\C{0}-\C{A}\right)/2$. Our goal is to verify that this is what our code outputs.
+
+\subsubsection{Macroscopic rate constants from microscopic ones}
+Prior to doing this, we need to determine how to extract the constants $k^-$ (units 1/time) and $k^+$ (units volume/time) from the microscopic parameters. The first of these is simple; since the macroscopic depolymerization and microscopic depolymerization are the same process, we have $k^-=\nu_m$. The same is not true of polymerization, since $k^-$ describes the speed at which monomers diffuse to find other monomers \emph{and} react to generate a dimer.
+
+In the case of low densities, the macroscopic reaction rate is related to the microscopic rate $\lambda$ via \cite{erban2009stochastic}
+\begin{equation}
+\label{eq:erban}
+k^+:=k^+_0 = 2 \pi D \Rrxn \left(1-\sqrt{\frac{D}{\lambda \Rrxn^2}} \text{tanh}\left(\sqrt{\frac{\lambda \Rrxn^2}{D}}\right)\right).
+\end{equation}
+As an approximation, we will set the diffusion coefficient $D=2k_BT/(6 \pi \mu a)$ to be equal to that of the \emph{monomers}, although the dimers will diffuse slightly slower.
+
+For finite packing densities, the nature of the process is fundamentally different depending on if it is reaction limited or diffusion limited, as discussed in \cite{donev2018efficient}. The boundary between the two is defined by the dimensionless number
+\begin{equation}
+\label{eq:RDrat}
+r = \frac{\lambda \Rrxn^2}{D}=\lambda \Rrxn^2 \frac{2 k_B T}{6 \pi \mu a},
+\end{equation}
+where $r \ll 1$ denotes a reaction-limited process and $r \gg 1$ is a diffusion-limited process. In the case when the process is reaction-limited, the system is mixed uniformly, and the rate of the forward reaction is simply the probability of finding a molecule in the reactive sphere of radius $\Rrxn$ (which equals $V_\text{rxn} \C{A}$), times the rate that the reaction occurs (equal to $\lambda$), times the number of $A$ molecules in the system. This results in a forward rate constant \cite[Eq.~(2)]{donev2018efficient}
+\begin{equation}
+\label{eq:kmix}
+k^+=k^+_\text{mix} = \frac{1}{2}\frac{4 \pi}{3} \Rrxn^3 \lambda.
+\end{equation}
+The case of diffusion-limited reactions at finite packing density is more complicated, and there are only empirical results for different algorithms in the literature. Our view is that if we verify our algorithm on reaction-limited processes, and confirm that it works for diffusion-limited processes at low densities, this is sufficient to declare it validated.
+
+\subsubsection{Simulation results in well-mixed systems \label{sec:simres}}
+We set up a system of 1000 monomers inside of a 1 $\mu$m$^3$ volume, which corresponds to a concentration of about 1.6 $\mu$M (1 $\mu$M=602 molecules per $\mu$m$^3$), but a packing fraction of $\phi=2.7 \times 10^{-4}$, so that the system is quite dilute and the formula\ \eqref{eq:erban} should still work well. For reaction rates, we fix $\lambda_m=10$, $\nu_b=5$, and $\nu_p=7$  (so that $\nu_m=12$) s$^{-1}$, and keep our typical units of $k_B T=4.1 \times 10^{-3}$ pN$\cdot \mu$m, $a=0.004$ $\mu$m, with $\Rrxn = 10a$ (this reaction radius is artificially large to generate more dimers). We then use the system viscosity as a control knob to tune the reaction-diffusion limited nature of the system. 
+
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{SteadyStateDimer_RxnLimited.eps}
+\caption{\label{fig:RxnLimited}Verifying we obtain the correct mean number of dimers when the system is reaction limited. We consider only monomers and dimers with the parameters detailed at the start of Section\ \ref{sec:simres}, and set $\mu=0.068$, so that $r=0.01$ in\ \eqref{eq:RDrat}. Left: the number of dimers per $\mu$m$^3$ over time in our algorithm with two different $\Delta t$ values (the smaller $\Delta t = 10^{-3}$ has smaller errors). We compare to the theoretical value obtained by solving\ \eqref{eq:quadA} in black. Right: diffusion of the monomers vs.\ the theory, confirming that, in this regime, reaction is \emph{not} enhancing diffusion.}
+\end{figure}
+
+
+We begin with the viscosity $\mu=0.068$ Pa$\cdot$s, so that $r=0.01$ in\ \eqref{eq:RDrat}. In this case the result of\ \eqref{eq:erban} for the forward rate $k_d^+$ is indistinguishable from the well-mixed case\ \eqref{eq:kmix}, and the solution of\ \eqref{eq:quadA} is $\C{A_2}=78.9$/$\mu$m$^3$ in both cases. In Fig.\ \ref{fig:RxnLimited}, we verify that our algorithm gives this mean as the time step size shrinks to 0. To do this, we generate 10 trajectories to obtain a mean number of dimers, then repeat five times to generate error bars. A confidence interval is obtained by averaging over the last half of the trajectory (which from Fig.\ \ref{fig:RxnLimited} is clearly in steady state), for which we obtain $\C{A_2}=73.2 \pm 0.7$ $\mu$m$^{-3}$ for $\Delta t =10^{-2}$ s and $\C{A_2}=77.8 \pm 0.7$ $\mu$m$^{-3}$ for $\Delta t =10^{-3}$ s. This establishes that our algorithm gives the correct result in the reaction-limited case (at least within statistical errors). 
+
+\subsubsection{When reaction enhances diffusion}
+Moving onto cases which are not diffusion limited, we increase the viscosity to $\mu=0.68$, so that $r=0.1$ in\ \eqref{eq:RDrat}. We repeat the same test as in Fig.\ \ref{fig:RxnLimited} and show the results in Fig.\ \ref{fig:TenMoreDiff}. This time, we see a deviation from expectations, as we obtain the confidence intervals $\C{A_2}=71.9 \pm 0.3$ $\mu$m$^{-3}$ for $\Delta t =10^{-2}$ and $\C{A_2}=78.7 \pm 1.5$ $\mu$m$^{-3}$ for $\Delta t =10^{-3}$, while the theoretical value is 76.9 $\mu$m$^{-3}$, which is slightly outside our confidence interval as $\Delta t \rightarrow 0$. 
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{SteadyStateDimer_RxnX10.eps}
+\caption{\label{fig:TenMoreDiff}Increasing viscosity to $\mu=0.68$ so that $r=0.01$ in\ \eqref{eq:RDrat}. We show the same quantities as in Fig.\ \ref{fig:RxnLimited}. Left: the number of dimers over time in our algorithm with two different $\Delta t$ values (the smaller $\Delta t = 10^{-3}$ has smaller errors). We compare to the theoretical value obtained by solving\ \eqref{eq:quadA} in black. Right: diffusion of the monomers vs.\ the theory. This time, we see enhanced diffusion by about a factor of 1.5; this has the effect of decreasing the viscosity by about 1.5. }
+\end{figure}
+
+The errors we make can be understood in terms of the enhanced diffusion we obtain from reactions. In the right panel of Fig.\ \ref{fig:TenMoreDiff}, we plot the diffusion of the monomers over time, observing significantly larger displacement over the theoretical expectation when $\mu=0.68$. In particular, the diffusion coefficient is enhanced by a factor of about 1.5 (in terms of absolute, the diffusion coefficient increases by 0.25 $\mu$m$^2$/s). When we obtain a new viscosity from this, we get $\mu=0.44$, which we see is a better fit (predicted \# of dimers is 77.7) to our data, although we show in Fig.\ \ref{fig:RxnOnly}  that the diffusion we get from reaction alone is not of the form $\Delta X^2 \propto t$. 
+
+We note that there is a huge problem with this algorithm if we actually want to simulate the diffusion-limited regime. The enhancement of the diffusion coefficient scales like $\Rrxn^2 \lambda_m$, but the ratio in\ \eqref{eq:RDrat} has precisely this in the numerator! So, the ratio $r$ is bounded above by 1 using this numerical method, and we cannot simulate the diffusion-limited regime. 
+
+To understand if this is important, an actin monomer has diffusion coefficient 13.7 $\mu$m$^2$/s, while the reaction radius is at most 0.01 $\mu$m$^2$. Then the reaction rate would have to be 1370/s just to reach $r=0.01$, which is unrealistically large. So it seems that the well-mixed assumption is a good one for this system, and we can move on in the well-mixed regime.
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{SteadyStateDimer_RxnOnly.eps}
+\caption{\label{fig:RxnOnly}Same plot as Fig.\ \ref{fig:TenMoreDiff}, but without any diffusion. This illustrates the enhanced diffusion we obtain from reactions.}
+\end{figure}
+
+
+\subsection{Up to five monomers}
+Let us now suppose that we can have fibers with up to five monomers in them. Then the system of equations we need to solve is \cite{edelstein1998models}
+\begin{subequations}
+\label{eq:fivemons}
+\begin{gather}
+k_f^-  \C{A_5} = k_f^+ \C{A_4} \C{A}\\
+k_f^-  \C{A_4} = k_f^+ \C{A_3} \C{A}\\
+k_f^-  \C{A_3} = k_f^+ \C{A_2} \C{A}\\
+k_d^- \C{A_2} = k_d^+ \C{A}^2 \\
+5\C{A_5}+4\C{A_4}+3\C{A_3}+2\C{A_2}+\C{A} = \C{0}. 
+\end{gather}
+\end{subequations}
+Here $k_f^-=k_p^-+k_b^-$ is the rate at which polymers lose a monomer from the pointed or barbed end, and $k_f^+=k_p^++k_b^+$ is the rate at which monomers are added at the pointed/barbed end. In the well-mixed regime, the rate constants are given from the binding and unbinding rates as
+\begin{equation}
+\label{eq:rateconsts}
+k_d^+ = \frac{1}{2}\frac{4 \pi}{3} \Rrxn^3 \lambda_m \qquad k_d^- = \nu_m \qquad k_f^+ = \frac{4 \pi}{3} \Rrxn^3 \left(\lambda_b+\lambda_p\right) \qquad k_f^- = \nu_b+\nu_p.
+\end{equation}
+We again consider 1000 monomers with $a=0.004$, $k_B T = 4.1 \times 10^{-3}$, and $\mu=0.068$, and set the rates according to $\lambda_m=12$, $\nu_m=5$, $\lambda_b=2$, $\lambda_p=4$, $\nu_b=1.5$, and $\nu_p=2.5$. We again use the artificially large $\Rrxn = 2.5a$. Figure\ \ref{fig:ManyMons} confirms that our numerical method gives the corrrect results in the well-mixed regime. 
+
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{SteadyStateAll.eps}
+\caption{\label{fig:ManyMons}Steady state number per $\mu$m$^{-3}$ for fibers with up to five monomers. Theory is the solution of\ \eqref{eq:fivemons} with rate constants given by\ \eqref{eq:rateconsts}. The parameters we use are $\lambda_m=12$, $\nu_m=5$, $\lambda_b=2$, $\lambda_p=4$, $\nu_b=1.5$, and $\nu_p=2.5$.}
+\end{figure}
+
+\subsection{Using the real actin parameters}
+\begin{table}
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|}\hline
+Parameter & Description & Value & Units & Ref & Notes \\ \hline
+$a$ & Actin diameter & 4 & nm & & \\
+$\Rrxn$ & Reaction radius & 8 & nm & & One diameter \\
+$k_B T$ & Thermal energy & $4.1 \times 10^{-3}$ & pN$\cdot \mu$m & & \\ 
+$\mu$ & Fluid viscosity & 0.01 & Pa$\cdot$s & & $D=2k_BT/(6 \pi \mu a)\approx 11$ $\mu$m$^2$/s \\  \hline
+$\kdp$ & Dimer formation rate& $3.5 \times 10^{-6}$ & $\mu$M$^{-1}\cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & \\ 
+$\kdp$ & Dimer formation rate& $5.8 \times 10^{-9}$ & $\mu$m$^{3} \cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & 1 $\mu$M=602.2 $\mu$m$^{-3}$ \\
+$\lambda_m$ & Rate of 2 monomer reaction & $5.4 \times 10^{-3}$& s$^{-1}$ & \eqref{eq:rateconsts} & \\
+$\kdm=\nu_m$ & Dimer dissociation rate & 0.041 & s$^{-1}$ & \cite{rosenbloom2021mechanism} &\\ \hline
+$\ktrp$ & Trimer formation rate& $13 \times 10^{-5}$ & $\mu$M$^{-1}\cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & \\ 
+$\ktrp$ & Trimer formation rate& $2.2 \times 10^{-7}$ & $\mu$m$^{3} \cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & 1 $\mu$M=602.2 $\mu$m$^{-3}$ \\
+$\ktrm$ & Trimer dissociation rate & 22 & s$^{-1}$ & \cite{rosenbloom2021mechanism} &\\ \hline
+$k_b^+$ & Barbed end addition rate& 11.6 & $\mu$M$^{-1}\cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & \\ 
+$k_b^+$ &  Barbed end addition rate& 0.019 & $\mu$m$^{3} \cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & 1 $\mu$M=602.2 $\mu$m$^{-3}$ \\
+$\lambda_b$ & Barbed end reaction rate & $9.0 \times 10^{3}$& s$^{-1}$ & \eqref{eq:rateconsts} & \\
+$k_b^-=\nu_b$ & Barbed end dissociation rate & 1.4 & s$^{-1}$ & \cite{rosenbloom2021mechanism} &\\ \hline
+$k_p^+$ & Pointed end addition rate& 1.3& $\mu$M$^{-1}\cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & \\ 
+$k_p^+$ &  Pointed end addition rate& $2.2 \times 10^{-3}$ & $\mu$m$^{3} \cdot$s$^{-1}$ & \cite{rosenbloom2021mechanism} & 1 $\mu$M=602.2 $\mu$m$^{-3}$ \\
+$\lambda_p$ & Pointed end reaction rate & $1.0 \times 10^{3}$& s$^{-1}$ & \eqref{eq:rateconsts} & \\
+$k_p^-=\nu_p$ & Pointed end dissociation rate & 0.8 & s$^{-1}$ & \cite{rosenbloom2021mechanism} &\\ \hline
+\end{tabular}
+\caption{\label{tab:params} Parameter values. The trimer rates are only used in simulations with well-mixed monomers and nucleates (Section\ \ref{sec:WM} onward). In Section\ \ref{sec:RTM}, we skip the trimer step and treat a dimer as a filament with a barbed and pointed end.}
+\end{center}
+\end{table}
+
+Let us now consider the same simulation, but with the parameters equal to those for actin, given in Table\ \ref{tab:params}. This simulation is more demanding because there is a separation of timescales in the pointed and barbed end addition rates, compared to the reaction of two monomers. The only simplification we make in Table\ \ref{tab:params} is to consider a nucleate as comprising two monomers, as opposed to the three in \cite{rosenbloom2021mechanism}. This actually speeds up the rate of filament formation, since we skip the equally slow trimer formation step. 
+
+If we again allow a maximum of five monomers per fiber, and have 1000 total monomers, the steady state number of fibers (rounded to the nearest whole number) is $(784,0,1,5,39)$/$\mu$m$^3$. In Fig.\ \ref{fig:FiveRealP}, we see that we successfully reproduce this steady state with time step size $\Delta t = 10^{-4}$ s. For convenience here, we have started at the steady state to skip the initial approach, which takes approximately 10,000 seconds (which is much longer than the timescales we are interested in and is estimated since we reach 10 fibers of length 5 in 2000 s). We see that $\Delta t = 10^{-4}$ s preserves the steady state, whereas the larger $\Delta t = 10^{-3}$ s drifts off the steady state.
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{FiveMonsActinParams.eps}
+\caption{\label{fig:FiveRealP}Steady state for fibers with up to five monomers, with the parameters for actin given in Table\ \ref{tab:params}. Theory is the solution of\ \eqref{eq:fivemons} with rate constants given in Table\ \ref{tab:params}.}
+\end{figure}
+
+\bibliographystyle{plain}
+
+\bibliography{../../PolarizationBib}
+
+
+\end{document}
