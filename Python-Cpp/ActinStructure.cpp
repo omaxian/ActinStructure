@@ -94,7 +94,7 @@ class Fiber: public ActinStructure{
         _X = vec(3*_nMonomers);
     }
     
-    Fiber(vec3 X0, vec3 tau, uint nMonomers, double spacing, double a, double mu, double kbT){
+    Fiber(vec3 X0, vec3 tau, uint nMonomers, double spacing, double a, double mu, double kbT, const vec &BindingRates){
         _tau = vec(3);
         for (int d=0; d< 3; d++){
             _tau[d] = tau[d];
@@ -106,16 +106,14 @@ class Fiber: public ActinStructure{
         _kbT = kbT;
         _X = vec(3*_nMonomers);
         _ForminOn = false;
+        _BaseBarbedBindRate = BindingRates[0];
+        _BarbedBindRate = _BaseBarbedBindRate;
+        _BarbedUnbindRate = BindingRates[1];
+        _PointedBindRate = BindingRates[2];
+        _PointedUnbindRate = BindingRates[3];
+        _ForminEnhancement = BindingRates[4];
     }
-    
-    void BindFormin(){
-        _ForminOn = true;
-    }    
-    
-    void UnbindFormin(){
-        _ForminOn = false;
-    }
-    
+       
     int NumberRand(){
         return 6;
     }
@@ -166,6 +164,63 @@ class Fiber: public ActinStructure{
         return _X;
     }
     
+    virtual void BindFormin(){
+        _BarbedBindRate=_BaseBarbedBindRate*_ForminEnhancement;
+        _ForminOn = true;
+    }
+    
+    virtual void UnbindFormin(){
+        _BarbedBindRate=_BaseBarbedBindRate;
+        _ForminOn = false;
+    }
+    
+    virtual double TotalBindingRate(){    
+        double RateAdd = (_BarbedBindRate + _PointedBindRate);
+        if (_nMonomers == 5){
+           // std::cout << "MAX 5 MONOMERS " << std::endl;
+            RateAdd = 0;
+        }
+        return RateAdd;
+    }
+    
+    virtual void BindReaction(double r){
+        double pPointed = _PointedBindRate/(_PointedBindRate+_BarbedBindRate);
+        //std::cout << "Prob pointed end " << pPointed << std::endl;
+        bool ToPointedEnd = r < pPointed;
+        //std::cout << "ToPointedEnd " << ToPointedEnd  << std::endl;
+        addMonomer(ToPointedEnd);
+    }
+    
+    virtual double TotalUnbindingRate(){
+        return (_BarbedUnbindRate+_PointedUnbindRate);
+    }
+    
+    virtual void UnbindReaction(double r){
+        double pPointed = _PointedUnbindRate/(_PointedUnbindRate+_BarbedUnbindRate);
+        bool FromPointedEnd = r < pPointed;
+        removeMonomer(FromPointedEnd);
+    }
+    
+    virtual double TotalForminRate(int nFreeFormins, double ForminBindRate, double ForminUnbindRate){
+        double ForminRate = ForminUnbindRate;
+        if (!_ForminOn){
+            ForminRate = ForminBindRate*nFreeFormins;
+        } else if (_nMonomers < 4){ // Formin cannot unbind from filaments with less than 4 monomers
+            ForminRate = 0;
+        }
+        return ForminRate;
+    }
+    
+    virtual void ForminReaction(uint &nFreeFormins){
+        if (_ForminOn){
+            nFreeFormins++;
+            UnbindFormin();
+        } else {
+            nFreeFormins--;
+            BindFormin();
+        }
+    } 
+        
     virtual bool isBarbedEnd(int MonIndex){
         return (MonIndex==_nMonomers-1);
     }
@@ -181,17 +236,17 @@ class Fiber: public ActinStructure{
     vec3 getPointedEnd(){
         return _X0;
     } 
-    
-    bool ForminBound(){
-        return _ForminOn;
-    }
-    
+       
     vec3 getBarbedEnd(){
         vec3 Be;
         for (int d =0; d < 3; d++){
             Be[d] = _X0[d]+_tau[d]*(_nMonomers-1)*_spacing;
         }  
         return Be;  
+    }
+    
+    bool ForminBound(){
+        return _ForminOn;
     }
     
     intvec getMonomerIndices(){
@@ -260,6 +315,8 @@ class Fiber: public ActinStructure{
         double _spacing;
         vec _tau;
         intvec _MonomerIndices;
+        double _BaseBarbedBindRate, _BarbedBindRate, _BarbedUnbindRate;
+        double _PointedBindRate, _PointedUnbindRate,_ForminEnhancement;
         
         vec3 calcKRigid(const vec &X, vec &K){
             /*

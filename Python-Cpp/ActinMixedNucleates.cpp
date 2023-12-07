@@ -41,7 +41,23 @@ class ActinMixedNucleates {
         _mu = mu;
         _spacing = 2*_a;
         
-       
+        // Reaction variables
+        // We assume all reaction rates are given in units of s^(-1)
+        _DimerOnRate = RxnRates[0];
+        _DimerOffRate = RxnRates[1];
+        _TrimerOnRate = RxnRates[2];
+        _TrimerOffRate = RxnRates[3];
+        _TetramerOnRate = RxnRates[4]+RxnRates[6];
+        _FiberEndBindingRates = vec(5,1.0);
+        _FiberEndBindingRates[0] = RxnRates[4]; // Barbed binding
+        _FiberEndBindingRates[1] = RxnRates[5]; // Barbed unbinding
+        _FiberEndBindingRates[2] = RxnRates[6]; // Pointed binding
+        _FiberEndBindingRates[3] = RxnRates[7]; // Pointed unbinding
+        _FiberEndBindingRates[4] = 1;
+        _TotalFormins = 0;
+        _FreeFormins = 0;
+        _nForminNucleates = 0;
+        
         // Initialize fibers at end of monomer list (just overwrite what is there already)
         uint nInFibs = std::accumulate(NperFiber.begin(), NperFiber.end(),0);
         _FreeMonomers = _TotalMonomers - nInFibs;
@@ -53,23 +69,9 @@ class ActinMixedNucleates {
             vec3 tau = PointOnUnitSphere();
             vec3 X0 = UniformPointInBox();
             uint ThisnMon = NperFiber[iFib];
-            _Fibers.push_back(Fiber(X0, tau, ThisnMon, _spacing, _a, _mu, _kbT));
+            _Fibers.push_back(Fiber(X0, tau, ThisnMon, _spacing, _a, _mu, _kbT,_FiberEndBindingRates));
         }
-
-        // Reaction variables
-        // We assume all reaction rates are given in units of s^(-1)
-        _DimerOnRate = RxnRates[0];
-        _DimerOffRate = RxnRates[1];
-        _TrimerOnRate = RxnRates[2];
-        _TrimerOffRate = RxnRates[3];
-        _BarbedBindingRate = RxnRates[4];
-        _BarbedUnbindingRate = RxnRates[5];
-        _PointedBindingRate = RxnRates[6];
-        _PointedUnbindingRate = RxnRates[7];
-        _TotalFormins = 0;
-        _FreeFormins = 0;
-        _nForminNucleates = 0;
-        
+       
     }
     
     void InitializeFormins(uint nFormin, vec ForminRates){
@@ -78,7 +80,7 @@ class ActinMixedNucleates {
         _ForminNucleationRate = ForminRates[0];
         _ForminBindRate = ForminRates[1];
         _ForminUnbindRate = ForminRates[2];
-        _ForminEnhancement = ForminRates[3];
+        _FiberEndBindingRates[4] = ForminRates[3]; // formin enhancement
     }
         
     
@@ -179,8 +181,8 @@ class ActinMixedNucleates {
         uint _TotalFormins, _FreeFormins, _nForminNucleates;
         double _a, _kbT, _mu, _spacing;
         vec3 _Lens;
-        double _DimerOnRate, _DimerOffRate, _TrimerOnRate, _TrimerOffRate;
-        double _BarbedBindingRate, _BarbedUnbindingRate, _PointedBindingRate, _PointedUnbindingRate;
+        double _DimerOnRate, _DimerOffRate, _TrimerOnRate, _TrimerOffRate,_TetramerOnRate;
+        vec _FiberEndBindingRates;
         double _ForminNucleationRate, _ForminBindRate, _ForminUnbindRate, _ForminEnhancement;
         vec _X; 
         std::normal_distribution<double> normaldist;
@@ -221,7 +223,7 @@ class ActinMixedNucleates {
                 index = 3;
             }
             // Reaction 4: tetramer formation
-            double RateTetramerForm = (_BarbedBindingRate + _PointedBindingRate)*_nTrimers*_FreeMonomers;
+            double RateTetramerForm = _TetramerOnRate*_nTrimers*_FreeMonomers;
             TryDeltaT = logrand()/RateTetramerForm; 
             //std::cout << "Time tetramer form " << TryDeltaT << std::endl;
             if (TryDeltaT < deltaT){
@@ -258,7 +260,7 @@ class ActinMixedNucleates {
                 _nTrimers--;
                 vec3 tau = PointOnUnitSphere();
                 vec3 X0 = UniformPointInBox();
-                _Fibers.push_back(Fiber(X0, tau, 4, _spacing, _a, _mu, _kbT));
+                _Fibers.push_back(Fiber(X0, tau, 4, _spacing, _a, _mu, _kbT,_FiberEndBindingRates));
             } else {
                 std::cout << "Doing a nucleation reaction but can't find the option?!" << std::endl;
             }
@@ -284,7 +286,7 @@ class ActinMixedNucleates {
             // Initialize a fiber and bind a formin to it
             vec3 tau = PointOnUnitSphere();
             vec3 X0 = UniformPointInBox();
-            _Fibers.push_back(Fiber(X0, tau, 2, _spacing, _a, _mu, _kbT));
+            _Fibers.push_back(Fiber(X0, tau, 2, _spacing, _a, _mu, _kbT,_FiberEndBindingRates));
             _Fibers[_Fibers.size()-1].BindFormin();
             return true;
         }
@@ -294,24 +296,15 @@ class ActinMixedNucleates {
             uint nFib = _Fibers.size();
             //std::cout << "Number of fibers " << nFib << std::endl;
             for (uint iFib = 0; iFib < nFib; iFib++){
-                bool BoundFormin = _Fibers[iFib].ForminBound();
-                double BarbedBindRate = _BarbedBindingRate;
-                if (BoundFormin){
-                    BarbedBindRate*=_ForminEnhancement;
-                }    
-                double RateAdd = (BarbedBindRate + _PointedBindingRate)*_FreeMonomers;
-                int nMon = _Fibers[iFib].NumMonomers();
-                /*if (nMon == 5){
-                    std::cout << "MAX 5 MONOMERS " << std::endl;
-                    RateAdd = 0;
-                }*/
+                double RateAddPerFree = _Fibers[iFib].TotalBindingRate();
+                double RateAdd =  RateAddPerFree*_FreeMonomers;
                 double TryDeltaT = logrand()/RateAdd; 
                 //std::cout << "Time add to fiber " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
                     index = numBefore+nRxnsPerFiber*iFib;
                 }
-                double RateSubtract = _BarbedUnbindingRate + _PointedUnbindingRate;
+                double RateSubtract = _Fibers[iFib].TotalUnbindingRate();
                 TryDeltaT = logrand()/RateSubtract; 
                 //std::cout << "Time remove from fiber " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
@@ -321,18 +314,18 @@ class ActinMixedNucleates {
                 // Reaction with formin
                 if (_TotalFormins > 0){
                     // There is one rate. Unbinding if already bound, binding otherwise.
-                    double ForminRate = _ForminUnbindRate;
-                    if (!BoundFormin){
-                        ForminRate = _ForminBindRate*_FreeFormins;
-                    } else if (nMon < 4){
-                        ForminRate = 0;
-                    }
+                    double ForminRate = _Fibers[iFib].TotalForminRate(_FreeFormins, _ForminBindRate, _ForminUnbindRate);
                     TryDeltaT = logrand()/ForminRate;
                     if (TryDeltaT < deltaT){
                         deltaT = TryDeltaT;
                         index = numBefore+nRxnsPerFiber*iFib+2;
                     } 
                 }
+                // Arp23 bind and unbind. There is one reaction. If chosen, randomly select binding and unbinding. 
+                // If binding, randomly select a place to bind and a new tangent vector, and convert from fiber
+                // to branched fiber object if necessary
+                // If unbinding, randomly select one of the arps/branches and remove it. Return it as a fiber objet
+                // which gets copied to the list of fibers 
             }
             return deltaT;
         }
@@ -345,13 +338,7 @@ class ActinMixedNucleates {
             bool HasFormin = _Fibers[FibNum].ForminBound();
             //std::cout << "Fiber number " << FibNum << std::endl;
             if (RxnType==2){
-                if (HasFormin){
-                    _FreeFormins++;
-                    _Fibers[FibNum].UnbindFormin();  
-                } else {
-                    _FreeFormins--;
-                    _Fibers[FibNum].BindFormin();
-                }  
+                _Fibers[FibNum].ForminReaction(_FreeFormins);
             } else if (RxnType==1){
                 //std::cout << "Subtraction!" << std::endl;
                 // If it's a tetramer that is breaking up, then remove it from the list and be done
@@ -365,26 +352,12 @@ class ActinMixedNucleates {
                     return false;
                 } else { // Structure stays the same
                     _FreeMonomers++;
-                    //std::cout << "Removing monomer from longer fiber " << std::endl;
-                    double pPointed = _PointedUnbindingRate/(_PointedUnbindingRate+_BarbedUnbindingRate);
-                    //std::cout << "Prob pointed end " << pPointed << std::endl;
-                    bool FromPointedEnd = unifdist(rngu) < pPointed;
-                    //std::cout << "FromPointedEnd " << FromPointedEnd << std::endl;
-                    _Fibers[FibNum].removeMonomer(FromPointedEnd);
+                    _Fibers[FibNum].UnbindReaction(unifdist(rngu));  
                 }
             } else if (RxnType==0){ // Addition
                 _FreeMonomers--;
                 //std::cout << "Addition!" << std::endl;
-                bool BoundFormin = _Fibers[FibNum].ForminBound();
-                double BarbedBindRate = _BarbedBindingRate;
-                if (BoundFormin){
-                    BarbedBindRate*=_ForminEnhancement;
-                }    
-                double pPointed = _PointedBindingRate/(_PointedBindingRate+BarbedBindRate);
-                //std::cout << "Prob pointed end " << pPointed << std::endl;
-                bool ToPointedEnd = unifdist(rngu) < pPointed;
-                //std::cout << "ToPointedEnd " << ToPointedEnd  << std::endl;
-                _Fibers[FibNum].addMonomer(ToPointedEnd);
+                _Fibers[FibNum].BindReaction(unifdist(rngu));
             }
             return true;
         }
