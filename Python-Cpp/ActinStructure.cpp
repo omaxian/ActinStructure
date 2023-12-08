@@ -220,16 +220,8 @@ class Fiber: public ActinStructure{
             BindFormin();
         }
     } 
-        
-    virtual bool isBarbedEnd(int MonIndex){
-        return (MonIndex==_nMonomers-1);
-    }
-    
-    virtual bool isPointedEnd(int MonIndex){
-        return (MonIndex==0);
-    }
-    
-    int NumMonomers(){
+            
+    virtual int NumMonomers(){
         return _nMonomers;
     }
     
@@ -261,55 +253,14 @@ class Fiber: public ActinStructure{
         return _MonomerIndices[0];
     }
     
-    void addMonomer(bool PointedEnd, int MonomerInd){
-        _nMonomers++;
-        _X.resize(3*_nMonomers);
-        if (PointedEnd) {// adjust the start point
-            for (int d=0; d < 3; d++){
-                _X0[d]-=_spacing*_tau[d];
-            }
-            _MonomerIndices.insert(_MonomerIndices.begin(), MonomerInd);
+    virtual uint nFibers(int MinForBranching){
+        if (_nMonomers >= MinForBranching){
+            return 1;
         } else {
-            _MonomerIndices.push_back(MonomerInd);
+            return 0;
         }
     }
-    
-    void addMonomer(bool PointedEnd){
-        _nMonomers++;
-        _X.resize(3*_nMonomers);
-        if (PointedEnd) {// adjust the start point
-            for (int d=0; d < 3; d++){
-                _X0[d]-=_spacing*_tau[d];
-            }
-        }
-    }
-    
-    void removeMonomer(bool PointedEnd, int &MonIndex){
-        _nMonomers--;
-        _X.resize(3*_nMonomers);
-        if (PointedEnd) {// adjust the start point
-            for (int d=0; d < 3; d++){
-                _X0[d]+=_spacing*_tau[d];
-            }
-            MonIndex=_MonomerIndices[0];
-            _MonomerIndices.erase(_MonomerIndices.begin());
-        } else {
-            MonIndex=_MonomerIndices[_nMonomers-1];
-            _MonomerIndices.erase(_MonomerIndices.begin()+_nMonomers);
-        }
-    }
-    
-    void removeMonomer(bool PointedEnd){
-        _nMonomers--;
-        _X.resize(3*_nMonomers);
-        if (PointedEnd) {// adjust the start point
-            for (int d=0; d < 3; d++){
-                _X0[d]+=_spacing*_tau[d];
-            }
-        }
-    }
-    
-    
+        
     protected: 
         int _nMonomers;
         double _spacing;
@@ -317,6 +268,7 @@ class Fiber: public ActinStructure{
         intvec _MonomerIndices;
         double _BaseBarbedBindRate, _BarbedBindRate, _BarbedUnbindRate;
         double _PointedBindRate, _PointedUnbindRate,_ForminEnhancement;
+        bool _ForminOn;
         
         vec3 calcKRigid(const vec &X, vec &K){
             /*
@@ -368,7 +320,6 @@ class Fiber: public ActinStructure{
         }
         
     private:
-        bool _ForminOn;
         
         virtual void computeX(const vec3 &X0, const vec &tau, vec &X){
             for (int i=0; i < _nMonomers; i++){
@@ -387,7 +338,55 @@ class Fiber: public ActinStructure{
             for (int d=0; d < 3; d++){
                 Tau[d] = ThisTau[d];
             }
-       }   
+       }
+       
+       void addMonomer(bool PointedEnd, int MonomerInd){
+            _nMonomers++;
+            _X.resize(3*_nMonomers);
+            if (PointedEnd) {// adjust the start point
+                for (int d=0; d < 3; d++){
+                    _X0[d]-=_spacing*_tau[d];
+                }
+                _MonomerIndices.insert(_MonomerIndices.begin(), MonomerInd);
+            } else {
+                _MonomerIndices.push_back(MonomerInd);
+            }
+        }
+    
+        void addMonomer(bool PointedEnd){
+            _nMonomers++;
+            _X.resize(3*_nMonomers);
+            if (PointedEnd) {// adjust the start point
+                for (int d=0; d < 3; d++){
+                    _X0[d]-=_spacing*_tau[d];
+                }
+            }
+        }
+    
+        void removeMonomer(bool PointedEnd, int &MonIndex){
+            _nMonomers--;
+            _X.resize(3*_nMonomers);
+            if (PointedEnd) {// adjust the start point
+                for (int d=0; d < 3; d++){
+                    _X0[d]+=_spacing*_tau[d];
+                }
+                MonIndex=_MonomerIndices[0];
+                _MonomerIndices.erase(_MonomerIndices.begin());
+            } else {
+                MonIndex=_MonomerIndices[_nMonomers-1];
+                _MonomerIndices.erase(_MonomerIndices.begin()+_nMonomers);
+            }
+        }
+        
+        void removeMonomer(bool PointedEnd){
+            _nMonomers--;
+            _X.resize(3*_nMonomers);
+            if (PointedEnd) {// adjust the start point
+                for (int d=0; d < 3; d++){
+                    _X0[d]+=_spacing*_tau[d];
+                }
+            }
+        }   
           
         
 };  
@@ -396,76 +395,86 @@ class BranchedFiber: public Fiber{
     
     public:
     
-    BranchedFiber(vec3 X0, vec3 tau0, int nMonomers, double spacing, double a, double mu, double kbT, 
-        int nLinFib, intvec BranchStartIndex,intvec AttachPoints):Fiber(X0,tau0,nMonomers,{0,0},spacing,a,mu,kbT){
+    BranchedFiber(vec3 X0, vec3 tau0, intvec nMonomersPerFib, intvec Mothers,intvec AttachPoints, 
+        double spacing, double a, double mu, double kbT, const vec &BindingRates, 
+        int seed):Fiber(X0,tau0,nMonomersPerFib[0],spacing,a,mu,kbT,BindingRates){
         
-        _nLinearFib = nLinFib;
-        _BranchStartIndex = intvec(BranchStartIndex.size()); // has nLinFib+1 entries
-        std::memcpy(_BranchStartIndex.data(),BranchStartIndex.data(),BranchStartIndex.size()*sizeof(int));
+        _nLinearFib = nMonomersPerFib.size();
+        _nMonomersPerFib = intvec(nMonomersPerFib.size());
+        std::memcpy(_nMonomersPerFib.data(),nMonomersPerFib.data(),nMonomersPerFib.size()*sizeof(int));
+        _Mothers = intvec(Mothers.size());
+        std::memcpy(_Mothers.data(),Mothers.data(),Mothers.size()*sizeof(int));
         _AttachPoints = intvec(AttachPoints.size());
         std::memcpy(_AttachPoints.data(),AttachPoints.data(),AttachPoints.size()*sizeof(int));
         // Tangent vectors
-        _tau = vec(3*nLinFib);
-        std::random_device rd; 
-        std::mt19937 gen(rd());
-        std::normal_distribution<float> NormalDist(0,1.0); 
-        vec3 FirstTau;
+        _tau = vec(3*_nLinearFib);
+        rng.seed(seed);
+        normaldist = std::normal_distribution<double>(0.0,1.0);
         for (int d=0; d< 3; d++){
-            FirstTau[d] = NormalDist(gen);
+            _tau[d] = tau0[d];
         }
-        normalize(FirstTau);
-        for (int d=0; d< 3; d++){
-            _tau[d] = FirstTau[d];
-        }
-        for (int i=1; i < nLinFib; i++){
+        for (int i=1; i < _nLinearFib; i++){
             vec3 AttachedTau;
             // Find the fiber it is attached to
-            int BaseFib = 0;
-            for (int j=0; j < i; j++){
-                if (_BranchStartIndex[j+1] > _AttachPoints[i]){
-                    BaseFib=j;
-                    break;
-                }
-            }
+            int BaseFib = Mothers[i];
+            vec3 Randn;
             for (int d =0; d < 3; d++){
                 AttachedTau[d] = _tau[3*BaseFib+d];
+                Randn[d] = normaldist(rng);
             }
-            vec3 NewTau = RandomSeventyDegreeRotation(AttachedTau);
+            
+            vec3 NewTau = RandomSeventyDegreeRotation(AttachedTau,Randn);
             for (int d=0; d< 3; d++){
                 _tau[3*i+d] =NewTau[d];
             }
         }
-        _tau[0]=-0.195726;
-        _tau[1]= -0.585448;
-        _tau[2]=0.786728;
-        _tau[3]=0.804808;
-        _tau[4]= -0.0597155;
-        _tau[5]=0.590524;
-        _tau[6]=0.825568 ;
-        _tau[7]= 0.206785;
-        _tau[8]=-0.525051 ;
-        std::cout << "Tangent vectors (ALWAYS SAME!): " << std::endl;
-        for (int i=0; i < nLinFib; i++){
-            for (int d=0; d< 3; d++){    
-               std::cout << _tau[3*i+d] << " , ";
-            }
-            std::cout << std::endl;
-        }
     }
     
-    bool isBarbedEnd(int MonIndex) override{
-        std::cout << "Check this method " << std::endl;
-        for (int iFib =0; iFib < _nLinearFib; iFib++){
-            if (MonIndex == _BranchStartIndex[iFib+1]-1){
-                return true;
-            }
+    BranchedFiber(Fiber *Mother, double rU, vec3 RandomGaussian):Fiber(*Mother){
+        std::cout << "Initializing from mother with " << _nMonomers << std::endl;
+        _nLinearFib = 2;
+        _nMonomersPerFib = intvec(2);
+        _nMonomersPerFib[0] = _nMonomers;
+        _nMonomersPerFib[1] = 1;
+        _AttachPoints = intvec(2);
+        _AttachPoints[0] = -1;
+        uint AttachPt = floor(rU*_nMonomers);
+        _AttachPoints[1] = AttachPt;
+        std::cout << "Attaching at point " << AttachPt << std::endl;
+        _Mothers = intvec(2);
+        _Mothers[0] = -1;
+        _Mothers[1] = 1;
+        std::cout << "The old tau " << _tau[0] << " , " << _tau[1] << " , " << _tau[2] << std::endl;
+        vec3 MotherTau;
+        for (int d=0; d < 3; d++){
+            MotherTau[d] = _tau[d];
         }
-        return false;
-    } 
+        vec3 NewTau = RandomSeventyDegreeRotation(MotherTau,RandomGaussian);
+        _tau.insert(_tau.end(), NewTau.begin(), NewTau.end());
+        std::cout << "The new tau1 " << _tau[0] << " , " << _tau[1] << " , " << _tau[2] << std::endl;
+        std::cout << "The new tau2 " << _tau[3] << " , " << _tau[4] << " , " << _tau[5] << std::endl;
+    }
+    
+    void addBranch(double rUF, double rUM, vec3 RandomGaussian){
+    }
+        
+        
+    int NumMonomers() override{
+        int SumMons = std::accumulate(_nMonomersPerFib.begin(), _nMonomersPerFib.end(),0);
+        std::cout << "Total num monomers " << SumMons << std::endl;
+        return SumMons;
+    }
+    
+    // RE-IMPLEMENT METHODS FOR BINDING, ETC.
+        
+   
     
     private:
-       intvec _BranchStartIndex, _AttachPoints; 
+       intvec _nMonomersPerFib, _Mothers, _AttachPoints; 
        int _nLinearFib;
+       std::normal_distribution<double> normaldist;
+       std::mt19937_64 rng;
+       double _SeventyDegrees = 70.0*M_PI/180.0;
        
        void rotateTangents(vec3 &Omega, vec &Tau) override{
             for (int iFib=0; iFib < _nLinearFib; iFib++){
@@ -480,7 +489,7 @@ class BranchedFiber: public Fiber{
             }
        }
        
-       void computeX(const vec3 &X0, const vec &Taus, vec &X) override{
+       /*void computeX(const vec3 &X0, const vec &Taus, vec &X) override{
             // Mother filament
             for (int d=0; d<3; d++){
                 X[d]=X0[d];
@@ -491,7 +500,7 @@ class BranchedFiber: public Fiber{
                     ThisTau[d] = Taus[3*iFib+d];
                     ThisX0[d] = X[3*_AttachPoints[iFib]+d];
                 }
-                int nMonThisBranch = _BranchStartIndex[iFib+1]-_BranchStartIndex[iFib];
+                int nMonThisBranch =_nMonomersPerFib[iFib]
                 int startIndex=1; 
                 if (iFib==0){
                     startIndex=0;
@@ -506,26 +515,18 @@ class BranchedFiber: public Fiber{
                     }
                 }
             }
-        }
+        }*/
         
-        vec3 RandomSeventyDegreeRotation(const vec3 &tau){
+        vec3 RandomSeventyDegreeRotation(const vec3 &tau, vec3 &Randn){
             // Find a random vector an angle of 70 degrees 
-            double seventy = 70.0*M_PI/180.0;
-            std::random_device rd; 
-            std::mt19937 gen(rd());
-            std::normal_distribution<float> NormalDist(0,1.0); 
-            vec3 v; 
+            double vDotTau = dot(Randn,tau);
             for (int d=0; d < 3; d++){
-                v[d] = NormalDist(gen);
+                Randn[d]-=vDotTau*tau[d];
             }
-            double vDotTau = dot(v,tau);
-            for (int d=0; d < 3; d++){
-                v[d]-=vDotTau*tau[d];
-            }
-            normalize(v);
+            normalize(Randn);
             vec3 tau2;
             for (int d=0; d < 3; d++){
-                tau2[d] = sin(seventy)*v[d] + cos(seventy)*tau[d];
+                tau2[d] = sin(_SeventyDegrees)*Randn[d] + cos(_SeventyDegrees)*tau[d];
             }
             return tau2;
         }

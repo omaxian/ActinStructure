@@ -158,24 +158,3 @@ function dydt = RHS(t,y,RxnRates,nMax)
         dydt(nMax+iD)=dydt(nMax+iD)+ForminBind*y(iD)*y(nMax+1)-Forminunbind*y(nMax+iD);
     end
 end
-
-function val = OneDFcn(alpha,RxnRates,Nmon,nMax)
-    PolyOn = RxnRates(5)+RxnRates(7);
-    PolyOff = RxnRates(6)+RxnRates(8);
-    Nums = zeros(nMax,1);
-    Nums(1) = alpha*(PolyOff/PolyOn);
-    Nums(2) = Nums(1).^2*RxnRates(1)/RxnRates(2);
-    Nums(3) = Nums(2).*Nums(1)*RxnRates(3)/RxnRates(4);
-    for iD=4:nMax
-        Nums(iD)=Nums(iD-1)*Nums(1)*PolyOn/PolyOff;
-    end
-    val = sum((1:nMax)'.*Nums)-Nmon;
-    return
-    Numerator = 2*alpha-alpha.^2-(1+Nmon)*alpha.^(Nmon)+Nmon*alpha.^(Nmon+1);
-    Num1 = Numerator./(1-alpha).^2;
-    if (alpha==1)
-        Num1=1/2*(-2 + Nmon + Nmon^2);
-    end
-    val = -Nmon+kminus_p/kplus_p*alpha ...
-        + (kplus_d/kminus_d)*(kminus_p/kplus_p)^2*alpha.*Num1;
-end
