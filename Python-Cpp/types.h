@@ -14,3 +14,4 @@ typedef std::vector <bool> boolvec;
 typedef std::vector<double>::iterator vec_iter;
 typedef std::complex <double> complex;
 typedef std::array <std::complex <double>, 3> compvec3;
+typedef std::vector <bool> boolvec;
