@@ -123,6 +123,9 @@ class ActinMixedNucleates {
             // All reactions listed -- process the next one
             bool EventHappened = false;
             //std::cout << "Time " << deltaT << " for total " << t << " and index " << index << std::endl;
+            if (t+deltaT > dt){
+                return;
+            }
             if (index < 5){
                 // Nucleation reaction
                 EventHappened = ProcessNucleationReaction(index);
@@ -168,7 +171,7 @@ class ActinMixedNucleates {
         return makePyArray(Info);
     }
     
-    npInt BranchedOrLinear(){
+    npInt BranchedOrLinear(bool MothersAreBranched){
         uint nFib = nTotalFibers();
         intvec Info(nFib);
         int iFib=0;
@@ -176,6 +179,9 @@ class ActinMixedNucleates {
             int nFibThis = FibObj->nFibers();
             for (int jFib=0; jFib < nFibThis; jFib++){
                 Info[iFib]=(nFibThis > 1);
+                if (!MothersAreBranched && jFib==0){
+                    Info[iFib]=0;
+                }    
                 iFib++;
             }
         }    

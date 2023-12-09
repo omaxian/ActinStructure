@@ -14,13 +14,13 @@ ConcArp23 = 0.5; # in uM
 # Parameters from Kovar & Pollard paper for actin alone
 # RETURN TO THE ACTUAL PARAMS LATER!
 kplusDimer = 3.5e-3; # uM^(-1)*s^(-1) 
-kminusDimer = 0*0.041; #s^(-1)
+kminusDimer = 0#0.041; #s^(-1)
 kplusTrimer = 13e-1; # uM^(-1)*s^(-1) 
-kminusTrimer = 0*22; #s^(-1)
+kminusTrimer = 0#22; #s^(-1)
 kplusBarbed = 11.6; # uM^(-1)*s^(-1) 
-kminusBarbed = 0*1.4; #s^(-1)
+kminusBarbed = 0#1.4; #s^(-1)
 kplusPointed = 1.3; #uM^(-1)*s^(-1)
-kminusPointed = 0*0.8; #s^(-1)
+kminusPointed = 0#0.8; #s^(-1)
 
 # Formin rates
 kForNuc = 2e-3; # uM^(-2)*s^(-1)
@@ -30,7 +30,7 @@ ForminEnhance = 2;
 
 # Arp 2/3 rates
 kplusARF = 5.2e-3;
-kMinusARF = 0*3.4e-3;
+kMinusARF = 0#*3.4e-3;
 
 # Convert to microscopic assuming well-mixed system
 Volume = LBox**3;
@@ -61,7 +61,7 @@ if (ConcArp23 > 0):
     AllActin.InitializeArp(NArp23,RxnRatesArp23);
 
 Tf = 200;
-dt = 1;
+dt = 0.5;
 nSteps = int(Tf/dt+1e-6);
 
 NumFibers = np.zeros(nSteps,dtype=np.int64);
@@ -75,7 +75,7 @@ for i in range(nSteps):
     NumOnEach = AllActin.NumMonOnEachFiber();
     NumberPerFiber = np.append(NumberPerFiber,NumOnEach)
     NumFibers[i]=len(NumOnEach)-3;
-    BranchedOrLinear = np.append(BranchedOrLinear,AllActin.BranchedOrLinear())
+    BranchedOrLinear = np.append(BranchedOrLinear,AllActin.BranchedOrLinear(False))
     BoundFormins = np.append(BoundFormins,AllActin.BoundFormins())
     if (i==0):
         AllX = AllActin.getX();

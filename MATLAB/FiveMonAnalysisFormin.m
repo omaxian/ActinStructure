@@ -60,7 +60,7 @@ for iT=1:nT
     NumOfEach(9,iT)=sum(rest==4 & Formins);
     NumOfEach(10,iT)=sum(rest==5 & Formins);
 end
-ts=1:tf;
+ts=0.25:0.25:tf;
 tiledlayout(1,2,'Padding', 'none', 'TileSpacing', 'compact');
 nexttile
 set(gca,'ColorOrderIndex',1)
