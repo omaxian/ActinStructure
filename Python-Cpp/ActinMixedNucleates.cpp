@@ -124,6 +124,7 @@ class ActinMixedNucleates {
             bool EventHappened = false;
             //std::cout << "Time " << deltaT << " for total " << t << " and index " << index << std::endl;
             if (t+deltaT > dt){
+                std::cout << "Free formins and arps (to check) " << _FreeFormins << " , " << _FreeArp << std::endl;
                 return;
             }
             if (index < 5){
@@ -448,7 +449,6 @@ class ActinMixedNucleates {
                 _FreeFormins++;
             } else if (RxnType==7) { // Arp 2/3 binding
                 // Arp23 binding
-                std::cout << "Start branch reaction" << std::endl;
                 _FreeArp--;
                 _FreeMonomers--;
                 uint nFibs = _Fibers[FibNum]->nFibers();
@@ -460,14 +460,11 @@ class ActinMixedNucleates {
                 if (nFibs==1){
                     // Convert to a branched fiber
                     _Fibers[FibNum] =  std::make_shared<BranchedFiber>(_Fibers[FibNum].get(),u1,RandGauss);
-                    std::cout << "Added to list" << _Fibers[FibNum]->TotalMonomers() << std::endl;
                 } else {
                    // Already a BranchedFiber object. Add a new branch.
-                   std::cout << "Need to add new branch!" << std::endl;
                    double u2=unifdist(rngu);
                    _Fibers[FibNum]->addBranch(u1,u2, RandGauss, _MinMonForBranching);
                 }
-                std::cout << "End branch reaction" << std::endl;
             }
             return true;
         }

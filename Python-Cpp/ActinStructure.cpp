@@ -12,7 +12,7 @@ ActinStructure.cpp
 This needs to be rewritten so that we never create an array with nMonomers size.
 It should just be the tangent vectors we are tracking and the length (in monomers)
 **/
-static const int NMonomersForForminToComeOff=4;
+static const int NMonomersForFormin=4;
 
 // Global variables for periodic ActinStructure
 class ActinStructure {
@@ -202,15 +202,15 @@ class Fiber: public ActinStructure{
     }
     
     virtual double ForminBindRate(double ForminBRate){
-        if (!_ForminOn){
-            return ForminBRate;
+        if (_ForminOn || _nMonomers < NMonomersForFormin){
+            return 0;
         } 
-        return 0;
+        return ForminBRate;
     }
     
     virtual double ForminUnbindRate(double ForminUBRate){
         // Formin cannot unbind from filaments with less than 4 monomers
-        if (!_ForminOn || _nMonomers < NMonomersForForminToComeOff){
+        if (!_ForminOn || _nMonomers < NMonomersForFormin){
             return 0;
         } 
         return ForminUBRate;
@@ -385,7 +385,7 @@ class BranchedFiber: public Fiber{
     }
     
     BranchedFiber(Fiber *Mother, double rU, vec3 RandomGaussian):Fiber(*Mother){
-        std::cout << "Initializing from mother with " << _nMonomers << std::endl;
+        //std::cout << "Initializing from mother with " << _nMonomers << std::endl;
         _nLinearFib = 2;
         _nMonomersPerFib = intvec(2);
         _nMonomersPerFib[0] = _nMonomers;
@@ -394,22 +394,22 @@ class BranchedFiber: public Fiber{
         _AttachPoints[0] = 0;
         int AttachPt = int(rU*_nMonomers);
         _AttachPoints[1] = AttachPt;
-        std::cout << "Attaching at point " << AttachPt << std::endl;
+        //std::cout << "Attaching at point " << AttachPt << std::endl;
         _Mothers = intvec(2);
         _Mothers[0] = 0;
         _Mothers[1] = 0;
         _ForminsOn = boolvec(2);
         _ForminsOn[0] = _ForminOn;
         _ForminsOn[1] = false;
-        std::cout << "The old tau " << _tau[0] << " , " << _tau[1] << " , " << _tau[2] << std::endl;
+        //std::cout << "The old tau " << _tau[0] << " , " << _tau[1] << " , " << _tau[2] << std::endl;
         vec3 MotherTau;
         for (int d=0; d < 3; d++){
             MotherTau[d] = _tau[d];
         }
         vec3 NewTau = RandomSeventyDegreeRotation(MotherTau,RandomGaussian);
         _tau.insert(_tau.end(), NewTau.begin(), NewTau.end());
-        std::cout << "The new tau1 " << _tau[0] << " , " << _tau[1] << " , " << _tau[2] << std::endl;
-        std::cout << "The new tau2 " << _tau[3] << " , " << _tau[4] << " , " << _tau[5] << std::endl;
+        //std::cout << "The new tau1 " << _tau[0] << " , " << _tau[1] << " , " << _tau[2] << std::endl;
+        //std::cout << "The new tau2 " << _tau[3] << " , " << _tau[4] << " , " << _tau[5] << std::endl;
     }
     
     void addBranch(double rUF, double rUM, vec3 RandomGaussian, int MinMonForAttach) override{
@@ -435,8 +435,8 @@ class BranchedFiber: public Fiber{
         }
         vec3 NewTau = RandomSeventyDegreeRotation(MotherTau,RandomGaussian);
         _tau.insert(_tau.end(), NewTau.begin(), NewTau.end());
-        std::cout << "The mother tau " << MotherTau[0] << " , " << MotherTau[1] << " , " << MotherTau[2] << std::endl;
-        std::cout << "The new tau2 " << _tau[3*_nLinearFib-3] << " , " << _tau[3*_nLinearFib-2] << " , " << _tau[3*_nLinearFib-1] << std::endl;
+        //std::cout << "The mother tau " << MotherTau[0] << " , " << MotherTau[1] << " , " << MotherTau[2] << std::endl;
+        //std::cout << "The new tau2 " << _tau[3*_nLinearFib-3] << " , " << _tau[3*_nLinearFib-2] << " , " << _tau[3*_nLinearFib-1] << std::endl;
     }
     
     uint nFibersEligibleForBranching(int MinForBranching) override{
@@ -536,7 +536,7 @@ class BranchedFiber: public Fiber{
     double ForminBindRate(double ForminBRate) override{
         double TotalRate=0;
         for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
-            if (!_ForminsOn[iBranch]){
+            if (!_ForminsOn[iBranch] && _nMonomersPerFib[iBranch]>=NMonomersForFormin){
                 TotalRate+=ForminBRate;
             } 
         } 
@@ -546,23 +546,22 @@ class BranchedFiber: public Fiber{
     double ForminUnbindRate(double ForminUBRate) override{
         double TotalRate=0;
         for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
-            if (_ForminsOn[iBranch] && _nMonomersPerFib[iBranch]>=NMonomersForForminToComeOff){
+            if (_ForminsOn[iBranch] && _nMonomersPerFib[iBranch]>=NMonomersForFormin){
                 TotalRate+=ForminUBRate;
             } 
         }
-        return ForminUBRate;
+        return TotalRate;
     }
     
     void BindFormin(double rU) override{
         // Make list of eligible branched
         intvec EligibleBranches;
         for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
-            if (!_ForminsOn[iBranch]){
+            if (!_ForminsOn[iBranch]  && _nMonomersPerFib[iBranch]>=NMonomersForFormin){
                 EligibleBranches.push_back(iBranch);
             }
         }
         int TheBranch = EligibleBranches[int(rU*EligibleBranches.size())];
-        std::cout << "Adding a formin to branch " << TheBranch << " which currently has bool " << _ForminsOn[TheBranch] << std::endl;
         _ForminsOn[TheBranch] = true;
     }
     
@@ -570,12 +569,11 @@ class BranchedFiber: public Fiber{
         // Make list of eligible branched
         intvec EligibleBranches;
         for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
-            if (_ForminsOn[iBranch] && _nMonomersPerFib[iBranch]>=NMonomersForForminToComeOff){
+            if (_ForminsOn[iBranch] && _nMonomersPerFib[iBranch]>=NMonomersForFormin){
                 EligibleBranches.push_back(iBranch);
             }
         }
         int TheBranch = EligibleBranches[int(rU*EligibleBranches.size())];
-        std::cout << "Adding a formin to branch " << TheBranch << " which currently has bool " << _ForminsOn[TheBranch] << std::endl;
         _ForminsOn[TheBranch] = false;
     }
         

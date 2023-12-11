@@ -1,4 +1,4 @@
-all: ActinMixedNucleates.so AllTheActin.so NeighborSearcher.so
+all: ActinMixedNucleates.so
 
 CXX=g++
 PYTHON3=python3

@@ -6,9 +6,9 @@ from ActinMixedNucleates import ActinMixedNucleates
 a = 4e-3;
 kbT = 4.1e-3;
 mu = 0.01;
-LBox = 2; # in um
+LBox = 3; # in um
 Conc = 2; # in uM
-ConcFormin = 0; # in uM
+ConcFormin = 0.2; # in uM
 ConcArp23 = 0.5; # in uM
 
 # Parameters from Kovar & Pollard paper for actin alone
@@ -17,7 +17,7 @@ kplusDimer = 3.5e-3; # uM^(-1)*s^(-1)
 kminusDimer = 0#0.041; #s^(-1)
 kplusTrimer = 13e-1; # uM^(-1)*s^(-1) 
 kminusTrimer = 0#22; #s^(-1)
-kplusBarbed = 11.6; # uM^(-1)*s^(-1) 
+kplusBarbed = 1.6#11.6; # uM^(-1)*s^(-1) 
 kminusBarbed = 0#1.4; #s^(-1)
 kplusPointed = 1.3; #uM^(-1)*s^(-1)
 kminusPointed = 0#0.8; #s^(-1)
@@ -29,7 +29,7 @@ kminusFor = 8.1e-2; # s^(-1)
 ForminEnhance = 2;
 
 # Arp 2/3 rates
-kplusARF = 5.2e-3;
+kplusARF = 5.2e-2;
 kMinusARF = 0#*3.4e-3;
 
 # Convert to microscopic assuming well-mixed system
@@ -60,7 +60,7 @@ if (ConcFormin > 0):
 if (ConcArp23 > 0):
     AllActin.InitializeArp(NArp23,RxnRatesArp23);
 
-Tf = 200;
+Tf = 40;
 dt = 0.5;
 nSteps = int(Tf/dt+1e-6);
 
@@ -83,10 +83,10 @@ for i in range(nSteps):
         AllX = np.append(AllX,AllActin.getX(),axis=0);
     print('Time %f, Percent free %f' %((i+1)*dt, NumOnEach[0]/Nmon))
     
-np.savetxt('NumFibs.txt',NumFibers);
-np.savetxt('StructInfo.txt',NumberPerFiber);
-np.savetxt('BoundFormins.txt',BoundFormins);
-np.savetxt('BranchedOrLinear.txt',BranchedOrLinear);
+np.savetxt('NumFibs'+str(seed)+'.txt',NumFibers);
+np.savetxt('StructInfo'+str(seed)+'.txt',NumberPerFiber);
+np.savetxt('BoundFormins'+str(seed)+'.txt',BoundFormins);
+np.savetxt('BranchedOrLinear'+str(seed)+'.txt',BranchedOrLinear);
 #np.savetxt('AllX.txt',AllX);
 #np.savetxt('NumFibs'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',NumFibers);
 #np.savetxt('StructInfo'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',StructInfo);
