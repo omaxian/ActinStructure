@@ -1,17 +1,17 @@
 % Parameters
 Conc = 2; % in uM
-LBox = 2;
-ForminConc = 0.5;
+LBox = 3;
+ForminConc = 0.1;
 
 % Parameters 
 kplusDimer = 3.5e-3; % uM^(-1)*s^(-1) 
-kminusDimer = 0;%0.041; %s^(-1)
+kminusDimer = 0.041; %s^(-1)
 kplusTrimer = 13e-1; % uM^(-1)*s^(-1) 
-kminusTrimer = 0;%22; %s^(-1)
-kplusBarbed = 11.6; % uM^(-1)*s^(-1) 
-kminusBarbed = 0;%1.4; %s^(-1)
+kminusTrimer = 22; %s^(-1)
+kplusBarbed = 1.6; % uM^(-1)*s^(-1) 
+kminusBarbed = 1.4; %s^(-1)
 kplusPointed = 1.3; %uM^(-1)*s^(-1)
-kminusPointed = 0;%0.8; %s^(-1)
+kminusPointed = 0*0.8; %s^(-1)
 kForNuc = 2e-3; % uM^(-2)*s^(-1)
 kplusFor = 29.1; %uM^(-1)*s^(-1)
 kminusFor = 8.1e-2; %s^(-1)
@@ -36,9 +36,9 @@ tf=40;
 [tvals,yvals] = ode45(RHSFcn,[0 tf],y0);
 
 % Import the data
-load('StructInfo.txt');
-load('NumFibs.txt');
-load('BoundFormins.txt');
+StructInfo=load('StructInfo1.txt');
+NumFibs=load('NumFibs1.txt');
+BoundFormins=load('BoundFormins1.txt');
 nT = length(NumFibs);
 NumOfEach = zeros(10,nT);
 TotalEntries = NumFibs+3;

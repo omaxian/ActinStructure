@@ -8,19 +8,20 @@ kbT = 4.1e-3;
 mu = 0.01;
 LBox = 3; # in um
 Conc = 2; # in uM
-ConcFormin = 0.2; # in uM
-ConcArp23 = 0.5; # in uM
+ConcFormin = 0; # in uM
+ConcArp23 = 0.5;
+ # in uM
 
 # Parameters from Kovar & Pollard paper for actin alone
 # RETURN TO THE ACTUAL PARAMS LATER!
 kplusDimer = 3.5e-3; # uM^(-1)*s^(-1) 
-kminusDimer = 0#0.041; #s^(-1)
+kminusDimer = 0.041; #s^(-1)
 kplusTrimer = 13e-1; # uM^(-1)*s^(-1) 
-kminusTrimer = 0#22; #s^(-1)
+kminusTrimer = 22; #s^(-1)
 kplusBarbed = 1.6#11.6; # uM^(-1)*s^(-1) 
-kminusBarbed = 0#1.4; #s^(-1)
+kminusBarbed = 1.4; #s^(-1)
 kplusPointed = 1.3; #uM^(-1)*s^(-1)
-kminusPointed = 0#0.8; #s^(-1)
+kminusPointed = 0; #s^(-1)
 
 # Formin rates
 kForNuc = 2e-3; # uM^(-2)*s^(-1)
@@ -30,7 +31,7 @@ ForminEnhance = 2;
 
 # Arp 2/3 rates
 kplusARF = 5.2e-2;
-kMinusARF = 0#*3.4e-3;
+kMinusARF = 0.1#*3.4e-3;
 
 # Convert to microscopic assuming well-mixed system
 Volume = LBox**3;

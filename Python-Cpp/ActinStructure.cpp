@@ -13,6 +13,7 @@ This needs to be rewritten so that we never create an array with nMonomers size.
 It should just be the tangent vectors we are tracking and the length (in monomers)
 **/
 static const int NMonomersForFormin=4;
+static const int NMonomersForBranch=4;
 
 // Global variables for periodic ActinStructure
 class ActinStructure {
@@ -184,11 +185,17 @@ class Fiber: public ActinStructure{
         _nMonomers++;
     }
     
-    double PointedUnbindingRate(){
+    virtual double PointedUnbindingRate(){
+        if (_nMonomers == 2 && _ForminOn){
+            return 0;
+        }
         return _PointedUnbindRate;
     }
     
     virtual double BarbedUnbindingRate(){
+        if (_nMonomers == 2 && _ForminOn){
+            return 0;
+        }
         return _BarbedUnbindRate;
     }
     
@@ -236,9 +243,14 @@ class Fiber: public ActinStructure{
         return _X0;
     } 
     
-    virtual void addBranch(double rUF, double rUM, vec3 RandomGaussian, int MinMonForAttach){
+    virtual void addBranch(double rUF, double rUM, vec3 RandomGaussian){
         throw std::runtime_error("Cannot add branch to non-branched fiber");
-   }
+    }
+   
+    virtual void removeBranch(double u1){
+        throw std::runtime_error("Cannot remove branch from non-branched fiber");
+    }
+    
        
     vec3 getBarbedEnd(){
         vec3 Be;
@@ -252,12 +264,23 @@ class Fiber: public ActinStructure{
         return _ForminOn;
     }
     
-    virtual uint nFibersEligibleForBranching(int MinForBranching){
-        if (_nMonomers >= MinForBranching){
+    virtual uint nFibersEligibleForBranching(){
+        if (_nMonomers >= NMonomersForBranch){
             return 1;
         } else {
             return 0;
         }
+    }
+    
+    virtual uint nBranchesEligibleForRemoval(){
+        return 0;
+    }
+    
+    virtual bool PrepareForLinearSwitch(vec3 &X0, vec3 &Tau, int &nMonomers){
+        //std::cout << "A fiber object now with " << _nMonomers << " monomers " << std::endl;
+        //std::cout << "First entry of X0 and Tau: " << _X0[0] << " , " << _tau[0] << std::endl;
+        //std::cout << "Formin val: " << _ForminOn << std::endl;
+        return false;
     }
     
     virtual uint nFibers(){
@@ -268,7 +291,6 @@ class Fiber: public ActinStructure{
         int _nMonomers;
         double _spacing;
         vec _tau;
-        intvec _MonomerIndices;
         double _BarbedBindRate, _BarbedUnbindRate, _PointedBindRate, _PointedUnbindRate,_ForminEnhancement;
         bool _ForminOn;
         
@@ -392,9 +414,9 @@ class BranchedFiber: public Fiber{
         _nMonomersPerFib[1] = 1;
         _AttachPoints = intvec(2);
         _AttachPoints[0] = 0;
-        int AttachPt = int(rU*_nMonomers);
+        int AttachPt = NMonomersForBranch+int(rU*(_nMonomersPerFib[0]-NMonomersForBranch+1))-1;
         _AttachPoints[1] = AttachPt;
-        //std::cout << "Attaching at point " << AttachPt << std::endl;
+        //std::cout << "Random " << rU << "->Attaching at point " << _AttachPoints[1] << " out of " << _nMonomers << std::endl;
         _Mothers = intvec(2);
         _Mothers[0] = 0;
         _Mothers[1] = 0;
@@ -412,20 +434,19 @@ class BranchedFiber: public Fiber{
         //std::cout << "The new tau2 " << _tau[3] << " , " << _tau[4] << " , " << _tau[5] << std::endl;
     }
     
-    void addBranch(double rUF, double rUM, vec3 RandomGaussian, int MinMonForAttach) override{
+    void addBranch(double rUF, double rUM, vec3 RandomGaussian) override{
         // Choose the fiber and the point
         intvec EligibleFibs;
         for (int iFib=0; iFib < _nLinearFib; iFib++){ 
-            if (_nMonomersPerFib[iFib] >= MinMonForAttach){
+            if (_nMonomersPerFib[iFib] >= NMonomersForBranch){
                 EligibleFibs.push_back(iFib);
             }
         }
         int AttachFib = EligibleFibs[floor(rUF*EligibleFibs.size())];
-        if (_nMonomersPerFib[AttachFib] < MinMonForAttach){
-            std::cout << "Mistake in choosing fiber for branching" << std::endl;
-        }
         _Mothers.push_back(AttachFib);
-        _AttachPoints.push_back(int(rUM*_nMonomersPerFib[AttachFib]));
+        int AttachPt = NMonomersForBranch+int(rUM*(_nMonomersPerFib[AttachFib]-NMonomersForBranch+1))-1;
+        //std::cout << "Random " << rUM << "->Attaching at point " << AttachPt << " out of " << _nMonomersPerFib[AttachFib] << std::endl;
+        _AttachPoints.push_back(AttachPt);
         _nMonomersPerFib.push_back(1);
         _ForminsOn.push_back(false);
         _nLinearFib++;
@@ -439,10 +460,57 @@ class BranchedFiber: public Fiber{
         //std::cout << "The new tau2 " << _tau[3*_nLinearFib-3] << " , " << _tau[3*_nLinearFib-2] << " , " << _tau[3*_nLinearFib-1] << std::endl;
     }
     
-    uint nFibersEligibleForBranching(int MinForBranching) override{
-        int nElig=0;
+    void removeBranch(double r) override{
+        //std::cout << "Trying branch removal " << std::endl;
+        intvec EligibleBranches;
+        for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
+            if (_nMonomersPerFib[iBranch] == 1){
+                EligibleBranches.push_back(iBranch);
+            } 
+        }
+        int BranchNum = EligibleBranches[int(r*EligibleBranches.size())];
+        _Mothers.erase(_Mothers.begin() + BranchNum); 
+        _nMonomersPerFib.erase(_nMonomersPerFib.begin() + BranchNum); 
+        _ForminsOn.erase(_ForminsOn.begin() + BranchNum); 
+        _AttachPoints.erase(_AttachPoints.begin() + BranchNum); 
+        _nLinearFib--;
+        //std::cout << "Removed branch " << BranchNum << std::endl;
+        for (int d=2; d >=0; d--){
+            //std::cout << "Erasing element " << 3*BranchNum+d << " from tau " << std::endl;
+            _tau.erase(_tau.begin()+3*BranchNum+d);
+        }
+        //std::cout << "There are now " << _nLinearFib  << " fibers and tau has size " << _tau.size() << std::endl;
+    }
+    
+    bool PrepareForLinearSwitch(vec3 &X0, vec3 &Tau, int &nMonomers) override{
+        _tau.resize(3);
+        for (int d=0; d< 3; d++){
+            Tau[d]=_tau[d];
+            X0[d]=_X0[d];
+        }
+        _nMonomers= _nMonomersPerFib[0];
+        nMonomers = _nMonomers;
+        //std::cout << "Number monomers " << _nMonomers << std::endl;
+        //std::cout << "First entry of X0 and Tau: " << _X0[0] << " , " << _tau[0] << std::endl;
+        _ForminOn = _ForminsOn[0]; 
+        //std::cout << "Formin val: " << _ForminOn << std::endl;
+        return _ForminOn;
+    }
+    
+    uint nFibersEligibleForBranching() override{
+        uint nElig=0;
         for (int iFib=0; iFib < _nLinearFib; iFib++){ 
-            if (_nMonomersPerFib[iFib] >= MinForBranching){
+            if (_nMonomersPerFib[iFib] >= NMonomersForBranch){
+                nElig++;
+            }
+        }
+        return nElig;
+    }
+    
+    uint nBranchesEligibleForRemoval() override{
+        uint nElig=0;
+        for (int iFib=0; iFib < _nLinearFib; iFib++){
+            if (_nMonomersPerFib[iFib]==1){
                 nElig++;
             }
         }
@@ -513,24 +581,69 @@ class BranchedFiber: public Fiber{
         //    << _ForminsOn[BranchNum] << " compare with " << ForminEnd << std::endl;
     }
     
+    double PointedUnbindingRate() override{
+        if (_nMonomersPerFib[0]==NMonomersForBranch){
+            return 0;
+        }    
+        for (int jBranch=1; jBranch < _nLinearFib; jBranch++){
+            if (_Mothers[jBranch]==0 &&_AttachPoints[jBranch]==0){
+                return 0;
+            }
+        }
+        return _PointedUnbindRate;
+    }
+    
     double BarbedUnbindingRate() override{
-        return _BarbedUnbindRate*_nLinearFib;
+        // We only allow branches of length 2 or more to depolymerize from the barbed end
+        // Unbinding is only allowed if there is no branch sitting on that monomer
+        double TotalRate = 0;
+        for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
+            bool BranchAtBarbedEnd = false;
+            for (int jBranch=1; jBranch < _nLinearFib; jBranch++){
+                if (_Mothers[jBranch]==iBranch &&
+                    _AttachPoints[jBranch]==_nMonomersPerFib[iBranch]-1){
+                    //std::cout << "Disallowing unbinding on fiber " << iBranch << " because there is branch " << jBranch 
+                    //<< " attached there  at point " << _AttachPoints[jBranch] << " and iBranch has " 
+                    //<< _nMonomersPerFib[iBranch] << " monomers." << std::endl;
+                    BranchAtBarbedEnd=true;
+                }
+            }
+            if (_nMonomersPerFib[iBranch] > 1 && !BranchAtBarbedEnd){
+                TotalRate+=_BarbedUnbindRate;
+            } 
+        }
+        return TotalRate;
     }
     
     void UnbindReaction(double r, bool PointedEnd) override{
-        // Need to deal with exceptions and all that here
         if (PointedEnd){
+            std::cout << "Pointed end - shouldnt be here" << std::endl;
             _nMonomersPerFib[0]--; 
             for (int d=0; d < 3; d++){
                 _X0[d]+=_spacing*_tau[d];
             }
         } else {
             // Choose the barbed end at random
-            int FibNumber = int(r*_nLinearFib);
-            _nMonomersPerFib[FibNumber]--;
-            // Remove the branch if it's down to 0 monomers (later)
+            intvec EligibleBranches;
+            for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
+                bool BranchAtBarbedEnd = false;
+                for (int jBranch=1; jBranch < _nLinearFib; jBranch++){
+                    if (_Mothers[jBranch]==iBranch &&
+                        _AttachPoints[jBranch]==_nMonomersPerFib[iBranch]-1){
+                        BranchAtBarbedEnd=true;
+                    }
+                }
+                if (_nMonomersPerFib[iBranch] > 1 && !BranchAtBarbedEnd){
+                    EligibleBranches.push_back(iBranch);
+                } 
+            }
+            int BranchNum = EligibleBranches[int(r*EligibleBranches.size())];
+            //std::cout << "Unbinding at branch " << BranchNum << std::endl;
+            _nMonomersPerFib[BranchNum]--;
         }
-            
+        if (_nMonomersPerFib[0] <NMonomersForBranch){
+            std::cout << "Number monomers on mother has dropped below 4" << std::endl;
+        }
     }
   
     double ForminBindRate(double ForminBRate) override{
