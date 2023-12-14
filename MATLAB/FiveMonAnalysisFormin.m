@@ -1,3 +1,4 @@
+% This validates dynamics of formin without branching
 % Parameters
 Conc = 2; % in uM
 LBox = 3;
@@ -11,7 +12,7 @@ kminusTrimer = 22; %s^(-1)
 kplusBarbed = 1.6; % uM^(-1)*s^(-1) 
 kminusBarbed = 1.4; %s^(-1)
 kplusPointed = 1.3; %uM^(-1)*s^(-1)
-kminusPointed = 0*0.8; %s^(-1)
+kminusPointed = 0.8; %s^(-1)
 kForNuc = 2e-3; % uM^(-2)*s^(-1)
 kplusFor = 29.1; %uM^(-1)*s^(-1)
 kminusFor = 8.1e-2; %s^(-1)
@@ -36,11 +37,20 @@ tf=40;
 [tvals,yvals] = ode45(RHSFcn,[0 tf],y0);
 
 % Import the data
-StructInfo=load('StructInfo1.txt');
-NumFibs=load('NumFibs1.txt');
-BoundFormins=load('BoundFormins1.txt');
+nError=2;
+nTrial=2;
+NumFibs=load(strcat('NumFibs1.txt'));
 nT = length(NumFibs);
-NumOfEach = zeros(10,nT);
+MeanNumOfEach = zeros(18,nT,nError);
+for iError=1:nError
+NumOfEach = zeros(18,nT,nTrial);
+for iTrial=1:nTrial
+TriIndex = (iError-1)*nTrial+iTrial;
+StructInfo=load(strcat('StructInfo',num2str(TriIndex),'.txt'));
+NumFibs=load(strcat('NumFibs',num2str(TriIndex),'.txt'));
+BoundFormins=load(strcat('BoundFormins',num2str(TriIndex),'.txt'));
+BranchedOrLinear=load(strcat('BranchedOrLinear',num2str(TriIndex),'.txt'));
+nT = length(NumFibs);
 TotalEntries = NumFibs+3;
 StartIndex = [0;cumsum(TotalEntries)];
 FibStarts = [0;cumsum(NumFibs)];
@@ -48,18 +58,32 @@ for iT=1:nT
     StartInd = StartIndex(iT)+1;
     EndInd = StartIndex(iT)+TotalEntries(iT);
     for iS=0:2
-        NumOfEach(1+iS,iT)=StructInfo(StartInd+iS);
+        NumOfEach(1+iS,iT,iTrial)=StructInfo(StartInd+iS);
     end
     rest = StructInfo(StartInd+3:EndInd);
-    Formins = BoundFormins(FibStarts(iT)+1:FibStarts(iT+1));
-    NumOfEach(4,iT)=sum(rest==4 & ~Formins);
-    NumOfEach(5,iT)=sum(rest==5 & ~Formins);
-    NumOfEach(6,iT)=Nfor-sum(Formins);
-    NumOfEach(7,iT)=sum(rest==2 & Formins);
-    NumOfEach(8,iT)=sum(rest==3 & Formins);
-    NumOfEach(9,iT)=sum(rest==4 & Formins);
-    NumOfEach(10,iT)=sum(rest==5 & Formins);
+    Branched = BranchedOrLinear(FibStarts(iT)+1:FibStarts(iT+1));
+    HasFormin = BoundFormins(FibStarts(iT)+1:FibStarts(iT+1));
+    NumOfEach(4,iT,iTrial)=sum(rest==4 & ~Branched & ~HasFormin);
+    NumOfEach(5,iT,iTrial)=sum(rest==5 & ~Branched & ~HasFormin);
+    NumOfEach(6,iT,iTrial)=Nfor-sum(HasFormin);
+    NumOfEach(7,iT,iTrial)=sum(rest==2 & ~Branched & HasFormin);
+    NumOfEach(8,iT,iTrial)=sum(rest==3 & ~Branched & HasFormin);
+    NumOfEach(9,iT,iTrial)=sum(rest==4 & ~Branched & HasFormin);
+    NumOfEach(10,iT,iTrial)=sum(rest==5 & ~Branched & HasFormin);
+    NumOfEach(11,iT,iTrial)=sum(rest==1 & Branched & ~HasFormin);
+    NumOfEach(12,iT,iTrial)=sum(rest==2 & Branched & ~HasFormin);
+    NumOfEach(13,iT,iTrial)=sum(rest==3 & Branched & ~HasFormin);
+    NumOfEach(14,iT,iTrial)=sum(rest==4 & Branched & ~HasFormin);
+    NumOfEach(15,iT,iTrial)=sum(rest==5 & Branched & ~HasFormin);
+    NumOfEach(16,iT,iTrial)=ArpMon-sum(Branched);
+    NumOfEach(17,iT,iTrial)=sum(rest==4 & Branched & HasFormin);
+    NumOfEach(18,iT,iTrial)=sum(rest==5 & Branched & HasFormin);
 end
+end
+MeanNumOfEach(:,:,iError) = mean(NumOfEach,3);
+end
+MeanOfMean =  mean(MeanNumOfEach,3);
+StdOfMean = std(MeanNumOfEach,0,3);
 ts=0.5:0.5:tf;
 tiledlayout(1,2,'Padding', 'none', 'TileSpacing', 'compact');
 nexttile
@@ -67,13 +91,13 @@ set(gca,'ColorOrderIndex',1)
 plot(tvals,yvals(:,1:nMax)/LBox^3,'-.')
 hold on
 %plot(tf*ones(5,1),Nums/LBox^3,'ko')
-plot(ts,NumOfEach(1:nMax,:)/LBox^3)
+errorbar(ts,MeanOfMean(1:nMax,:)/LBox^3,StdOfMean(1:nMax,:)/LBox^3)
 nexttile
 set(gca,'ColorOrderIndex',1)
 plot(tvals,yvals(:,nMax+1:2*nMax)/LBox^3,'-.')
 hold on
 %plot(tf*ones(5,1),Nums/LBox^3,'ko')
-plot(ts,NumOfEach(nMax+1:2*nMax,:)/LBox^3)
+errorbar(ts,MeanOfMean(nMax+1:2*nMax,:)/LBox^3,StdOfMean(nMax+1:2*nMax,:)/LBox^3)
 
 %nMons=[nMons;Nmon];
 %alphas=[alphas;alpha];

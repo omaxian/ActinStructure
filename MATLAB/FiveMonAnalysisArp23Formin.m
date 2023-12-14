@@ -1,8 +1,10 @@
+% This validates dynamics of growing branches with formins. The only
+% things NOT validated by this is depolymerization of branched networks.
 % Parameters
 Conc = 2; % in uM
 LBox = 3;
-ForminConc = 0;
-ArpConc = 0.5;
+ForminConc = 0.1;
+ArpConc = 0.25;
 
 % Parameters 
 kplusDimer = 3.5e-3; % uM^(-1)*s^(-1) 
@@ -10,9 +12,9 @@ kminusDimer = 0.041; %s^(-1)
 kplusTrimer = 13e-1; % uM^(-1)*s^(-1) 
 kminusTrimer = 22; %s^(-1)
 kplusBarbed = 1.6; % uM^(-1)*s^(-1) 
-kminusBarbed = 1.4; %s^(-1)
+kminusBarbed = 0; %s^(-1)
 kplusPointed = 1.3; %uM^(-1)*s^(-1)
-kminusPointed = 0*0.8; %s^(-1)
+kminusPointed = 0; %s^(-1)
 kForNuc = 2e-3; % uM^(-2)*s^(-1)
 kplusFor = 29.1; %uM^(-1)*s^(-1)
 kminusFor = 8.1e-2; %s^(-1)
@@ -47,8 +49,8 @@ tf=40;
 [tvals,yvals] = ode45(RHSFcn,[0 tf],y0);
 
 % Import the data
-nError=2;
-nTrial=2;
+nError=3;
+nTrial=10;
 NumFibs=load(strcat('NumFibs1.txt'));
 nT = length(NumFibs);
 MeanNumOfEach = zeros(18,nT,nError);
@@ -120,28 +122,21 @@ function dydt = RHS(t,y,RxnRates,nMax)
     % Attachment ONLY 
     dydt=zeros(length(y),1);
     BarbedPlus = RxnRates(5);
-    BarbedMinus = RxnRates(6);
     PolyOn = RxnRates(5)+RxnRates(7);
     
-    nBranches = sum(y(2*nMax+1:3*nMax));
-    nEligMons=y(4)+2*y(5)+y(9)+2*y(10)+y(14)+2*y(15)+y(17)+2*y(18);
-    PNB = 1-nBranches/nEligMons;
-    if (isnan(PNB))
-        PNB=1;
-    end
     % Step 1: actin by itself
     dydt(1) = -2*RxnRates(1)*y(1).^2 - RxnRates(3)*y(1)*y(2)...
         + 2*RxnRates(2)*y(2)+ RxnRates(4)*y(3); % monomers
     for iD = 3:nMax-1
-        dydt(1) = dydt(1) - PolyOn*y(iD)*y(1) + BarbedMinus*y(iD+1)*PNB;
+        dydt(1) = dydt(1) - PolyOn*y(iD)*y(1);
     end
     dydt(2) = RxnRates(1)*y(1).^2 - RxnRates(3)*y(1)*y(2) ...
         - RxnRates(2)*y(2) + RxnRates(4)*y(3);% dimers
     % Trimers: form, unform, form tetramers, unform tetramers
     dydt(3) = RxnRates(3)*y(1)*y(2) - PolyOn*y(1)*y(3) ...
-        - RxnRates(4)*y(3) + BarbedMinus*PNB*y(4); % trimers
-    dydt(4) = PolyOn*y(1)*(y(3)-y(4)) + BarbedMinus*PNB*(y(5)-y(4));
-    dydt(5) = PolyOn*y(1)*y(4) - BarbedMinus*PNB*y(5);
+        - RxnRates(4)*y(3); % trimers
+    dydt(4) = PolyOn*y(1)*(y(3)-y(4));
+    dydt(5) = PolyOn*y(1)*y(4);
 
     % Step 2: adding formin
     ForminNuc = RxnRates(9);
@@ -150,16 +145,12 @@ function dydt = RHS(t,y,RxnRates,nMax)
     ForminEnhance = RxnRates(12);
     EnhancedPolyOn = ForminEnhance*RxnRates(5)+RxnRates(7);
     dydt(1) = dydt(1) - 2*ForminNuc*y(nMax+1)*y(1)*y(1) ...
-        - EnhancedPolyOn*(y(nMax+2)+y(nMax+3)+y(nMax+4))*y(1) ...
-        + BarbedMinus*(y(nMax+3)+PNB*y(nMax+4)+PNB*y(nMax+5));
+        - EnhancedPolyOn*(y(nMax+2)+y(nMax+3)+y(nMax+4))*y(1);
     dydt(nMax+1) = -ForminNuc*y(nMax+1)*y(1)*y(1);
-    dydt(nMax+2) = ForminNuc*y(nMax+1)*y(1)*y(1) -EnhancedPolyOn*y(nMax+2)*y(1)...
-        + BarbedMinus*y(nMax+3);
-    dydt(nMax+3) = EnhancedPolyOn*y(1)*(y(nMax+2)-y(nMax+3)) ...
-        + BarbedMinus*(y(nMax+4)*PNB-y(nMax+3));
-    dydt(nMax+4) = EnhancedPolyOn*y(1)*(y(nMax+3)-y(nMax+4)) ...
-        + BarbedMinus*PNB*(y(nMax+5)-y(nMax+4));
-    dydt(nMax+5) = EnhancedPolyOn*y(1)*y(nMax+4)-BarbedMinus*PNB*y(nMax+5);
+    dydt(nMax+2) = ForminNuc*y(nMax+1)*y(1)*y(1) -EnhancedPolyOn*y(nMax+2)*y(1);
+    dydt(nMax+3) = EnhancedPolyOn*y(1)*(y(nMax+2)-y(nMax+3));
+    dydt(nMax+4) = EnhancedPolyOn*y(1)*(y(nMax+3)-y(nMax+4));
+    dydt(nMax+5) = EnhancedPolyOn*y(1)*y(nMax+4);
     for iD=4:nMax
         dydt(iD)=dydt(iD)-ForminBind*y(iD)*y(nMax+1)+Forminunbind*y(nMax+iD);
         dydt(nMax+1)=dydt(nMax+1)-ForminBind*y(iD)*y(nMax+1)+Forminunbind*y(nMax+iD);
@@ -172,32 +163,28 @@ function dydt = RHS(t,y,RxnRates,nMax)
     BranchElig=y(4)+y(5)+y(nMax+4)+y(nMax+5)+y(2*nMax+4)+y(2*nMax+5)+y(3*nMax+2)+y(3*nMax+3);
     % Branch formation
     dydt(1) = dydt(1) - ARFPlus*y(1)*y(3*nMax+1)*BranchElig + ARFMinus*y(2*nMax+1) ...
-        - BarbedPlus*y(1)*sum(y(2*nMax+1:2*nMax+4)) + BarbedMinus*(y(2*nMax+2)+y(2*nMax+3)...
-            +PNB*(y(2*nMax+4)+y(2*nMax+5)));
+        - BarbedPlus*y(1)*sum(y(2*nMax+1:2*nMax+4));
     dydt(3*nMax+1) =  - ARFPlus*y(1)*y(3*nMax+1)*BranchElig + ARFMinus*y(2*nMax+1);
     % Branch polymerization
     dydt(2*nMax+1) = ARFPlus*y(1)*y(3*nMax+1)*BranchElig - BarbedPlus*y(2*nMax+1)*y(1) ...
-        + BarbedMinus*y(2*nMax+2) - ARFMinus*y(2*nMax+1);
-    dydt(2*nMax+2) = BarbedPlus*y(1)*(y(2*nMax+1)-y(2*nMax+2))...
-        +BarbedMinus*(y(2*nMax+3)-y(2*nMax+2));
-    dydt(2*nMax+3) = BarbedPlus*y(1)*(y(2*nMax+2)-y(2*nMax+3))...
-        +BarbedMinus*(PNB*y(2*nMax+4)-y(2*nMax+3));
-    dydt(2*nMax+4) = BarbedPlus*y(1)*(y(2*nMax+3)-y(2*nMax+4))...
-        +BarbedMinus*PNB*(y(2*nMax+5)-y(2*nMax+4));
-    dydt(2*nMax+5) = BarbedPlus*y(1)*y(2*nMax+4)-BarbedMinus*PNB*y(2*nMax+5);
+         - ARFMinus*y(2*nMax+1);
+    dydt(2*nMax+2) = BarbedPlus*y(1)*(y(2*nMax+1)-y(2*nMax+2));
+    dydt(2*nMax+3) = BarbedPlus*y(1)*(y(2*nMax+2)-y(2*nMax+3));
+    dydt(2*nMax+4) = BarbedPlus*y(1)*(y(2*nMax+3)-y(2*nMax+4));
+    dydt(2*nMax+5) = BarbedPlus*y(1)*y(2*nMax+4);
 
 
     % Branches and formins (come back to this later)
     % 3*nMax+1 = Arp 2/3
     % 3*nMax+2 = formin branched fiber length 4
     % 3*nMax+3 = formin branched fiber length 5
-%     dydt(2*nMax+4)=dydt(2*nMax+4)-ForminBind*y(nMax+1)*y(2*nMax+4)+Forminunbind*y(3*nMax+2);
-%     dydt(2*nMax+5)=dydt(2*nMax+5)-ForminBind*y(nMax+1)*y(2*nMax+5)+Forminunbind*y(3*nMax+3);
-%     dydt(3*nMax+2) = dydt(3*nMax+2) - ForminEnhance*BarbedPlus*y(1)*y(3*nMax+2) ...
-%         -Forminunbind*y(3*nMax+2) + ForminBind*y(nMax+1)*y(2*nMax+4); %R4
-%     dydt(3*nMax+3) = dydt(3*nMax+3) + ForminEnhance*BarbedPlus*y(1)*y(3*nMax+2) ...
-%         -Forminunbind*y(3*nMax+3) + ForminBind*y(nMax+1)*y(2*nMax+5); %R5
-%     dydt(1) = dydt(1) -  ForminEnhance*BarbedPlus*y(1)*y(3*nMax+2);
-%     dydt(nMax+1) = dydt(nMax+1)+Forminunbind*(y(3*nMax+2)+y(3*nMax+3))...
-%         - ForminBind*y(nMax+1)*(y(2*nMax+4)+y(2*nMax+5));
+    dydt(2*nMax+4)=dydt(2*nMax+4)-ForminBind*y(nMax+1)*y(2*nMax+4)+Forminunbind*y(3*nMax+2);
+    dydt(2*nMax+5)=dydt(2*nMax+5)-ForminBind*y(nMax+1)*y(2*nMax+5)+Forminunbind*y(3*nMax+3);
+    dydt(3*nMax+2) = dydt(3*nMax+2) - ForminEnhance*BarbedPlus*y(1)*y(3*nMax+2) ...
+        -Forminunbind*y(3*nMax+2) + ForminBind*y(nMax+1)*y(2*nMax+4); %R4
+    dydt(3*nMax+3) = dydt(3*nMax+3) + ForminEnhance*BarbedPlus*y(1)*y(3*nMax+2) ...
+        -Forminunbind*y(3*nMax+3) + ForminBind*y(nMax+1)*y(2*nMax+5); %R5
+    dydt(1) = dydt(1) -  ForminEnhance*BarbedPlus*y(1)*y(3*nMax+2);
+    dydt(nMax+1) = dydt(nMax+1)+Forminunbind*(y(3*nMax+2)+y(3*nMax+3))...
+        - ForminBind*y(nMax+1)*(y(2*nMax+4)+y(2*nMax+5));
 end

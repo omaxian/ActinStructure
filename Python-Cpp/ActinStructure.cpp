@@ -14,6 +14,7 @@ It should just be the tangent vectors we are tracking and the length (in monomer
 **/
 static const int NMonomersForFormin=4;
 static const int NMonomersForBranch=4;
+static const bool MaxFive = false;
 
 // Global variables for periodic ActinStructure
 class ActinStructure {
@@ -152,8 +153,7 @@ class Fiber: public ActinStructure{
     }
         
     virtual double PointedBindingRate(){    
-        if (_nMonomers == 5){
-           // std::cout << "MAX 5 MONOMERS " << std::endl;
+        if (MaxFive && _nMonomers == 5){
             return 0;
         }
         return _PointedBindRate;
@@ -167,7 +167,7 @@ class Fiber: public ActinStructure{
     }
     
     virtual double BarbedBindingRateNoFormin(){    
-        if (_nMonomers == 5 || _ForminOn){
+        if ((MaxFive && _nMonomers == 5) || _ForminOn){
            // std::cout << "MAX 5 MONOMERS " << std::endl;
             return 0;
         }
@@ -175,7 +175,7 @@ class Fiber: public ActinStructure{
     }
     
     virtual double BarbedBindingRateWithFormin(){
-        if (_nMonomers == 5 || !_ForminOn){
+        if ((MaxFive && _nMonomers == 5) || !_ForminOn){
             return 0;
         }
         return _BarbedBindRate*_ForminEnhancement;
@@ -464,7 +464,7 @@ class BranchedFiber: public Fiber{
         //std::cout << "Trying branch removal " << std::endl;
         intvec EligibleBranches;
         for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
-            if (_nMonomersPerFib[iBranch] == 1){
+            if (_nMonomersPerFib[iBranch] == 1 && !_ForminsOn[iBranch]){
                 EligibleBranches.push_back(iBranch);
             } 
         }
@@ -510,7 +510,7 @@ class BranchedFiber: public Fiber{
     uint nBranchesEligibleForRemoval() override{
         uint nElig=0;
         for (int iFib=0; iFib < _nLinearFib; iFib++){
-            if (_nMonomersPerFib[iFib]==1){
+            if (_nMonomersPerFib[iFib]==1 && !_ForminsOn[iFib]){
                 nElig++;
             }
         }
@@ -534,7 +534,7 @@ class BranchedFiber: public Fiber{
     }
     
     double PointedBindingRate() override{    
-        if (_nMonomersPerFib[0] == 5){
+        if (MaxFive && _nMonomersPerFib[0] == 5){
            // std::cout << "MAX 5 MONOMERS " << std::endl;
             return 0;
         }
@@ -546,12 +546,19 @@ class BranchedFiber: public Fiber{
         for (int d=0; d < 3; d++){
             _X0[d]-=_spacing*_tau[d];
         }
+        // Change the indicies of the branches bound to the mother
+        for (int jBranch=1; jBranch < _nLinearFib; jBranch++){
+            if (_Mothers[jBranch]==0){
+                _AttachPoints[jBranch]++;
+            }
+        }
     }
     
     double BarbedBindingRateNoFormin() override{    
         double TotalRate=0;
         for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
-            if (!_ForminsOn[iBranch] && _nMonomersPerFib[iBranch] < 5){
+            bool Eligible = !MaxFive || _nMonomersPerFib[iBranch] < 5;
+            if (!_ForminsOn[iBranch] && Eligible){
                 TotalRate+=_BarbedBindRate;
             } 
         } 
@@ -561,7 +568,8 @@ class BranchedFiber: public Fiber{
     double BarbedBindingRateWithFormin() override{
         double TotalRate=0;
         for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
-            if (_ForminsOn[iBranch] && _nMonomersPerFib[iBranch] < 5){
+            bool Eligible = !MaxFive || _nMonomersPerFib[iBranch] < 5;
+            if (_ForminsOn[iBranch] && Eligible){
                 TotalRate+=_BarbedBindRate*_ForminEnhancement;
             } 
         } 
@@ -571,7 +579,8 @@ class BranchedFiber: public Fiber{
     void BarbedBindReaction(double r, bool ForminEnd){
         intvec EligibleBranches;
         for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
-            if (_ForminsOn[iBranch]==ForminEnd && _nMonomersPerFib[iBranch] < 5){
+            bool Eligible = !MaxFive || _nMonomersPerFib[iBranch] < 5;
+            if (_ForminsOn[iBranch]==ForminEnd && Eligible){
                 EligibleBranches.push_back(iBranch);
             } 
         }
@@ -582,11 +591,10 @@ class BranchedFiber: public Fiber{
     }
     
     double PointedUnbindingRate() override{
-        if (_nMonomersPerFib[0]==NMonomersForBranch){
-            return 0;
-        }    
+        // Return 0 if there is a branch sitting on the fourth monomer. Otherwise allow unbind
         for (int jBranch=1; jBranch < _nLinearFib; jBranch++){
-            if (_Mothers[jBranch]==0 &&_AttachPoints[jBranch]==0){
+            if (_Mothers[jBranch]==0 &&_AttachPoints[jBranch]==NMonomersForBranch-1){
+                //std::cout << "Branch sitting on fourth monomer - not allowing pointed unbind " << std::endl;
                 return 0;
             }
         }
@@ -602,12 +610,13 @@ class BranchedFiber: public Fiber{
             for (int jBranch=1; jBranch < _nLinearFib; jBranch++){
                 if (_Mothers[jBranch]==iBranch &&
                     _AttachPoints[jBranch]==_nMonomersPerFib[iBranch]-1){
-                    //std::cout << "Disallowing unbinding on fiber " << iBranch << " because there is branch " << jBranch 
-                    //<< " attached there  at point " << _AttachPoints[jBranch] << " and iBranch has " 
-                    //<< _nMonomersPerFib[iBranch] << " monomers." << std::endl;
+                    std::cout << "Disallowing unbinding on fiber " << iBranch << " because there is branch " << jBranch 
+                    << " attached there  at point " << _AttachPoints[jBranch] << " and iBranch has " 
+                    << _nMonomersPerFib[iBranch] << " monomers." << std::endl;
                     BranchAtBarbedEnd=true;
                 }
             }
+            //std::cout << "Number of monomers on branch " << iBranch << " = " << _nMonomersPerFib[iBranch] << std::endl;
             if (_nMonomersPerFib[iBranch] > 1 && !BranchAtBarbedEnd){
                 TotalRate+=_BarbedUnbindRate;
             } 
@@ -617,10 +626,16 @@ class BranchedFiber: public Fiber{
     
     void UnbindReaction(double r, bool PointedEnd) override{
         if (PointedEnd){
-            std::cout << "Pointed end - shouldnt be here" << std::endl;
+            //std::cout << "Pointed end unbind" << std::endl;
             _nMonomersPerFib[0]--; 
             for (int d=0; d < 3; d++){
                 _X0[d]+=_spacing*_tau[d];
+            }
+            // Change the indicies of the branches bound to the mother
+            for (int jBranch=1; jBranch < _nLinearFib; jBranch++){
+                if (_Mothers[jBranch]==0){
+                    _AttachPoints[jBranch]--;
+                }
             }
         } else {
             // Choose the barbed end at random
@@ -631,11 +646,17 @@ class BranchedFiber: public Fiber{
                     if (_Mothers[jBranch]==iBranch &&
                         _AttachPoints[jBranch]==_nMonomersPerFib[iBranch]-1){
                         BranchAtBarbedEnd=true;
+                        if (_nMonomersPerFib[iBranch] < 4){
+                            std::cout << "Should not have a branch with this few mons " << std::endl;
+                        }
                     }
                 }
                 if (_nMonomersPerFib[iBranch] > 1 && !BranchAtBarbedEnd){
                     EligibleBranches.push_back(iBranch);
                 } 
+            }
+            if (EligibleBranches.size()==0){
+                std::cout << "No elements in eligible branches! " << std::endl;
             }
             int BranchNum = EligibleBranches[int(r*EligibleBranches.size())];
             //std::cout << "Unbinding at branch " << BranchNum << std::endl;

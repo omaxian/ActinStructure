@@ -6,22 +6,22 @@ from ActinMixedNucleates import ActinMixedNucleates
 a = 4e-3;
 kbT = 4.1e-3;
 mu = 0.01;
-LBox = 5; # in um
-Conc = 5; # in uM
-ConcFormin = 0; # in uM
+LBox = 3; # in um
+Conc = 2; # in uM
+ConcFormin = 0.1; # in uM
 ConcArp23 = 0.25;
  # in uM
 
 # Parameters from Kovar & Pollard paper for actin alone
 # RETURN TO THE ACTUAL PARAMS LATER!
-kplusDimer = 3.5e-6; # uM^(-1)*s^(-1) 
+kplusDimer = 3.5e-3; # uM^(-1)*s^(-1) 
 kminusDimer = 0.041; #s^(-1)
-kplusTrimer = 13e-5; # uM^(-1)*s^(-1) 
+kplusTrimer = 13e-1; # uM^(-1)*s^(-1) 
 kminusTrimer = 22; #s^(-1)
-kplusBarbed = 11.6; # uM^(-1)*s^(-1) 
-kminusBarbed = 1.4; #s^(-1)
+kplusBarbed = 1.6#11.6; # uM^(-1)*s^(-1) 
+kminusBarbed = 0*1.4; #s^(-1)
 kplusPointed = 1.3; #uM^(-1)*s^(-1)
-kminusPointed = 0.8; #s^(-1)
+kminusPointed = 0*0.8; #s^(-1)
 
 # Formin rates
 kForNuc = 2e-3; # uM^(-2)*s^(-1)
@@ -30,8 +30,8 @@ kminusFor = 8.1e-2; # s^(-1)
 ForminEnhance = 2;
 
 # Arp 2/3 rates
-kplusARF = 5.2e-3;
-kMinusARF = 3.4e-3;
+kplusARF = 5.2e-2;
+kMinusARF = 0.1#*3.4e-3;
 
 # Convert to microscopic assuming well-mixed system
 Volume = LBox**3;
@@ -61,8 +61,8 @@ if (ConcFormin > 0):
 if (ConcArp23 > 0):
     AllActin.InitializeArp(NArp23,RxnRatesArp23);
 
-Tf = 3600;
-dt = 6;
+Tf = 40;
+dt = 0.5;
 nSteps = int(Tf/dt+1e-6);
 
 NumFibers = np.zeros(nSteps,dtype=np.int64);
@@ -76,18 +76,18 @@ for i in range(nSteps):
     NumOnEach = AllActin.NumMonOnEachFiber();
     NumberPerFiber = np.append(NumberPerFiber,NumOnEach)
     NumFibers[i]=len(NumOnEach)-3;
-    BranchedOrLinear = np.append(BranchedOrLinear,AllActin.BranchedOrLinear(True))
+    BranchedOrLinear = np.append(BranchedOrLinear,AllActin.BranchedOrLinear(False))
     BoundFormins = np.append(BoundFormins,AllActin.BoundFormins())
-    #if (i==0):
-    #    AllX = AllActin.getX();
-    #else:
-    #    AllX = np.append(AllX,AllActin.getX(),axis=0);
+    if (i==0):
+        AllX = AllActin.getX();
+    else:
+        AllX = np.append(AllX,AllActin.getX(),axis=0);
     print('Time %f, Percent free %f' %((i+1)*dt, NumOnEach[0]/Nmon))
     
-np.savetxt('NumFibs'+str(Conc)+'uM_'+str(seed)+'.txt',NumFibers);
-np.savetxt('StructInfo'+str(Conc)+'uM_'+str(seed)+'.txt',NumberPerFiber);
-np.savetxt('BoundFormins'+str(Conc)+'uM_'+str(seed)+'.txt',BoundFormins);
-np.savetxt('BranchedOrLinear'+str(Conc)+'uM_'+str(seed)+'.txt',BranchedOrLinear);
+np.savetxt('NumFibs'+str(seed)+'.txt',NumFibers);
+np.savetxt('StructInfo'+str(seed)+'.txt',NumberPerFiber);
+np.savetxt('BoundFormins'+str(seed)+'.txt',BoundFormins);
+np.savetxt('BranchedOrLinear'+str(seed)+'.txt',BranchedOrLinear);
 #np.savetxt('AllX.txt',AllX);
 #np.savetxt('NumFibs'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',NumFibers);
 #np.savetxt('StructInfo'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',StructInfo);

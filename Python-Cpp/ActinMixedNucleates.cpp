@@ -75,7 +75,7 @@ class ActinMixedNucleates {
         }
        
     }
-    
+
     void InitializeFormins(uint nFormin, vec ForminRates){
         _TotalFormins = nFormin;
         _FreeFormins = nFormin;
@@ -90,6 +90,42 @@ class ActinMixedNucleates {
         _FreeArp = nArp;
         _ArpMonomerFiberBindRate = ArpRates[0];
         _ArpMonomerFiberUnbindRate = ArpRates[1];
+    }
+    
+    void InitBranchedStructure(intvec nMonsPerBranch, intvec ForminsOn){
+        int nMonsIn = std::accumulate(nMonsPerBranch.begin(), nMonsPerBranch.end(),0);
+        _FreeMonomers-=nMonsIn;
+        uint nBranches = nMonsPerBranch.size()-1;
+        _FreeArp-=nBranches;
+        // Initialize fiber
+        vec3 tau = PointOnUnitSphere();
+        vec3 X0 = UniformPointInBox();
+        _Fibers.push_back(std::make_shared<Fiber>(X0, tau, nMonsPerBranch[0], _spacing, _a, _mu, _kbT,_FiberEndBindingRates));
+        // Branches
+        uint ind = _Fibers.size()-1;
+        vec3 RandGauss;
+        for (uint jBranch=0; jBranch < nBranches; jBranch++){
+            for (int d=0; d<3;d++){
+                RandGauss[d]=normaldist(rng);
+            }
+            double u1=unifdist(rngu);
+            double u2=unifdist(rngu);
+            if (jBranch==0){
+                _Fibers[ind] =  std::make_shared<BranchedFiber>(_Fibers[ind].get(),u1,RandGauss);
+            } else {
+                _Fibers[ind]->addBranch(u1,u2,RandGauss);
+            }
+            for (int iMon=1; iMon < nMonsPerBranch[jBranch+1]; iMon++){
+                _Fibers[ind]->BarbedBindReaction(0.99,false); // (always add to the last branch)
+            }
+        }
+        for (uint iB=0; iB <=nBranches; iB++){
+            if (ForminsOn[iB] > 0){
+                double DeltaBranch = 1.0/(nBranches+1);
+                _Fibers[ind]->BindFormin((0.5+iB)*DeltaBranch);
+                _FreeFormins--;
+            }
+        }
     }
         
     
@@ -168,6 +204,20 @@ class ActinMixedNucleates {
         return makePyArray(Info);
     }
     
+    npInt NumMonOnEachStructure(){
+        uint nStruct = _Fibers.size();
+        intvec Info(3+nStruct);
+        Info[0]=_FreeMonomers;
+        Info[1]=_nDimers;
+        Info[2]=_nTrimers;
+        int iFib=0;
+        for(auto&& FibObj: _Fibers){
+            Info[3+iFib]=FibObj->TotalMonomers();
+            iFib++;
+        }    
+        return makePyArray(Info);
+    }
+    
     npInt BranchedOrLinear(bool MothersAreBranched){
         uint nFib = nTotalFibers();
         intvec Info(nFib);
@@ -181,6 +231,18 @@ class ActinMixedNucleates {
                 }    
                 iFib++;
             }
+        }    
+        return makePyArray(Info);
+    }
+    
+    npInt BranchedOrLinearStruct(){
+        uint nStruct = _Fibers.size();
+        intvec Info(nStruct);
+        int iFib=0;
+        for(auto&& FibObj: _Fibers){
+            int nFibThis = FibObj->nFibers();
+            Info[iFib]=(nFibThis > 1);
+            iFib++;
         }    
         return makePyArray(Info);
     }
@@ -332,6 +394,7 @@ class ActinMixedNucleates {
                 // Rxn 0: add to pointed end
                 double RateAddPointed =  _Fibers[iFib]->PointedBindingRate()*_FreeMonomers;
                 double TryDeltaT = logrand()/RateAddPointed; 
+                //std::cout << "Time add to pointed end " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
                     index = numBefore+nRxnsPerFiber*iFib;
@@ -339,6 +402,7 @@ class ActinMixedNucleates {
                 // Rxn 1: add to barbed end
                 double RateAddBarbedNF =  _Fibers[iFib]->BarbedBindingRateNoFormin()*_FreeMonomers;
                 TryDeltaT = logrand()/RateAddBarbedNF; 
+                //std::cout << "Time add to barbed end " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
                     index = numBefore+nRxnsPerFiber*iFib+1;
@@ -353,7 +417,7 @@ class ActinMixedNucleates {
                 // Rxn 3: subtract from pointed end
                 double RateSubtractPt = _Fibers[iFib]->PointedUnbindingRate();
                 TryDeltaT = logrand()/RateSubtractPt; 
-                //std::cout << "Time remove from fiber " << TryDeltaT << std::endl;
+                //std::cout << "Time remove from pointed end " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
                     index = numBefore+nRxnsPerFiber*iFib+3;
@@ -361,7 +425,7 @@ class ActinMixedNucleates {
                 // Rxn 4: subtract from barbed end
                 double RateSubtractBrb = _Fibers[iFib]->BarbedUnbindingRate();
                 TryDeltaT = logrand()/RateSubtractBrb; 
-                //std::cout << "Time remove from fiber " << TryDeltaT << std::endl;
+                //std::cout << "Time remove from barbed end(s) " << TryDeltaT << std::endl;
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
                     index = numBefore+nRxnsPerFiber*iFib+4;
@@ -371,6 +435,7 @@ class ActinMixedNucleates {
                     // Reaction 5: bind formin
                     double ForminBindRate = _Fibers[iFib]->ForminBindRate(_ForminBindRate)*_FreeFormins;
                     TryDeltaT = logrand()/ForminBindRate;
+                    //std::cout << "Time bind formin " << TryDeltaT << std::endl;
                     if (TryDeltaT < deltaT){
                         deltaT = TryDeltaT;
                         index = numBefore+nRxnsPerFiber*iFib+5;
@@ -378,6 +443,7 @@ class ActinMixedNucleates {
                     // Reaction 6: unbind formin
                     double ForminUnbindRate = _Fibers[iFib]->ForminUnbindRate(_ForminUnbindRate);
                     TryDeltaT = logrand()/ForminUnbindRate;
+                    //std::cout << "Time unbind formin " << TryDeltaT << std::endl;
                     if (TryDeltaT < deltaT){
                         deltaT = TryDeltaT;
                         index = numBefore+nRxnsPerFiber*iFib+6;
@@ -396,6 +462,7 @@ class ActinMixedNucleates {
                     // Reaction 8: unbind arp 2/3 and the branch
                     double BranchRemoveRate = _ArpMonomerFiberUnbindRate*_Fibers[iFib]->nBranchesEligibleForRemoval();
                     TryDeltaT = logrand()/BranchRemoveRate;
+                    //std::cout << "Time to unbind branch " << TryDeltaT << std::endl;
                     if (TryDeltaT < deltaT){
                         deltaT = TryDeltaT;
                         index = numBefore+nRxnsPerFiber*iFib+8;
@@ -547,11 +614,14 @@ PYBIND11_MODULE(ActinMixedNucleates, m) {
         .def(py::init<uint, intvec, vec3, double, double, double, vec,int,int>())
         .def("InitializeFormins",&ActinMixedNucleates::InitializeFormins)
         .def("InitializeArp",&ActinMixedNucleates::InitializeArp)
+        .def("InitBranchedStructure",&ActinMixedNucleates::InitBranchedStructure)
         .def("Diffuse",&ActinMixedNucleates::Diffuse)
         .def("React",&ActinMixedNucleates::React)
         .def("getX", &ActinMixedNucleates::getX)
-        .def("NumMonOnEachFiber", &ActinMixedNucleates::NumMonOnEachFiber)
+        .def("NumMonOnEachFiber",&ActinMixedNucleates::NumMonOnEachFiber)
+        .def("NumMonOnEachStructure",&ActinMixedNucleates::NumMonOnEachStructure)
         .def("nTotalFibers", &ActinMixedNucleates::nTotalFibers)
         .def("BranchedOrLinear", &ActinMixedNucleates::BranchedOrLinear)
+        .def("BranchedOrLinearStruct",&ActinMixedNucleates::BranchedOrLinearStruct)
         .def("BoundFormins",&ActinMixedNucleates::BoundFormins);
 }    
