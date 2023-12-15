@@ -45,12 +45,14 @@
 \global\long\def\kforn{k_\text{for}^{(n)}}
 \global\long\def\kforp{k_\text{for}^+}
 \global\long\def\kform{k_\text{for}^-}
+\global\long\def\kbrp{k_\text{brnc}^+}
+\global\long\def\kbrm{k_\text{brnc}^-}
 \global\long\def\afor{\alpha_\text{for}}
 \global\long\def\Nm{N_1}
 \global\long\def\Nd{N_2}
 \global\long\def\Ntr{N_3}
 
-\title{How cells regulate the type and size of actin structures  \vspace{-0.5 cm}}
+\title{Simulations of linear and branched actin networks with formin and arp 2/3 complex as mediators  \vspace{-0.5 cm}}
 \author{Ondrej Maxian  \vspace{-0.75 cm}}
 
 \begin{document}
@@ -133,16 +135,16 @@ Let $\Nm$ be the number of free monomers, $\Nd$ be the number of dimers, and $\N
 \end{enumerate}
 We use an exact Gillespie simulation algorithm \cite{gillespie2007stochastic} to simulate these reactions. Letting $F$ be the number of fibers, there are $2F+5$ total reactions with rates $r_i$. We sample a time for these reactions according to an exponential distribution, $\Delta t_i=-\log(u)/r_i$, where $u \in (0,1]$. The reaction chosen is then the one that occurs soonest. We increment time by this minimum amount, then recompute all of the rates and times, repeating until the time step is complete.
 
-\subsection{Validating stochastic simulations with ODEs}
-The algorithm in Section\ \ref{sec:SSA} is a stochastic version of the following ODEs \cite{edelstein1998models}
+\subsection{Validating stochastic simulations with ODEs \label{sec:validationFibs}}
+The algorithm in Section\ \ref{sec:SSA} is a stochastic version of the following ODEs  \cite{edelstein1998models} (written by abuse of notation in \emph{concentration} variables)
 \begin{subequations}
 \label{eq:ODEsMix}
 \begin{align}
-\frac{d \Nm}{dt} &= -2 (\kdp/V) \Nm^2 + 2 \kdm \Nd - (\ktrp/V) \Nm \Nd + \ktrm \Ntr + \sum_{j=4}^M \left(- (\kfp/V) \Nm N_{j-1}+\kfm N_j\right)\\
-\frac{d \Nd}{dt} &= (\kdp/V) \Nm^2 - \kdm \Nd -(\ktrp/V) \Nd \Nm + \ktrm \Ntr \\
-\frac{d \Ntr}{dt} &= (\ktrp/V) \Nm \Nd - \ktrm \Ntr - (\kfp/V) \Ntr \Nm + \kfm N_4 \\
-\frac{d N_j}{dt} & = (\kfp/V) \Nm N_{j-1} - \kfm N_j - (\kfp/V) N_j \Nm + \kfm N_{j+1} \qquad 4 \leq j < M \\
-\frac{d N_M}{dt} & = (\kfp/V) \Nm N_{M-1} - \kfm N_M
+\frac{d \Nm}{dt} &= -2 \kdp \Nm^2 + 2 \kdm \Nd - \ktrp \Nm \Nd + \ktrm \Ntr + \sum_{j=4}^M \left(- \kfp \Nm N_{j-1}+\kfm N_j\right)\\
+\frac{d \Nd}{dt} &= \kdp \Nm^2 - \kdm \Nd -\ktrp \Nd \Nm + \ktrm \Ntr \\
+\frac{d \Ntr}{dt} &= \ktrp \Nm \Nd - \ktrm \Ntr - \kfp \Ntr \Nm + \kfm N_4 \\
+\frac{d N_j}{dt} & = \kfp \Nm N_{j-1} - \kfm N_j - \kfp N_j \Nm + \kfm N_{j+1} \qquad 4 \leq j < M \\
+\frac{d N_M}{dt} & = \kfp \Nm N_{M-1} - \kfm N_M
 \end{align}
 \end{subequations}
 where $M$ represents the maximum number of monomers. Here the cap on the number of monomers is chosen to close the system of equations. Note that these equations could also be written in terms of concentrations instead of number by dividing each side of the equations by the system volume. 
@@ -177,10 +179,38 @@ Similar to \cite{banerjee2022emergence}, we do not concern ourselves with the lo
 \subsection{Incorporating formins}
 We now incorporate formin into the filament dynamics. We assume that formin can do three things,
 \begin{enumerate}
-\item Formin can nucleate filaments by binding two actin monomers in the reaction $F+A+A \rightarrow FA_2$, which is irreversible and has rate $\kforn$ \cite{paul2008role, zweifel2021nucleation}. To accomplish this, we add a reaction to our stochastic simulations in Section \ref{sec:SSA} which describes the binding of formin to two actin monomers with rate $\left(\kforn/V^2\right)N_\text{for}\Nm^2 $. If chosen, we decrease the number of formins by 1 and the number of monomers by 2 and instantiate a fiber with two monomers and formin bound to the bound end. 
-\item This fiber can add monomers to the barbed and pointed ends, with an accelerated rate at the barbed end $\alpha_\text{for}\kbp$. It can also depolymerize from both ends with the normal rates, except that we do not allow formin nucleates (2 monomers + formin) to break apart.
+\item Formin can nucleate filaments by binding two actin monomers in the reaction $F+A+A \rightarrow FA_2$, which is irreversible and has rate $\kforn$ \cite{paul2008role, zweifel2021nucleation}. To accomplish this, we add a reaction to our stochastic simulations in Section \ref{sec:SSA} which describes the binding of formin to two actin monomers with rate $\left(\kforn/V^2\right)N_\text{for}\Nm^2 $. If chosen, we decrease the number of formins by 1 and the number of monomers by 2 and instantiate a fiber with two monomers and formin bound to the bound end. Following previous studies \cite{paul2008role, zweifel2021nucleation}, we do not allow formin nucleates to break apart (this reaction is irreversible). 
+\item This fiber can add monomers to the barbed and pointed ends, with a modified rate at the barbed end $\afor \kbp$. It can also depolymerize from both ends with the normal rates (until it becomes a dimer).
 \item Formin can bind and unbind from existing filament barbed ends, with rates $\kforp$ and $\kform$, respectively. According to our previous definition, a ``filament'' has 4 or more monomers. As such, we only allow formin to bind/unbind from filaments with 4 or more monomers.
 \end{enumerate}
+
+\subsubsection{Validation}
+We now repeat the validation experiment from Section\ \ref{sec:validationFibs}, except this time we incorporate the dynamics of formin according to the three rules above. We let $F$ denote the number of formins, and $F_j$ for $2 \leq j \leq M$ denote fibers of length $j$ with formins attached. The ODEs that describe the system are given by\ \eqref{eq:ODEsMix} with the additions (denoted by $+=$ for existing equations)
+\begin{align*}
+\label{eq:1plus}
+\tag{1+}
+\frac{d \Nm}{dt} +&= -2\kforn F\Nm^2 - \left(\kpp +\afor \kbp\right)N_1 \sum_{j=2}^{M-1} F_j+\kfm \sum_{j=3}^M  F_j\\
+\frac{d N_j}{dt} +& = -\kforp F N_j + \kform F_j \qquad 4 \leq j \leq M
+\end{align*}
+These additional terms describe the formin nucleation steps and binding/unbinding from existing filaments. The equations that describe the dynamics of formin and the formin-bound filaments are then (once again abusing notation by using $N_j$ and $F_j$ to denote concentration)
+\begin{subequations}
+\label{eq:ODEsFormin}
+\begin{align}
+\frac{d F}{dt} &=\kforn F\Nm^2+\kform \sum_{j=4}^{M} F_j - \kforp F \sum_{j=4}^M N_j \\
+\frac{d F_2}{dt} &= \kforn F\Nm^2 -\left(\kpp +\afor \kbp\right)N_1F_2 + \kfm F_3 \\
+\frac{d F_3}{dt} &= \left(\kpp +\afor \kbp\right)N_1\left(F_2-F_3\right) + \kfm \left(F_4-F_3\right) \\
+\frac{d F_j}{dt} & =\left(\kpp +\afor \kbp\right)N_1\left(F_{j-1}-F_j\right) + \kfm \left(F_{j+1}-F_j\right) - \kform F_j + \kforp N_j \qquad 4 \leq j < M \\
+\frac{d F_M}{dt} & = \left(\kpp +\afor \kbp\right)N_1 F_{M-1} - \kfm F_M - \kform F_M + \kforp N_M.
+\end{align}
+\end{subequations}
+To validate this system, we use an actin concentration 2 $\mu$M in a box of length 3 $\mu$m on all size, and a formin concentration of 0.1 $\mu$M. The polymerization parameters we use are $\kdp=0.0035$, $\ktrp=1.3$, $\kbp=1.6$, and $\kpp=1.3$, all of these having units $\mu$M$^{-1}\cdot$s$^{-1}$. For depolymerization, we use parameters $\kdm = 0.041$, $\ktrm = 22$, $\kbm=1.4$, $\kpm=0.8$ (all units $s^{-1}$). For formin, we use $\kforn = 0.002$ $\mu$M$^{-2}\cdot$s$^{-1}$, $\kforp = 29.1$ $\mu$M$^{-1}\cdot$s$^{-1}$, $\kforn = 0.081$ $s^{-1}$, and $\afor=2$. As shown in Fig.\ \ref{fig:ForminValid}, the stochastic dynamics we observe agree well with the corresponding ODEs, thereby validating our implementation.
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{ForminValidation.eps}
+\caption{\label{fig:ForminValid}Validating the stochastic simulation algorithm for well-mixed systems with formins. We use the equations\ \eqref{eq:ODEsMix} (with the additions in\ \eqref{eq:1plus}) for the free-ended fibers (left plot), and the equations\ \eqref{eq:ODEsFormin} for the formin-ended fibers (shown at right). The dynamics from the stochastic simulations agree with the ODEs, thereby validating the algorithm. }
+\end{figure}
+
 
 \begin{table}
 \begin{center}
@@ -234,8 +264,86 @@ Based on previous studies \cite{zweifel2021nucleation, funk2019profilin}, we con
 The quasi-steady length distributions are a strong function of the barbed-end elongation rate. We begin with $\afor=1$, which is the center plot in Fig.\ \ref{fig:ForminAlpha}(b), for which we see our typical quasi-steady length distribution. When we drop to $\afor=0.5$, the formin bound fibers grow more slowly, and there is more spontaneous nucleation of filaments at later times. We therefore see a decrease in the mean and peak filament lengths. On the other hand, when we increase to $\afor=2$, the peak filament length ($2 \times 10^4$ monomers) is roughly unchanged, but there emerges a certain bimodality to the distribution as formin-bound fibers grow at double the rate of non-formin-bound ones, which is responsible for the second peak at roughly $4 \times 10^4$ monomers.
 
 \section{Stochastic simulations of branched filaments \label{sec:BF}}
+We now discuss our model of filament branching. Similar to previous work \cite{ni2019turnover}, we consider the binding of arp 2/3 complex to a linear filament, which results in the formation of a branch whose tangent vector makes a seventy degree angle with the mother filament \cite{pollard2007regulation}. Previous work \cite{beltzner2008pathway} has shown that the kinetics of actin monomers binding VCA-bound arp 2/3 complex are much faster than this complex (with or without a monomer attached) binding to an existing filament. Therefore, letting $B$ be a VCA-bound arp 2/3 complex and $N_j$ a filament of any size, the reaction proceeds in two steps
+\begin{subequations}
+\label{eq:BothRxnsArp}
+\begin{align}
+\label{eq:fastrxn}
+B + N_1 \xleftrightarrow{K_\text{fast}} BN_1 \qquad & \text{(fast)}\\
+BN_1 + N_j \overset{k_\text{slow}^+}{\underset{k_\text{slow}^-}\rightleftarrows} BN_1N_j \qquad & \text{(slow)}
+\end{align}
+\end{subequations}
+To simplify this, we assume the fast reaction is in equilibrium and coarse grain this process into a single reaction involving three reactants: (VCA-bound) arp 2/3 complex $B$, an actin monomer $N_1$, and an actin filament $N_j$, 
+\begin{equation}
+\label{eq:ArpRxn}
+B + N_1 + N_j \overset{\kbrp}{\underset{\kbrm}\rightleftarrows} BN_1N_j,
+\end{equation}
+Using the published values \cite{beltzner2008pathway} for the reactions\ \eqref{eq:BothRxnsArp}, we obtain our rates as 
+\begin{gather*}
+\kbrp = K_\text{fast} k_\text{slow}^+=\frac{\left(1.5 \times 10^{-4} \, \mu\text{M}^{-1}\text{ s}^{-1}\right)\left(15.2 \, \mu\text{M}^{-1}\text{ s}^{-1}\right)}{0.44 \text{ s}^{-1}}=5.2 \times 10^{-3} \, \mu\text{M}^{-2}\text{s}^{-1}\\
+\kbrm = k_\text{slow}^- = 3.4 \times 10^{-3} \, \text{s}^{-1}.
+\end{gather*}
+
+Prior to stating the new reactions we incorporate, it is necessary to first list the geometric constraints that develop when we introduce branched networks. To simplify the process of polymerization and depolymerization, we implement the following rules:
+\begin{enumerate}
+\item A filament is eligible to form a branch when it has $N_\text{mb}=4$ monomers or more. Once a branch forms, it forms on the fourth monomer or higher (the first three monomers cannot form branches). 
+\item The pointed end of the mother cannot unbind if a branch is sitting on the fourth monomer. This always leaves two monomers between the pointed end and the first branch. 
+\item The barbed end (of a mother or a branch) cannot unbind if another branch is attached to it. 
+\item Branches can only unbind if they have length 1, in which case arp 2/3 also detaches from the filament (reverse of reaction\ \eqref{eq:ArpRxn}). ``Barbed ends'' alone cannot unbind if branches have length 1 (the only unbinding is through the reverse of reaction\ \eqref{eq:ArpRxn}).
+\item Formin can bind and unbind from branches with length 4 or more. In the low probability event that a branch depolymerizes to 1 monomer with a formin bound to it, that branch is prevented form unbinding. 
+\end{enumerate}
+This set of rules ensures simplicity in the construction and deconstruction of branched structures (in essence, the structure has to depolymerize in the order it was constructed, and cannot break into multiple branched structures). While these rules are certainly a simplification, our goal here is to study the percentage of monomers in branched structures, so whether one structure with 40 branches should in fact be two structures with 20 branches is of little consequence to us. 
+
+Given this set of rules, we can now formulate the reactions involving arp 2/3 complex. We let $B$ be the number of free arp 2/3 complexes, and $B_j$ be a branch of length $j$. We then consider the following reactions
+\begin{enumerate}
+\item A branch can form with rate $r=\left(\kbrp/V^2\right) B N_1 N_\text{elig}$, where the number of fibers eligible to have a branch form is
+\begin{equation}
+\label{eq:NBElig}
+N_\text{elig}=\sum_{j=N_\text{mb}}^M N_j+F_j +B_j.
+\end{equation}
+If this reaction is selected, we form a new branch with one monomer at a 70 degree angle from the mother filament (chosen at random from the branches once a particular structure is selected), and decrease $B$ by 1 and $N_1$ by 1. 
+\item Branches of length one can come off the mother filament with rate $\kbrm$. This is the reverse of reaction 1, and results in $B$ and $N_1$ increasing by 1.
+\item Branches can polymerize from their barbed ends only with rate $\kbp$ (no attached formins) or $\kbp \afor$ (if formin is attached). In this case, we decrease $N_1$ by 1. 
+\item Branches can depolymerize from their barbed ends with rate $\kbm$, as long as the geometry permits it (see rules above). This results in $N_1$ increasing by 1.   
+\item The mother filament's pointed end can depolymerize with rate $\kpp$, as long as the geometry permits it (see rules above). This also results in $N_1$ increasing by 1.   
+\item Branches of length 4 or higher can bind and unbind formins from the barbed end with rates $\kforp$ and $\kform$ (resulting in $F$ decreasing or increasing by 1, respectively). 
+\end{enumerate}
+
+\subsection{Validation}
+Because of the spatial complexity of branched networks, it is difficult to validate depolymerization using ODEs, as it becomes complicated to work out the probability that an unbinding event, if selected, will actually be successful. Because of this, we divide our validation work into two steps: all events \emph{other than} depolymerization, and depolymerization alone. The first case allows us to work with ODEs, as we have done previously, while the second requires us to synthesize a specific structure and look at its depolymerization. 
+
+\subsubsection{ODE-based validation (excludes depolymerization)}
+In the case when we disallow unbinding of monomers from barbed and pointed ends of fibers/branches, we have the ODEs\ \eqref{eq:ODEsMix}, \eqref{eq:1plus}, and\ \eqref{eq:ODEsFormin} with $\kfm=\kbm=\kpm=0$, with modifications
+\begin{align*}
+\label{eq:1plusplus}
+\tag{1++}
+\frac{dN_1}{dt} +&=-\kbrp N_1 B N_\text{elig}+\kbrm B_1 -\kbp N_1 \sum_{j=1}^{M-1}  B_i -\kbp \afor N_1 \sum_{j=4}^{M-1} F_i \\
+\frac{d F}{dt} +&= \sum_{j=4}^{M} \kform R_j - \kforp B_j F,
+\end{align*}
+where $B_j$ stands for a branch of length $j$, $B$ stands for arp 2/3 complex, and $R_j$ stands for a branch with attached formin of length $j$ (can only be 4 or higher). We then have the following ODEs for the branches (again, assuming that there is no depolymerization)
+\begin{subequations}
+\label{eq:ODEsBrOnly}
+\begin{align}
+\frac{dB}{dt} &= -\kbrp N_1 B N_\text{elig}+\kbrm B_1 \\
+\frac{d B_1}{dt } &= \kbrp N_1 B N_\text{elig}- \kbrm B_1 -\kbp B_1 N_1 \\
+\frac{d B_j}{dt } & = \kbrp N_1 \left(B_{j-1}-B_j\right) \qquad j=2,3\\
+\frac{d B_j}{dt} & = \kbrp N_1 \left(B_{j-1}-B_j\right)+\kform R_j - \kforp B_j F \qquad 4 \leq j < M\\
+\frac{d B_M}{dt} & = \kbrp N_1 B_{M-1}+\kform R_M - \kforp B_M F\\
+\frac{d R_4}{dt} & = -\afor \kbrp N_1 R_4 -\kform R_4 + \kforp B_4 F \\
+\frac{d R_j}{dt} & = \afor \kbrp N_1 \left(R_{j-1}-R_j\right)-\kform R_j + \kforp B_j F \qquad 4 < j < M\\
+\frac{d R_M}{dt} & = \afor \kbrp N_1 R_{M-1}-\kform R_M + \kforp B_M F
+\end{align}
+\end{subequations}
+To validate this system, we use an actin concentration 2 $\mu$M in a box of length 3 $\mu$m on all size, and a formin and arp 2/3 concentration of 0.1 $\mu$M. The polymerization parameters we use are $\kdp=0.0035$, $\ktrp=1.3$, $\kbp=1.6$, and $\kpp=1.3$, all of these having units $\mu$M$^{-1}\cdot$s$^{-1}$. For depolymerization, we use parameters $\kdm = 0.041$, $\ktrm = 22$, $\kbm=0$, $\kpm=0$ (all units $s^{-1}$; there is no dissociation from barbed/pointed ends). For formin, we use $\kforn = 0.002$ $\mu$M$^{-2}\cdot$s$^{-1}$, $\kforp = 29.1$ $\mu$M$^{-1}\cdot$s$^{-1}$, $\kforn = 0.081$ $s^{-1}$, and $\afor=2$. For branched actin, we set $\kbrp=0.052$ $\mu$M$^{-2}\cdot$s$^{-1}$ and $\kbrm=0.1$ s$^{-1}$. As shown in Fig.\ \ref{fig:GrowArpValid}, the stochastic dynamics we observe agree well with the corresponding ODEs, thereby validating our implementation.
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{GrowArpValidation.eps}
+\caption{\label{fig:GrowArpValid}Validating the stochastic simulation algorithm for well-mixed systems with formins and arp 2/3 complex, where we only allow growth of fibers. We use the equations\ \eqref{eq:ODEsMix},\eqref{eq:1plus},\eqref{eq:ODEsFormin},\eqref{eq:1plusplus}, and\ \eqref{eq:ODEsBrOnly}, and set $\kfm=\kbm=\kpm=0$, so that fibers can only grow. We show linear filaments at left, formin-bound linear filaments in middle (last legend entry should be $F_5$), and branched filaments at right. There $B$ denotes free arp 2/3 complex, $B_5$ is branches of length 5 without formin, and $R_5$ is branches of length 5 with formin.  }
+\end{figure}
 
 
+\subsubsection{Structure-based validation for depolymerization}
 \bibliographystyle{plain}
 
 \bibliography{../../PolarizationBib}

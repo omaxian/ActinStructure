@@ -9,7 +9,7 @@ mu = 0.01;
 LBox = 3; # in um
 Conc = 2; # in uM
 ConcFormin = 0.1; # in uM
-ConcArp23 = 0.25;
+ConcArp23 = 0.1;
  # in uM
 
 # Parameters from Kovar & Pollard paper for actin alone
@@ -19,9 +19,9 @@ kminusDimer = 0.041; #s^(-1)
 kplusTrimer = 13e-1; # uM^(-1)*s^(-1) 
 kminusTrimer = 22; #s^(-1)
 kplusBarbed = 1.6#11.6; # uM^(-1)*s^(-1) 
-kminusBarbed = 0*1.4; #s^(-1)
+kminusBarbed = 0; #s^(-1)
 kplusPointed = 1.3; #uM^(-1)*s^(-1)
-kminusPointed = 0*0.8; #s^(-1)
+kminusPointed = 0; #s^(-1)
 
 # Formin rates
 kForNuc = 2e-3; # uM^(-2)*s^(-1)
@@ -84,10 +84,10 @@ for i in range(nSteps):
         AllX = np.append(AllX,AllActin.getX(),axis=0);
     print('Time %f, Percent free %f' %((i+1)*dt, NumOnEach[0]/Nmon))
     
-np.savetxt('NumFibs'+str(seed)+'.txt',NumFibers);
-np.savetxt('StructInfo'+str(seed)+'.txt',NumberPerFiber);
-np.savetxt('BoundFormins'+str(seed)+'.txt',BoundFormins);
-np.savetxt('BranchedOrLinear'+str(seed)+'.txt',BranchedOrLinear);
+np.savetxt('ForminArpNoUnbind_NumFibs'+str(seed)+'.txt',NumFibers);
+np.savetxt('ForminArpNoUnbind_StructInfo'+str(seed)+'.txt',NumberPerFiber);
+np.savetxt('ForminArpNoUnbind_BoundFormins'+str(seed)+'.txt',BoundFormins);
+np.savetxt('ForminArpNoUnbind_BranchedOrLinear'+str(seed)+'.txt',BranchedOrLinear);
 #np.savetxt('AllX.txt',AllX);
 #np.savetxt('NumFibs'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',NumFibers);
 #np.savetxt('StructInfo'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',StructInfo);

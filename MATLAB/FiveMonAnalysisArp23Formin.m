@@ -4,7 +4,7 @@
 Conc = 2; % in uM
 LBox = 3;
 ForminConc = 0.1;
-ArpConc = 0.25;
+ArpConc = 0.1;
 
 % Parameters 
 kplusDimer = 3.5e-3; % uM^(-1)*s^(-1) 
@@ -51,17 +51,17 @@ tf=40;
 % Import the data
 nError=3;
 nTrial=10;
-NumFibs=load(strcat('NumFibs1.txt'));
+NumFibs=load(strcat('ForminArpNoUnbind_NumFibs1.txt'));
 nT = length(NumFibs);
 MeanNumOfEach = zeros(18,nT,nError);
 for iError=1:nError
 NumOfEach = zeros(18,nT,nTrial);
 for iTrial=1:nTrial
 TriIndex = (iError-1)*nTrial+iTrial;
-StructInfo=load(strcat('StructInfo',num2str(TriIndex),'.txt'));
-NumFibs=load(strcat('NumFibs',num2str(TriIndex),'.txt'));
-BoundFormins=load(strcat('BoundFormins',num2str(TriIndex),'.txt'));
-BranchedOrLinear=load(strcat('BranchedOrLinear',num2str(TriIndex),'.txt'));
+StructInfo=load(strcat('ForminArpNoUnbind_StructInfo',num2str(TriIndex),'.txt'));
+NumFibs=load(strcat('ForminArpNoUnbind_NumFibs',num2str(TriIndex),'.txt'));
+BoundFormins=load(strcat('ForminArpNoUnbind_BoundFormins',num2str(TriIndex),'.txt'));
+BranchedOrLinear=load(strcat('ForminArpNoUnbind_BranchedOrLinear',num2str(TriIndex),'.txt'));
 nT = length(NumFibs);
 TotalEntries = NumFibs+3;
 StartIndex = [0;cumsum(TotalEntries)];

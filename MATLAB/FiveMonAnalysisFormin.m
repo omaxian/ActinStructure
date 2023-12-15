@@ -37,19 +37,19 @@ tf=40;
 [tvals,yvals] = ode45(RHSFcn,[0 tf],y0);
 
 % Import the data
-nError=2;
-nTrial=2;
-NumFibs=load(strcat('NumFibs1.txt'));
+nError=3;
+nTrial=10;
+NumFibs=load(strcat('ForminOnly_NumFibs1.txt'));
 nT = length(NumFibs);
-MeanNumOfEach = zeros(18,nT,nError);
+MeanNumOfEach = zeros(2*nMax,nT,nError);
 for iError=1:nError
-NumOfEach = zeros(18,nT,nTrial);
+NumOfEach = zeros(2*nMax,nT,nTrial);
 for iTrial=1:nTrial
 TriIndex = (iError-1)*nTrial+iTrial;
-StructInfo=load(strcat('StructInfo',num2str(TriIndex),'.txt'));
-NumFibs=load(strcat('NumFibs',num2str(TriIndex),'.txt'));
-BoundFormins=load(strcat('BoundFormins',num2str(TriIndex),'.txt'));
-BranchedOrLinear=load(strcat('BranchedOrLinear',num2str(TriIndex),'.txt'));
+StructInfo=load(strcat('ForminOnly_StructInfo',num2str(TriIndex),'.txt'));
+NumFibs=load(strcat('ForminOnly_NumFibs',num2str(TriIndex),'.txt'));
+BoundFormins=load(strcat('ForminOnly_BoundFormins',num2str(TriIndex),'.txt'));
+BranchedOrLinear=load(strcat('ForminOnly_BranchedOrLinear',num2str(TriIndex),'.txt'));
 nT = length(NumFibs);
 TotalEntries = NumFibs+3;
 StartIndex = [0;cumsum(TotalEntries)];
@@ -70,14 +70,6 @@ for iT=1:nT
     NumOfEach(8,iT,iTrial)=sum(rest==3 & ~Branched & HasFormin);
     NumOfEach(9,iT,iTrial)=sum(rest==4 & ~Branched & HasFormin);
     NumOfEach(10,iT,iTrial)=sum(rest==5 & ~Branched & HasFormin);
-    NumOfEach(11,iT,iTrial)=sum(rest==1 & Branched & ~HasFormin);
-    NumOfEach(12,iT,iTrial)=sum(rest==2 & Branched & ~HasFormin);
-    NumOfEach(13,iT,iTrial)=sum(rest==3 & Branched & ~HasFormin);
-    NumOfEach(14,iT,iTrial)=sum(rest==4 & Branched & ~HasFormin);
-    NumOfEach(15,iT,iTrial)=sum(rest==5 & Branched & ~HasFormin);
-    NumOfEach(16,iT,iTrial)=ArpMon-sum(Branched);
-    NumOfEach(17,iT,iTrial)=sum(rest==4 & Branched & HasFormin);
-    NumOfEach(18,iT,iTrial)=sum(rest==5 & Branched & HasFormin);
 end
 end
 MeanNumOfEach(:,:,iError) = mean(NumOfEach,3);
