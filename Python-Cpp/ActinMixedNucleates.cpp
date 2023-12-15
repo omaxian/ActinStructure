@@ -53,7 +53,7 @@ class ActinMixedNucleates {
         _FiberEndBindingRates[1] = RxnRates[5]; // Barbed unbinding
         _FiberEndBindingRates[2] = RxnRates[6]; // Pointed binding
         _FiberEndBindingRates[3] = RxnRates[7]; // Pointed unbinding
-        _FiberEndBindingRates[4] = 1;
+        _FiberEndBindingRates[4] = 1;           // Formin enhancement
         _TotalFormins = 0;
         _FreeFormins = 0;
         _nForminNucleates = 0;
@@ -93,6 +93,11 @@ class ActinMixedNucleates {
     }
     
     void InitBranchedStructure(intvec nMonsPerBranch, intvec ForminsOn){
+        /* 
+        Initialize a branched filament (for debugging mostly). The intvector 
+        nMonsPerBranch gives the number of monomers on each branch, and the 
+        vector ForminsOn tells us if there is a formin on each branch 
+        */
         int nMonsIn = std::accumulate(nMonsPerBranch.begin(), nMonsPerBranch.end(),0);
         _FreeMonomers-=nMonsIn;
         uint nBranches = nMonsPerBranch.size()-1;
@@ -143,32 +148,35 @@ class ActinMixedNucleates {
     
     void React(double dt){
         /*
-        Event-driven simulation with well-mixed monomers 
-        For now only doing FIBERS - no branching yet
+        Event-driven simulation with well-mixed monomers and nucleates. We consider three 
+        groups of reactions, each of which has a separate method that gives the time it occurs
+        1) Spontaneous nucleation
+        2) Formin-mediated nucleation
+        3) Fiber specific reactions (barbed/pointed end bind and unbind, branching, etc.). 
+           There are 9 of these per fiber. 
         */       
         
         double t = 0;
         while (t < dt){
             uint index = 0;
+            // Delta t is the minimum time, or time for next reaction. It gets modified 
+            // in each method
             double deltaT = TimeNucleationReactions(index);
             deltaT = TimeForminNucleationReactions(index,deltaT);
             int nRxnsPerFiber = 9;
             int numSingleRxns = 6;
             deltaT = TimeFiberBindUnbindReactions(index,deltaT,numSingleRxns,nRxnsPerFiber);
-            // All reactions listed -- process the next one
-            //std::cout << "Time " << deltaT << " for total " << t << " and index " << index << std::endl;
             if (t+deltaT > dt){
                 std::cout << "Free formins and arps (to check) " << _FreeFormins << " , " << _FreeArp << std::endl;
                 return;
             }
             if (index < 5){
-                // Nucleation reaction
                 ProcessNucleationReaction(index);
             } else if (index == 5){
                 ProcessForminNucleationReaction();
             } else { // Working with index > 5
                 ProcessFiberBindUnbindReaction(index,numSingleRxns,nRxnsPerFiber);
-            } // end fiber
+            }
             // Check conservation of monomers
             if (_FreeMonomers > _TotalMonomers){
                 std::cout << "Error - more monomers than total!" << std::endl;
@@ -289,7 +297,6 @@ class ActinMixedNucleates {
         
         double TimeNucleationReactions(uint &index){
             // Reaction 0: formation of dimers
-            //std::cout << "Time dimer formation " << deltaT << std::endl;
             double RateDimerForm = _DimerOnRate*_FreeMonomers*_FreeMonomers;
             if (_FreeMonomers < 2){
                 RateDimerForm = 0;
@@ -298,7 +305,6 @@ class ActinMixedNucleates {
             // Reaction 1: break-up of dimers
             double RateDimerBreakup = _DimerOffRate*_nDimers;
             double TryDeltaT = logrand()/RateDimerBreakup; 
-            //std::cout << "Time dimer breakup " << TryDeltaT << std::endl;
             if (TryDeltaT < deltaT){
                 deltaT = TryDeltaT;
                 index = 1;
@@ -306,7 +312,6 @@ class ActinMixedNucleates {
             // Reaction 2: trimer formation
             double RateTrimerForm = _TrimerOnRate*_FreeMonomers*_nDimers;
             TryDeltaT = logrand()/RateTrimerForm; 
-            //std::cout << "Time trimer form " << TryDeltaT << std::endl;
             if (TryDeltaT < deltaT){
                 deltaT = TryDeltaT;
                 index = 2;
@@ -314,7 +319,6 @@ class ActinMixedNucleates {
             // Reaction 3: trimer breakup
             double RateTrimerBreakup = _TrimerOffRate*_nTrimers;
             TryDeltaT = logrand()/RateTrimerBreakup; 
-            //std::cout << "Time trimer breakup " << TryDeltaT << std::endl;
             if (TryDeltaT < deltaT){
                 deltaT = TryDeltaT;
                 index = 3;
@@ -322,7 +326,6 @@ class ActinMixedNucleates {
             // Reaction 4: tetramer formation
             double RateTetramerForm = _TetramerOnRate*_nTrimers*_FreeMonomers;
             TryDeltaT = logrand()/RateTetramerForm; 
-            //std::cout << "Time tetramer form " << TryDeltaT << std::endl;
             if (TryDeltaT < deltaT){
                 deltaT = TryDeltaT;
                 index = 4;
@@ -333,25 +336,23 @@ class ActinMixedNucleates {
         void ProcessNucleationReaction(uint index){
             if (index == 0){
                 // Dimer formation
-                //std::cout << "Forming dimer " << std::endl;
                 _FreeMonomers-=2;
                 _nDimers++;
             } else if (index == 1){
-                //std::cout << "Removing dimer " << std::endl;
+                // Dimer break
                 _FreeMonomers+=2;
                 _nDimers--;
             } else if (index == 2){
-                //std::cout << "Forming trimer " << std::endl;
+                // Trimer formation
                 _FreeMonomers--;
                 _nDimers--;
                 _nTrimers++;
             } else if (index == 3){
-                //std::cout << "Removing trimer " << std::endl;
+                // Trimer breakup
                 _FreeMonomers++;
                 _nDimers++;
                 _nTrimers--;
             } else if (index == 4){
-                //std::cout << "Forming tetramer and fiber object " << std::endl;
                 // Forming tetramer - establish object for it
                 _FreeMonomers--;
                 _nTrimers--;
@@ -389,7 +390,6 @@ class ActinMixedNucleates {
         double TimeFiberBindUnbindReactions(uint &index, double deltaT, int numBefore, int nRxnsPerFiber){
             // Add/subtract from existing fibers
             uint nFib = _Fibers.size();
-            //std::cout << "Number of fibers " << nFib << std::endl;
             for (uint iFib = 0; iFib < nFib; iFib++){
                 // Rxn 0: add to pointed end
                 double RateAddPointed =  _Fibers[iFib]->PointedBindingRate()*_FreeMonomers;
@@ -476,13 +476,12 @@ class ActinMixedNucleates {
             // Identify fiber number and if it's addition or subtraction
             int FibNum = (index-numBefore)/nRxnsPerFiber;
             int RxnType = (index-numBefore) % nRxnsPerFiber; // 0 for addition, 1 for subtraction, 2 for formin
-            double u = unifdist(rngu);
             if (RxnType==0){ // Add to pointed end
                 _FreeMonomers--;
                 _Fibers[FibNum]->PointedBindReaction();
             } else if (RxnType < 3){ // Add to barbed end
                 _FreeMonomers--;
-                _Fibers[FibNum]->BarbedBindReaction(u, RxnType==2); // type 2 means choose one of the formin ends, 1 the free ends
+                _Fibers[FibNum]->BarbedBindReaction(unifdist(rngu), RxnType==2); // type 2 means choose one of the formin ends, 1 the free ends
             } else if (RxnType < 5){ // remove from pointed or barbed end
                 int nMon = _Fibers[FibNum]->NumMonomers(0); // number of monomers on the mother
                 int nFib = _Fibers[FibNum]->nFibers();
@@ -537,9 +536,6 @@ class ActinMixedNucleates {
                     if (ForminOn){
                         _Fibers[FibNum]->BindFormin(0);
                     }
-                    //std::shared_ptr<Fiber> f = std::dynamic_pointer_cast<Fiber>(;
-                    //_Fibers[FibNum]= 
-                    _Fibers[FibNum]->PrepareForLinearSwitch(X0,tau,nMonomers);
                 } else { 
                     // Will remain a branched fiber object; just remove branch
                     double u1=unifdist(rngu);

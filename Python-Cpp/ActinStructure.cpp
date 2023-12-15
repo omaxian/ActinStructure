@@ -14,7 +14,7 @@ It should just be the tangent vectors we are tracking and the length (in monomer
 **/
 static const int NMonomersForFormin=4;
 static const int NMonomersForBranch=4;
-static const bool MaxFive = false;
+static const bool MaxFive = true;
 
 // Global variables for periodic ActinStructure
 class ActinStructure {
@@ -610,9 +610,9 @@ class BranchedFiber: public Fiber{
             for (int jBranch=1; jBranch < _nLinearFib; jBranch++){
                 if (_Mothers[jBranch]==iBranch &&
                     _AttachPoints[jBranch]==_nMonomersPerFib[iBranch]-1){
-                    std::cout << "Disallowing unbinding on fiber " << iBranch << " because there is branch " << jBranch 
-                    << " attached there  at point " << _AttachPoints[jBranch] << " and iBranch has " 
-                    << _nMonomersPerFib[iBranch] << " monomers." << std::endl;
+                    //std::cout << "Disallowing unbinding on fiber " << iBranch << " because there is branch " << jBranch 
+                    //<< " attached there  at point " << _AttachPoints[jBranch] << " and iBranch has " 
+                    //<< _nMonomersPerFib[iBranch] << " monomers." << std::endl;
                     BranchAtBarbedEnd=true;
                 }
             }
@@ -688,7 +688,7 @@ class BranchedFiber: public Fiber{
     }
     
     void BindFormin(double rU) override{
-        // Make list of eligible branched
+        // Make list of eligible branches
         intvec EligibleBranches;
         for (int iBranch=0; iBranch < _nLinearFib; iBranch++){
             if (!_ForminsOn[iBranch]  && _nMonomersPerFib[iBranch]>=NMonomersForFormin){
@@ -696,6 +696,9 @@ class BranchedFiber: public Fiber{
             }
         }
         int TheBranch = EligibleBranches[int(rU*EligibleBranches.size())];
+        if (_ForminsOn[TheBranch]){
+            std::cout << "Can't bind formin to a branch which already has it! " << std::endl;
+        }
         _ForminsOn[TheBranch] = true;
     }
     
@@ -708,6 +711,9 @@ class BranchedFiber: public Fiber{
             }
         }
         int TheBranch = EligibleBranches[int(rU*EligibleBranches.size())];
+        if (!_ForminsOn[TheBranch]){
+            std::cout << "Can't unbind formin to a branch which doesn't have it! " << std::endl;
+        }
         _ForminsOn[TheBranch] = false;
     }
         
