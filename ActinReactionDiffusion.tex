@@ -244,7 +244,7 @@ We now consider how nucleating filaments with formin affects the dynamics of act
 \caption{\label{fig:HistsWithFormin}Length distribution for actin filaments in simulations with formin of varying concentrations. We show the distributions at three time points ($t=500$ s in blue, $t=1000$ s in red, and $t=2000$ s in yellow) of fiber sizes (in terms of the number of monomers) at three different time points for each concentration. The distributions become more uniform (smaller range) as the formin concentration increases.}
 \end{figure}
 
-How do these dynamics affect the length distribution of fibers? As shown in Fig.\ \ref{fig:HistsWithFormin}, and as previously reported in \cite{banerjee2022emergence}, an increase in the formin concentration leads to the nucleation of more filaments at early times, which translates to a smaller mean and standard deviation in the number of monomers per filament (a more uniform distribution of filament lengths). In our results, at high formin concentrations we start to see a drift in the distribution at late times (see $t=2000$ for 5 nM formin), which reflects the fact that the length distribution we report here is \emph{not} the true steady state, but the quasi-steady state that is reached before the exchange of monomers on existing fibers \cite{mohapatra2017limiting}.
+How do these dynamics affect the length distribution of fibers? As shown in Fig.\ \ref{fig:HistsWithFormin}, and as previously reported in \cite{banerjee2022emergence}, an increase in the formin concentration leads to the nucleation of more filaments at early times, which translates to a smaller mean and standard deviation in the number of monomers per filament (a more uniform distribution of filament lengths). In our results, at high formin concentrations we start to see a drift in the distribution at late times (see $t=2000$ for 5 nM formin), which reflects the fact that the length distribution we report here is \emph{not} the true steady state, but a quasi-steady state reached before the exchange of monomers on existing fibers \cite{mohapatra2017limiting}.
 
 \subsubsection{Faster formin-induced elongation}
 Now that we have looked at the role of formin in \emph{nucleating} filaments, we need to consider its role in \emph{lengthening} filaments. As has already been noted \cite{banerjee2022emergence}, when all the fibers have bound formins, the dynamics are relatively uninteresting, since the elongation rate, though faster than the base rate, is still the same on every filament. The interesting dynamics come when some of the filaments are formin-bound and others are not. For this reason, in this section we fix the actin concentration at 5 $\mu$M and the formin concentration at 0.12 nM, so that we would expect about 1/2 of the filaments to be formin bound (this is an interpolation between 0.1 nM and 0.2 nM in Fig.\ \ref{fig:ActinNucWithFormin}). 
@@ -339,11 +339,73 @@ To validate this system, we use an actin concentration 2 $\mu$M in a box of leng
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{GrowArpValidation.eps}
-\caption{\label{fig:GrowArpValid}Validating the stochastic simulation algorithm for well-mixed systems with formins and arp 2/3 complex, where we only allow growth of fibers. We use the equations\ \eqref{eq:ODEsMix},\eqref{eq:1plus},\eqref{eq:ODEsFormin},\eqref{eq:1plusplus}, and\ \eqref{eq:ODEsBrOnly}, and set $\kfm=\kbm=\kpm=0$, so that fibers can only grow. We show linear filaments at left, formin-bound linear filaments in middle (last legend entry should be $F_5$), and branched filaments at right. There $B$ denotes free arp 2/3 complex, $B_5$ is branches of length 5 without formin, and $R_5$ is branches of length 5 with formin.  }
+\caption{\label{fig:GrowArpValid}Validating the stochastic simulation algorithm for well-mixed systems with formins and arp 2/3 complex, where we only allow growth of fibers. We use the equations\ \eqref{eq:ODEsMix},\eqref{eq:1plus},\eqref{eq:ODEsFormin},\eqref{eq:1plusplus}, and\ \eqref{eq:ODEsBrOnly}, and set $\kfm=\kbm=\kpm=0$, so that fibers can only grow. We show linear filaments at left, formin-bound linear filaments in middle, and branched filaments at right. There $B$ denotes free arp 2/3 complex, $B_5$ is branches of length 5 without formin, and $R_5$ is branches of length 5 with formin.  }
 \end{figure}
 
 
 \subsubsection{Structure-based validation for depolymerization}
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{BranchedGeo1.eps}
+\caption{\label{fig:BranchedGeo}The branched geometry for the depolymerization test. Red points show the mother filament, blue the branches.}
+\end{figure}
+
+Let us consider the structure shown in Fig.\ \ref{fig:BranchedGeo}. It is composed of a mother filament with 4 monomers, and then three branches with 6, 8, and 10 monomers. Because each branch is attached to the previous one, our rules state that this filament can only depolymerize linearly. The average time to depolymerize the branches (remove all the blue monomers) should be $21/\kbm+3/\kbrm$, since there are 21 monomers not attached to arp 2/3 and 3 monomers attached to arp 2/3. If $\kbm=1.4$/s and $\kbrm=0.5$/s, this comes out to $6+15=21$ s. To verify that our code reproduces this depolymerization time, we perform a set of 1000 simulations with depolymerization only and record the time it takes for the filament to collapse down to the mother filament. This time is $21.0 \pm 0.3$, which validates our implementation. 
+
+In the case when the mother filament has length 8 instead of 4, the time does not change significantly ($20.9 \pm 0.3$), since the three monomers at the pointed end can unbind rapidly ($\kbp=0.8$/s). The time does change significantly when we put all the branches onto the same barbed end of the mother filament. In this case, all of the branches can depolymerize simultaneously, and the measured time for depolymerization is $9.7 \pm 0.2$ s, which is slightly longer than the theoretical time for the longest branch ($9/\kbm+1/\kbrm=8.4$ s) to unbind, in accordance with the theoretical expectation that the maximum is longer than the longest event.
+
+
+\subsection{Branching with spontaneous nucleation \label{sec:BrSN}}
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{FreeMons_Arp.eps}
+\includegraphics[width=0.6\textwidth]{FiberDensity_Arp.eps}
+\caption{\label{fig:PolyDynamicsArp}Course of polymerization and assembly with 5 $\mu$M actin concentration and various concentrations of arp 2/3 (2 nM in blue, 20 nM in red, and 200 nM in yellow). The top row of plots shows how the concentration of monomers changes between free monomers (left), linear filaments (middle), and branched structures (right). The bottom plot shows the density of fibers per unit volume for each concentration, separated into linear filaments and mothers of branches (dashed-dotted line), and branches (dotted line).  }
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{MotherLengths_Arp23.eps}
+\includegraphics[width=\textwidth]{BranchLengths_Arp23.eps}
+\caption{\label{fig:LengthDistsArp} The length distribution of filaments with 5 $\mu$M actin concentration and various concentrations of arp 2/3 (2 nM at left, 20 nM in the middle, and 200 nM at right). We separate the filaments into linear and mother filaments, and show their length distribution at the top, and branches, with their length distribution at the bottom. }
+\end{figure}
+
+We begin by looking at the branching process with spontaneous nucleation of actin filaments only (no formins). We fix the actin concentration at 5 $\mu$M and vary the concentration of arp 2/3 across two orders of magnitude (2 nM, 20 nM, and 200 nM). The dynamics of polymerization and assembly are shown in Fig.\ \ref{fig:PolyDynamicsArp}, and the filament length distributions are shown in Fig.\ \ref{fig:LengthDistsArp}. 
+
+To understand these data, it is important to remember that actin filament polymerization with spontaneous nucleation proceeds in two phases: nucleation of filaments (slow), and then elongation (fast). Obviously, nucleation of filaments is a prerequisite for branching. So in this simplified model, the two timescales that compete are the timescale of elongation and branching. Indeed, while it is true that in the limit of time to infinity we might expect to always see branched structures, if the timescale of branching is too slow we might never see any branching. This is the case at very low (2 nM) Arp 2/3 concentrations, where our results show over 90\% of the polymerized actin in linear filaments. Thus, in this regime, the timescale of branching is slower than both nucleation and elongation, and there is very little branching. 
+
+If we increase the branched concentration to 20 nM, we see different dynamics. In this case, the number of mothers and linear fibers is the same as for 2 nM, so the branching is still sufficiently slow as to not affect the number of filaments nucleated. But when the filaments grow (on timescale between 500 and 1000 s), we see increases in the number of monomers in both branched structures and in branches. Thus elongation and branching have roughly the same timescales. In the long-time limit, we see the number of monomers in linear filaments slowly decrease as the monomers are exchanged into branched structures (although the changes are not too large, even at the highest concentration).
+
+Finally, when we consider a concentration of 200 nM, there is a significant change in the \emph{number} of mother and linear filaments, which indicates that the branching competes with nucleation for monomers (the timescale of branching is now so fast that nucleates immediately form branches before more nucleates can form). Here we see rapid depletion of the monomer pool (faster than for 2 and 20 nM), as well as depletion of the monomers in linear filaments as more and more branches are built. 
+
+Further understanding of the dynamics can be gained by looking at the length distributions in Fig.\ \ref{fig:LengthDistsArp}, where we have made separate distributions for linear fibers (including mothers of branches) in the top set of plots, and branches in the bottom set. For 2 nM Arp 2/3 concentration, the length distributions look similar to the case without arp 2/3, where a quasi-steady state is achieved at roughly 1000 s (there are very few branches here). For 20 nM Arp 2/3 concentration, fibers still get longer in the initial stages, but branches are formed at the same time, and there is a rough quasi-steady state in the distribution of branch lengths (this reflects the fact that branching and elongation occur on similar timescales here). By contrast, for 200 nM Arp 2/3 concentration, the quasi-steady state in the linear fibers occurs at an early time, and they do not elongate past $2 \times 10^4$ monomers. It is instead branches which form, in particular new branches, as the distribution of branch lengths becomes more and more concentrated on smaller branches over time. This is in line with our previous observation that branching is faster than elongation. 
+
+
+\subsection{Adding formins}
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{DynamicsForminLowArp.eps}
+\includegraphics[width=0.6\textwidth]{FibersForminLowArp.eps}
+\caption{\label{fig:ForminLowArp}Course of polymerization and assembly with 5 $\mu$M actin concentration, 20 nM arp 2/3 concentration, and various formin concentrations and elongation ratios $\alpha$. The top plots show the concentration of free monomers, monomers in linear filaments, and monomers in branched structures. The bottom plot shows the dynamics of fiber and branch growth. }
+\end{figure}
+
+
+We now add formins to see how they affect the balance of linear vs.\ branched filaments. Based on the results for spontaneous nucleation in Section\ \ref{sec:BrSN}, our expectation is that increased nucleation by formin will speed up the initial rate of linear filament formation, which will take monomers away from potential branched structures. This is exactly what we see for low Arp 2/3 concentration (20 nM) in Fig.\ \ref{fig:ForminLowArp}. At this concentration, we know that branching is not fast enough to occur at the same time as spontaneous nucleation, instead competing with elongation for monomers. Because of this, the initial dynamics at low arp concentration are dominated by formin nucleation dynamics. At zero or small (0.1 nM) formin concentrations, nucleation is not fast enough to overwhelm branching, and some of the initial monomer pool goes right to branches. However, when there is more formin (1 nM concentration), there is more nucleation, and all of the possible monomers rapidly get incorporated into linear filaments. The monomer concentration in linear filaments approaches 4.8 $\mu$M (the theoretical limit), after which it is slowly siphoned off into branches. In this case, formin ``wins'' because the arp 2/3 concentration is not high enough. At this high formin concentration, increasing the formin barbed end polymerization rate (by increasing $\alpha$) sucks more of the monomers into linear filaments. 
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{DynamicsForminHighArp.eps}
+\includegraphics[width=0.6\textwidth]{FibersForminHighArp.eps}
+\caption{\label{fig:ForminHighArp}Course of polymerization and assembly with 5 $\mu$M actin concentration, 200 nM arp 2/3 concentration, and various formin concentrations and elongation ratios $\alpha$. The top plots show the concentration of free monomers, monomers in linear filaments, and monomers in branched structures. The bottom plot shows the dynamics of fiber and branch growth. }
+\end{figure}
+
+A similar, but more interesting, tale plays out when we increase the concentration of arp 2/3 complex, as shown in Fig.\ \ref{fig:ForminHighArp}. We recall that at this arp 2/3 concentration (200 nM), spontaneous nucleation leads immediately to the formation of branches. Thus, even when we take the highest formin concentrations (1 nM), we never see all of the actin go into linear filaments; in this particular case some 40\% of the actin forms branches immediately. Then, over longer timescales, monomers unbind from existing linear filaments and start to form branches, thus causing the amount of actin in branched structures to grow to roughly 80\% of the total pool by the end of the simulation, regardless of the formin concentration. These dynamics are quite interesting: while high formin concentration forms linear filaments fastest, the rate at which branched structures steal the actin from linear structures is higher. This tells us that the high formin concentration makes a difference in nucleation, but in elongation branching always wins. 
+
+Summing up, higher formin concentration always leads to more filaments being nucleated faster. What happens next depends on the arp 2/3 concentration. When the arp concentration is low, formin will nucleate all of the actin into filaments, and branches will form slowly as branching competes with filament polymerization/treadmilling. When the arp concentration is high, formin will nucleate some of the actin into filaments, but branches will occur simultaneously. While increasing the formin concentration might temporarily lead to more actin in filaments, the branched structures will always catch up because, when the arp concentration is high, the branching rate will dominate the elongation of linear filaments, and monomers which come off of filaments will immediately be incorporated into branches. 
+
+\subsection{Effect of over/under expressing actin}
+
 \bibliographystyle{plain}
 
 \bibliography{../../PolarizationBib}
