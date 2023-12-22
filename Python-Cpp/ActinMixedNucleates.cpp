@@ -116,7 +116,7 @@ class ActinMixedNucleates {
             double u1=unifdist(rngu);
             double u2=unifdist(rngu);
             if (jBranch==0){
-                _Fibers[ind] =  std::make_shared<BranchedFiber>(_Fibers[ind].get(),u1,RandGauss);
+                _Fibers[ind] =  std::make_shared<BranchedFiber>(_Fibers[ind].get(),0.99,RandGauss);
             } else {
                 _Fibers[ind]->addBranch(u1,u2,RandGauss);
             }
@@ -167,7 +167,7 @@ class ActinMixedNucleates {
             int numSingleRxns = 6;
             deltaT = TimeFiberBindUnbindReactions(index,deltaT,numSingleRxns,nRxnsPerFiber);
             if (t+deltaT > dt){
-                std::cout << "Free formins and arps (to check) " << _FreeFormins << " , " << _FreeArp << std::endl;
+                //std::cout << "Free formins and arps (to check) " << _FreeFormins << " , " << _FreeArp << std::endl;
                 return;
             }
             if (index < 5){
@@ -193,6 +193,24 @@ class ActinMixedNucleates {
             AllX.insert(AllX.end(), XFib.begin(), XFib.end());
         }
         return makePyDoubleArray(AllX);
+    }
+    
+    npDoub AllX0(){
+        vec AllX0(0);
+        for(auto&& FibObj: _Fibers){
+            vec X0Fib = FibObj->getX0();
+            AllX0.insert(AllX0.end(), X0Fib.begin(), X0Fib.end());
+        }
+        return makePyDoubleArray(AllX0);
+    }
+    
+    npDoub AllTaus(){
+        vec AllTau(0);
+        for(auto&& FibObj: _Fibers){
+            vec TauFib = FibObj->getTau();
+            AllTau.insert(AllTau.end(), TauFib.begin(), TauFib.end());
+        }
+        return makePyDoubleArray(AllTau);
     }
     
     npInt NumMonOnEachFiber(){
@@ -234,8 +252,8 @@ class ActinMixedNucleates {
             int nFibThis = FibObj->nFibers();
             for (int jFib=0; jFib < nFibThis; jFib++){
                 Info[iFib]=(nFibThis > 1);
-                if (!MothersAreBranched && jFib==0){
-                    Info[iFib]=0;
+                if (jFib==0 && nFibThis > 1){
+                    Info[iFib]=2; // 2 for mothers, 1 for branches
                 }    
                 iFib++;
             }
@@ -614,6 +632,8 @@ PYBIND11_MODULE(ActinMixedNucleates, m) {
         .def("Diffuse",&ActinMixedNucleates::Diffuse)
         .def("React",&ActinMixedNucleates::React)
         .def("getX", &ActinMixedNucleates::getX)
+        .def("AllX0",&ActinMixedNucleates::AllX0)
+        .def("AllTaus",&ActinMixedNucleates::AllTaus)
         .def("NumMonOnEachFiber",&ActinMixedNucleates::NumMonOnEachFiber)
         .def("NumMonOnEachStructure",&ActinMixedNucleates::NumMonOnEachStructure)
         .def("nTotalFibers", &ActinMixedNucleates::nTotalFibers)

@@ -73,7 +73,8 @@ for iT=1:nT
         NumOfEach(1+iS,iT,iTrial)=StructInfo(StartInd+iS);
     end
     rest = StructInfo(StartInd+3:EndInd);
-    Branched = BranchedOrLinear(FibStarts(iT)+1:FibStarts(iT+1));
+    warning('Check branched output')
+    Branched = BranchedOrLinear(FibStarts(iT)+1:FibStarts(iT+1))==1;
     HasFormin = BoundFormins(FibStarts(iT)+1:FibStarts(iT+1));
     NumOfEach(4,iT,iTrial)=sum(rest==4 & ~Branched & ~HasFormin);
     NumOfEach(5,iT,iTrial)=sum(rest==5 & ~Branched & ~HasFormin);

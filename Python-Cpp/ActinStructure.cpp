@@ -14,7 +14,7 @@ It should just be the tangent vectors we are tracking and the length (in monomer
 **/
 static const int NMonomersForFormin=4;
 static const int NMonomersForBranch=4;
-static const bool MaxFive = true;
+static const bool MaxFive = false;
 
 // Global variables for periodic ActinStructure
 class ActinStructure {
@@ -239,9 +239,13 @@ class Fiber: public ActinStructure{
         return _nMonomers;
     }
     
-    vec3 getPointedEnd(){
-        return _X0;
+    virtual vec getX0(){
+        return vec(std::begin(_X0), std::end(_X0));;
     } 
+    
+    vec getTau(){
+        return _tau;
+    }
     
     virtual void addBranch(double rUF, double rUM, vec3 RandomGaussian){
         throw std::runtime_error("Cannot add branch to non-branched fiber");
@@ -520,6 +524,24 @@ class BranchedFiber: public Fiber{
     uint nFibers() override{
         return _nLinearFib;
     }
+    
+    vec getX0() override{
+        // This will return the first point on each branch (NOT the mother point)
+        vec AllX0(3*_nLinearFib);
+        for (int d=0; d<3; d++){
+            AllX0[d]=_X0[d];
+        }
+        for (int iFib=1; iFib < _nLinearFib; iFib++){
+            int Mother = _Mothers[iFib];
+            int IndexOnMother = _AttachPoints[iFib];               
+            for (int d =0; d< 3; d++){
+                AllX0[3*iFib+d] = AllX0[3*Mother+d]+_tau[3*Mother+d]*_spacing*IndexOnMother;
+                AllX0[3*iFib+d]+=_tau[3*iFib+d]*_spacing; // add the current fiber spacing
+            }
+        }
+        return AllX0;
+    }
+    
     
     bool ForminBound(int FibIndex) override{
         return _ForminsOn[FibIndex];
