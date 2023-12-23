@@ -400,11 +400,34 @@ We now add formins to see how they affect the balance of linear vs.\ branched fi
 \caption{\label{fig:ForminHighArp}Course of polymerization and assembly with 5 $\mu$M actin concentration, 200 nM arp 2/3 concentration, and various formin concentrations and elongation ratios $\alpha$. The top plots show the concentration of free monomers, monomers in linear filaments, and monomers in branched structures. The bottom plot shows the dynamics of fiber and branch growth. }
 \end{figure}
 
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{Arp200nMFormin0_Snaps.eps}
+\includegraphics[width=\textwidth]{Arp200nMFormin0p1_Snaps.eps}
+\includegraphics[width=\textwidth]{Arp200nMFormin1_Snaps.eps}
+\caption{\label{fig:ForminArpsSnaps}Snapshots of polymerization and assembly with 5 $\mu$M actin concentration, 200 nM arp 2/3 concentration, and various formin concentrations (elongation ratio $\alpha=1$). The top plot shows no formin, the middle plot 0.1 nM formin, and the bottom 1 nM formin. Black dots are formins, blue dots arp 2/3 complex. Filaments are color-coded: blue is linear filaments, yellow is mother filaments, and red is branches.}
+\end{figure}
+
+
+
 A similar, but more interesting, tale plays out when we increase the concentration of arp 2/3 complex, as shown in Fig.\ \ref{fig:ForminHighArp}. We recall that at this arp 2/3 concentration (200 nM), spontaneous nucleation leads immediately to the formation of branches. Thus, even when we take the highest formin concentrations (1 nM), we never see all of the actin go into linear filaments; in this particular case some 40\% of the actin forms branches immediately. Then, over longer timescales, monomers unbind from existing linear filaments and start to form branches, thus causing the amount of actin in branched structures to grow to roughly 80\% of the total pool by the end of the simulation, regardless of the formin concentration. These dynamics are quite interesting: while high formin concentration forms linear filaments fastest, the rate at which branched structures steal the actin from linear structures is higher. This tells us that the high formin concentration makes a difference in nucleation, but in elongation branching always wins. 
 
 Summing up, higher formin concentration always leads to more filaments being nucleated faster. What happens next depends on the arp 2/3 concentration. When the arp concentration is low, formin will nucleate all of the actin into filaments, and branches will form slowly as branching competes with filament polymerization/treadmilling. When the arp concentration is high, formin will nucleate some of the actin into filaments, but branches will occur simultaneously. While increasing the formin concentration might temporarily lead to more actin in filaments, the branched structures will always catch up because, when the arp concentration is high, the branching rate will dominate the elongation of linear filaments, and monomers which come off of filaments will immediately be incorporated into branches. 
 
+\red{Arp is ``slower'' than formin -- but all it has to do is bind once and the entire thing becomes branched.}
+
 \subsection{Effect of over/under expressing actin}
+We now look at what happens when we fix the arp 2/3 concentration (at 200 nM) and formin concentration (at 0.4 nM), and vary the concentration of actin monomers. Figure\ \ref{fig:ActinConc} shows the results of our simulations when we consider actin concentrations of 2 $\mu$M, 5 $\mu$M, and 10 $\mu$M. There appears to be a slight favoring of more branched structures when we have more actin. When there is more actin, fibers nucleate faster, and there are more opportunities for branching. As time proceeds, the nucleation process finishes for lower concentrations, and the percentage of branched vs.\  linear structures evens out. For all concentrations, at $t=3600$ s, 25\% of the actin is in linear filaments. 
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{DynamicsVaryConc.eps}
+%\includegraphics[width=0.6\textwidth]{FiberDensity_VaryActinConc.eps}
+\caption{\label{fig:ActinConc}Course of polymerization and assembly with 200 nM arp 2/3 concentration, 0.4 nM formin concentrations (elongation ratio $\alpha=1$), with actin concentrations 2 $\mu$M (blue), 5 $\mu$M (red), and 10 $\mu$M (yellow). The top plots show the concentration of free monomers, monomers in linear filaments, and monomers in branched structures. The bottom plot shows the dynamics of fiber and branch growth. }
+\end{figure}
+Make movies also.
+
+
 
 \bibliographystyle{plain}
 

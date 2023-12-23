@@ -4,7 +4,7 @@ from ActinMixedNucleates import ActinMixedNucleates
 
 for ForminEnhance in [1,2]:
     for ConcArp in [0.2]:
-        for ConcFormin in [1e-3]:
+        for ConcFormin in [1e-4,0]:
             # Parameters
             a = 4e-3;
             kbT = 4.1e-3;
