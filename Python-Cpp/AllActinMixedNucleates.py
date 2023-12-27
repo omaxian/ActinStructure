@@ -2,15 +2,15 @@ import numpy as np
 import sys
 from ActinMixedNucleates import ActinMixedNucleates
 
-for ForminEnhance in [1,2]:
+for ForminEnhance in [1]:
     for ConcArp in [0.2]:
-        for ConcFormin in [1e-4,0]:
+        for ConcFormin in [4e-4]:
             # Parameters
             a = 4e-3;
             kbT = 4.1e-3;
             mu = 0.01;
             LBox = 3; # in um
-            Conc = 5; # in uM
+            Conc = 7.5; # in uM
             #ConcFormin = 0.001; # in uM
             #ConcArp = 0.02;
 
