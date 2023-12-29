@@ -2,15 +2,15 @@ import numpy as np
 import sys
 from ActinMixedNucleates import ActinMixedNucleates
 
-for ForminEnhance in [1]:
-    for ConcArp in [0.2]:
-        for ConcFormin in [4e-4]:
+for ForminEnhance in [0.5, 1, 2, 5]:
+    for ConcArp in [0]:
+        for ConcFormin in [0,1e-4,2e-4,5e-4,1e-3,2e-3,5e-3]:
             # Parameters
             a = 4e-3;
             kbT = 4.1e-3;
             mu = 0.01;
-            LBox = 3; # in um
-            Conc = 7.5; # in uM
+            LBox = 5; # in um
+            Conc = 5; # in uM
             #ConcFormin = 0.001; # in uM
             #ConcArp = 0.02;
 
@@ -26,9 +26,9 @@ for ForminEnhance in [1]:
             kminusPointed = 0.8; #s^(-1)
 
             # Formin rates
-            kForNuc = 2e-3; # uM^(-2)*s^(-1)
+            kForNuc = 2e-4; # uM^(-2)*s^(-1)
             kplusFor = 29.1; # uM^(-1)*s^(-1)
-            kminusFor = 8.1e-2; # s^(-1)
+            kminusFor = 8.1e-5; # s^(-1)
             #ForminEnhance = 1;
 
             # Arp 2/3 rates
@@ -80,23 +80,23 @@ for ForminEnhance in [1]:
                 NumFibers[i]=len(NumOnEach)-3;
                 BranchedOrLinear = np.append(BranchedOrLinear,AllActin.BranchedOrLinear(True))
                 BoundFormins = np.append(BoundFormins,AllActin.BoundFormins())
-                if (i==0):
-                    AllX0 = AllActin.AllX0();
-                    AllTau = AllActin.AllTaus();
-                else:
-                    AllX0 = np.append(AllX0,AllActin.AllX0(),axis=0);
-                    AllTau = np.append(AllTau,AllActin.AllTaus(),axis=0);
+                #if (i==0):
+                #    AllX0 = AllActin.AllX0();
+                #    AllTau = AllActin.AllTaus();
+                #else:
+                #    AllX0 = np.append(AllX0,AllActin.AllX0(),axis=0);
+                #    AllTau = np.append(AllTau,AllActin.AllTaus(),axis=0);
                 print('Time %f, Percent free %f' %((i+1)*dt, NumOnEach[0]/Nmon))
                 
             np.savetxt('NumFibs'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
-                +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'Ld3.txt',NumFibers);
+                +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',NumFibers);
             np.savetxt('StructInfo'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
-                +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'Ld3.txt',NumberPerFiber);
+                +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',NumberPerFiber);
             np.savetxt('BoundFormins'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
-                +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'Ld3.txt',BoundFormins);
+                +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',BoundFormins);
             np.savetxt('BranchedOrLinear'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
-                +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'Ld3.txt',BranchedOrLinear);
-            np.savetxt('AllX0'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
-                +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'Ld3.txt',AllX0);
-            np.savetxt('AllTau'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
-                +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'Ld3.txt',AllTau);
+                +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',BranchedOrLinear);
+            #np.savetxt('AllX0'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
+            #    +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'Ld3.txt',AllX0);
+            #np.savetxt('AllTau'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
+            #    +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'Ld3.txt',AllTau);
