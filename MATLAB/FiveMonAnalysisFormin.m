@@ -37,8 +37,8 @@ tf=40;
 [tvals,yvals] = ode45(RHSFcn,[0 tf],y0);
 
 % Import the data
-nError=1;
-nTrial=1;
+nError=2;
+nTrial=4;
 NumFibs=load(strcat('ForminOnly_NumFibs1.txt'));
 nT = length(NumFibs);
 MeanNumOfEach = zeros(2*nMax,nT,nError);

@@ -9,7 +9,7 @@ ArpConc = 0.1;
 % Parameters 
 kplusDimer = 3.5e-3; % uM^(-1)*s^(-1) 
 kminusDimer = 0.041; %s^(-1)
-kplusTrimer = 13e-1; % uM^(-1)*s^(-1) 
+kplusTrimer = 13e-2; % uM^(-1)*s^(-1) 
 kminusTrimer = 22; %s^(-1)
 kplusBarbed = 1.6; % uM^(-1)*s^(-1) 
 kminusBarbed = 0; %s^(-1)
@@ -21,7 +21,7 @@ kminusFor = 8.1e-2; %s^(-1)
 ForEnhance = 2;
 
 kplusARF = 5.2e-2;
-kminusARF = 0.1;
+kminusARF = 0.5;
 
 % Convert to microscopic assuming well-mixed system
 Volume = LBox^3;
@@ -73,7 +73,6 @@ for iT=1:nT
         NumOfEach(1+iS,iT,iTrial)=StructInfo(StartInd+iS);
     end
     rest = StructInfo(StartInd+3:EndInd);
-    warning('Check branched output')
     Branched = BranchedOrLinear(FibStarts(iT)+1:FibStarts(iT+1))==1;
     HasFormin = BoundFormins(FibStarts(iT)+1:FibStarts(iT+1));
     NumOfEach(4,iT,iTrial)=sum(rest==4 & ~Branched & ~HasFormin);

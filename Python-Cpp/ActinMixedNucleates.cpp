@@ -51,12 +51,15 @@ class ActinMixedNucleates {
         _FiberEndBindingRates[2] = SpontaneousRxnRates[6]; // Pointed binding
         _FiberEndBindingRates[3] = SpontaneousRxnRates[7]; // Pointed unbinding
         
+        // Initialize variables relating to barbed-end-bound and monomer bound proteins
         _AlphasPointed = vec(1,1.0);
         _AlphasBarbed = vec(1,1.0);
         _nMonomersBoundToEach = intvec(1,NMon);
         _nBarbedBinders = intvec(0);
         _BarbedBindersRates = vec(0);
         _BarbedNucRates = vec(0);
+        _FreeBranchers = 0;
+        _BranchRates = vec(0);
         
         rngu.seed(seed);
         unifdist = std::uniform_real_distribution<double>(0.0,1.0);
@@ -88,12 +91,11 @@ class ActinMixedNucleates {
     }
         
    
-    /*void InitializeArp(uint nArp, vec ArpRates){
-        _TotalArp = nArp;
-        _FreeArp = nArp;
-        _ArpMonomerFiberBindRate = ArpRates[0];
-        _ArpMonomerFiberUnbindRate = ArpRates[1];
-    }*/
+    void InitializeBranchers(int nBranchers, const vec &BranchRates){
+        _FreeBranchers = nBranchers;
+        _BranchRates = vec(BranchRates.size());
+        std::memcpy(_BranchRates.data(),BranchRates.data(),BranchRates.size()*sizeof(double)); 
+    }
     
     //void InitBranchedStructure(intvec nMonsPerBranch, intvec ForminsOn){
         /* 
@@ -147,12 +149,7 @@ class ActinMixedNucleates {
     
     void React(double dt){
         /*
-        Event-driven simulation with well-mixed monomers and nucleates. We consider three 
-        groups of reactions, each of which has a separate method that gives the time it occurs
-        1) Spontaneous nucleation
-        2) Formin-mediated nucleation
-        3) Fiber specific reactions (barbed/pointed end bind and unbind, branching, etc.). 
-           There are 9 of these per fiber. 
+        Event-driven simulation with well-mixed monomers and nucleates.
         */       
         double t = 0;
         while (t < dt){
@@ -170,7 +167,7 @@ class ActinMixedNucleates {
                 // TODO: make this loop parallel
                 for (uint iFib = 0; iFib < nFib; iFib++){
                     // Rxn 0: add to pointed end
-                    FiberEventTimes[iFib] =  _Fibers[iFib]->NextEventTime(_nMonomersBoundToEach, _nBarbedBinders);
+                    FiberEventTimes[iFib] =  _Fibers[iFib]->NextEventTime(_nMonomersBoundToEach, _nBarbedBinders, _FreeBranchers);
                     //std::cout << "Event time " << FiberEventTimes[iFib] << std::endl;
                 }
                 // Find the minimum 
@@ -182,10 +179,7 @@ class ActinMixedNucleates {
                     index = numSingleRxns+1+MinFibIndex;
                 }
             }
-            if (deltaT < 0){
-                return;
-            }
-            if (t+deltaT > dt){
+            if (t+deltaT > dt || deltaT < 0){
                 //std::cout << "Free formins and arps (to check) " << _FreeFormins << " , " << _FreeArp << std::endl;
                 return;
             }
@@ -193,17 +187,37 @@ class ActinMixedNucleates {
                 ProcessNucleationReaction(index);
             } else {
                 int iFib = index - (numSingleRxns+1);
-                _Fibers[iFib]->ReactNextEvent(_nMonomersBoundToEach, _nMonBinders, _nBarbedBinders);
-                if (!(_Fibers[iFib]->ShouldBeAFiber())){
-                    int NumMons = _Fibers[iFib]->TotalMonomers();
-                    //std::cout << "Breaking up fiber " << std::endl;
-                    // Break up the fiber 
-                    if (NumMons < 3){
-                        std::cout << "SHOULD NEVER BE HERE!" << std::endl;
+                int StructChange = _Fibers[iFib]->NeedsStructureChange();
+                if (StructChange==0){
+                    _Fibers[iFib]->ReactNextEvent(_nMonomersBoundToEach, _nMonBinders, _nBarbedBinders,_FreeBranchers);
+                } else if (StructChange == -1){
+                    // Delete structure or turn branched fiber into linear fiber
+                    uint nFibers = _Fibers[iFib]->nFibers();
+                    if (nFibers == 1){
+                        _Fibers.erase(_Fibers.begin() + iFib);   
+                        _nTrimers++;
+                        _nMonomersBoundToEach[0]++;
+                    } else {
+                        // Convert branched filament to linear
+                        int nMonomers=0; 
+                        vec3 X0, tau;
+                        int BarbedProtein = _Fibers[iFib]->PrepareForLinearSwitch(X0,tau,nMonomers);
+                        if (nMonomers < 4){
+                            std::cout << "Fiber should have more than 4 monomers! " << std::endl;
+                        }
+                        _Fibers[iFib] =  std::make_shared<Fiber>(_Lens, nMonomers, _FiberEndBindingRates, 
+                            _AlphasPointed, _BarbedBindersRates, _AlphasBarbed, _BranchRates,
+                            _spacing, _a, _mu, _kbT,-1);
+                        _Fibers[iFib]-> SetX0AndTau(X0,tau);
+                        _Fibers[iFib]-> SetBoundBarbed(BarbedProtein);
+                        _nMonomersBoundToEach[0]++;
+                        _FreeBranchers++;
                     }
-                    _Fibers.erase(_Fibers.begin() + iFib);   
-                    _nTrimers++;
-                }
+                } else if (StructChange==1){ // Converting linear filament to branched  
+                    _Fibers[iFib] =  std::make_shared<BranchedFiber>(_Fibers[iFib].get());
+                    _nMonomersBoundToEach[0]--;
+                    _FreeBranchers--;
+                } 
             }
             // Check conservation of monomers
             if (_nMonomersBoundToEach[0] > _TotalMonomers){
@@ -214,7 +228,8 @@ class ActinMixedNucleates {
             for(auto&& FibObj: _Fibers){
                 TotMon+=FibObj->TotalMonomers();
             }
-            //std::cout << "Total monomers " << TotMon << " free monomers " << _nMonomersBoundToEach[0] << std::endl;
+            //std::cout << "Free arps " << _FreeBranchers << std::endl;
+            //std::cout << "Free formins " << _nBarbedBinders[0] << std::endl;
             t+=deltaT;
         } // end while loop       
     }
@@ -338,8 +353,8 @@ class ActinMixedNucleates {
         vec _FiberEndBindingRates;
         vec _AlphasPointed, _BarbedNucRates, _BarbedBindersRates, _AlphasBarbed;
         
-        uint _TotalArp, _FreeArp;
-        double _ArpMonomerFiberBindRate, _ArpMonomerFiberUnbindRate;
+        int _FreeBranchers;
+        vec _BranchRates;
         
         double _a, _kbT, _mu, _spacing;
         vec3 _Lens;
@@ -418,115 +433,25 @@ class ActinMixedNucleates {
                 _nDimers++;
                 _nTrimers--;
             } else {
-                vec3 tau = PointOnUnitSphere();
-                vec3 X0 = UniformPointInBox();
                 // Forming tetramer - establish object for it
                 if (index == 4){
                     _nMonomersBoundToEach[0]--;
                     _nTrimers--;
-                    _Fibers.push_back(std::make_shared<Fiber>(X0, tau, 4, _FiberEndBindingRates, 
-                        _AlphasPointed, _BarbedBindersRates, _AlphasBarbed, _spacing, _a, _mu, _kbT,-1));
+                    _Fibers.push_back(std::make_shared<Fiber>(_Lens, 4, _FiberEndBindingRates, 
+                        _AlphasPointed, _BarbedBindersRates, _AlphasBarbed, _BranchRates, 
+                        _spacing, _a, _mu, _kbT,-1));
                 } else {
                     int iB = index-5;
                     _nBarbedBinders[iB]--;
-                    std::cout << "Number formins " << _nBarbedBinders[iB] << std::endl;
                     _nMonomersBoundToEach[0]-=2;
-                    _Fibers.push_back(std::make_shared<Fiber>(X0, tau, 2, _FiberEndBindingRates, 
-                        _AlphasPointed, _BarbedBindersRates, _AlphasBarbed, _spacing, _a, _mu, _kbT,-1));
+                    _Fibers.push_back(std::make_shared<Fiber>(_Lens, 2, _FiberEndBindingRates, 
+                        _AlphasPointed, _BarbedBindersRates, _AlphasBarbed, _BranchRates, 
+                        _spacing, _a, _mu, _kbT,-1));
                     _Fibers[_Fibers.size()-1]->SetBoundBarbed(iB+1);
                 }
             }
-        }
-                
-            /*
-                // Branching reactions
-                if (_TotalArp > 0){ 
-                    // Reaction 7: bind arp 2/3
-                    double BranchRate =  _ArpMonomerFiberBindRate*_FreeArp*_FreeMonomers*
-                        _Fibers[iFib]->nFibersEligibleForBranching();
-                    TryDeltaT = logrand()/BranchRate;
-                    if (TryDeltaT < deltaT){
-                        deltaT = TryDeltaT;
-                        index = numBefore+nRxnsPerFiber*iFib+7;
-                    } 
-                    // Reaction 8: unbind arp 2/3 and the branch
-                    double BranchRemoveRate = _ArpMonomerFiberUnbindRate*_Fibers[iFib]->nBranchesEligibleForRemoval();
-                    TryDeltaT = logrand()/BranchRemoveRate;
-                    //std::cout << "Time to unbind branch " << TryDeltaT << std::endl;
-                    if (TryDeltaT < deltaT){
-                        deltaT = TryDeltaT;
-                        index = numBefore+nRxnsPerFiber*iFib+8;
-                    } 
-                } 
-                else if (RxnType==7) { // Arp 2/3 binding
-                // Arp23 binding
-                _FreeArp--;
-                _FreeMonomers--;
-                uint nFibs = _Fibers[FibNum]->nFibers();
-                vec3 RandGauss;
-                for (int d=0; d<3;d++){
-                    RandGauss[d]=normaldist(rng);
-                }
-                double u1=unifdist(rngu);
-                if (nFibs==1){
-                    // Convert to a branched fiber
-                    _Fibers[FibNum] =  std::make_shared<BranchedFiber>(_Fibers[FibNum].get(),u1,RandGauss);
-                } else {
-                   // Already a BranchedFiber object. Add a new branch.
-                   double u2=unifdist(rngu);
-                   _Fibers[FibNum]->addBranch(u1,u2, RandGauss);
-                }
-            } 
-                else if (RxnType==8) { // Arp 2/3 unbinding
-                _FreeArp++;
-                _FreeMonomers++;
-                uint nFibs = _Fibers[FibNum]->nFibers();
-                if (nFibs==2) {
-                    //std::cout << "Trying to cast to linear fib " << std::endl;
-                    // Needs to be cast to a fiber object
-                    int nMonomers=0; 
-                    vec3 X0, tau;
-                    bool ForminOn = _Fibers[FibNum]->PrepareForLinearSwitch(X0,tau,nMonomers);
-                    if (nMonomers < 4){
-                        std::cout << "Fiber should have more than 4 monomers! " << std::endl;
-                    }
-                    _Fibers[FibNum] =  std::make_shared<Fiber>(X0, tau, nMonomers, _spacing, _a, _mu, _kbT,_FiberEndBindingRates);
-                    if (ForminOn){
-                        _Fibers[FibNum]->BindFormin(0);
-                    }
-                } else { 
-                    // Will remain a branched fiber object; just remove branch
-                    double u1=unifdist(rngu);
-                   _Fibers[FibNum]->removeBranch(u1);
-               } 
-            */    
-        vec3 PointOnUnitSphere(){
-            vec3 tau;
-            for (int d=0; d < 3; d++){
-                tau[d] = normaldist(rng);
-            }
-            normalize(tau);    
-            return tau;
-        }
-        
-        vec3 PointInSphere(double r){
-            vec3 tau = PointOnUnitSphere();
-            double u = unifdist(rngu);
-            double cbrtu = std::cbrt(u);
-            for (int d=0; d < 3; d++){
-                tau[d] = r*cbrtu*tau[d];
-            }
-            return tau;
-        }
-        
-        vec3 UniformPointInBox(){
-            vec3 X0;
-            for (int d=0; d < 3; d++){
-                X0[d]=unifdist(rngu)*_Lens[d];
-            }
-            return X0;
-        }
-        
+        }         
+
         double logrand(){
             return -log(1.0-unifdist(rngu));
         }
@@ -564,6 +489,7 @@ PYBIND11_MODULE(ActinMixedNucleates, m) {
         .def(py::init<uint, vec3, vec, double, double, double, double,int,int>())
         .def("InitializeMonomerBinders",&ActinMixedNucleates::InitializeMonomerBinders)
         .def("InitializeBarbedBinders",&ActinMixedNucleates::InitializeBarbedBinders)
+        .def("InitializeBranchers",&ActinMixedNucleates::InitializeBranchers)
         //.def("InitBranchedStructure",&ActinMixedNucleates::InitBranchedStructure)
         .def("Diffuse",&ActinMixedNucleates::Diffuse)
         .def("React",&ActinMixedNucleates::React)
