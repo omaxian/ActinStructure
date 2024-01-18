@@ -12,9 +12,8 @@ ActinStructure.cpp
 This needs to be rewritten so that we never create an array with nMonomers size.
 It should just be the tangent vectors we are tracking and the length (in monomers)
 **/
-static const int NMonomersForFormin=4;
-static const int NMonomersForBranch=4;
-static const bool MaxFive = false;
+static const int NMonForFiber = 4;
+static const bool MaxFive = true;
 
 // Global variables for periodic ActinStructure
 class ActinStructure {
@@ -25,10 +24,6 @@ class ActinStructure {
 
     }
     
-    int NumberRand(){
-        return 0;
-    }
-    
     void Diffuse(double dt, const vec &W){
     }
     
@@ -37,9 +32,18 @@ class ActinStructure {
     }
     
     protected:
-        vec _X; // location
-        vec3 _X0;
-        double _DCoeff, _kbT, _Mobility;
+    
+    vec _X; // location
+    vec3 _X0;
+    double _DCoeff, _kbT, _Mobility;
+    std::normal_distribution<double> normaldist;
+    std::mt19937_64 rng;
+    std::uniform_real_distribution<double> unifdist;
+    std::mt19937_64 rngu;
+    
+    double logrand(){
+        return -log(1.0-unifdist(rngu));
+    }
     
 };
 
@@ -55,9 +59,6 @@ class Monomer: public ActinStructure{
         _X = vec(3);
     }
     
-    int NumberRand(){
-        return 3;
-    }
     
     void Diffuse(double dt,const vec &W){
         for (int d=0; d< 3; d++){
@@ -82,7 +83,9 @@ class Fiber: public ActinStructure{
     public:
     
     // Initialize    
-    Fiber(vec3 X0, vec3 tau, uint nMonomers, double spacing, double a, double mu, double kbT, const vec &BindingRates){
+    Fiber(vec3 X0, vec3 tau, uint nMonomers, const vec &BindingRates, const vec &AlphasPointed,
+          const vec &BarbedBindersRates, const vec &AlphasBarbed, double spacing, double a, double mu, 
+          double kbT, int seed){
         _tau = vec(3);
         for (int d=0; d< 3; d++){
             _tau[d] = tau[d];
@@ -93,19 +96,49 @@ class Fiber: public ActinStructure{
         _Mobility = 1.0/(6*M_PI*mu*a);
         _kbT = kbT;
         _X = vec(3*_nMonomers);
-        _ForminOn = false;
+        
+        // These are the rates without anything bound at the barbed end
         _BarbedBindRate = BindingRates[0];
         _BarbedUnbindRate = BindingRates[1];
         _PointedBindRate = BindingRates[2];
         _PointedUnbindRate = BindingRates[3];
-        _ForminEnhancement = BindingRates[4];
+        //std::cout << "Done binding rates " << std::endl;
+        
+        // Monomer binders and barbed end binders
+        _ProteinAtBarbedEnd = 0;
+        _nMonBinders = AlphasPointed.size(); // includes nothing as the first element
+        _AlphasPointed = vec(_nMonBinders);
+        std::memcpy(_AlphasPointed.data(),AlphasPointed.data(),AlphasPointed.size()*sizeof(double));
+        //std::cout << "Done pointed alpha " << _AlphasPointed[0] << std::endl;
+        
+        _nBarbedBinders = BarbedBindersRates.size()/2; // There is both binding and unbind rate in this
+        //std::cout << "Num binders " << _nBarbedBinders << std::endl;
+        _BarbedBindersOnOffRates = vec(BarbedBindersRates.size());
+        std::memcpy(_BarbedBindersOnOffRates.data(),BarbedBindersRates.data(),BarbedBindersRates.size()*sizeof(double)); 
+        _AlphasBarbed = vec(AlphasBarbed.size());
+        std::memcpy(_AlphasBarbed.data(),AlphasBarbed.data(),AlphasBarbed.size()*sizeof(double)); 
+        //std::cout << "Done barbed alpha " << _AlphasBarbed[0] << std::endl;
+        
+        // Initialize random distributions
+        if (seed >=0){
+            rngu.seed(seed);
+            rng.seed(seed);
+        } else {
+            auto seed1 = std::random_device{}();
+            auto seed2 = std::random_device{}();
+            rngu.seed(seed1);
+            rng.seed(seed2);
+        }
+            
+        unifdist = std::uniform_real_distribution<double>(0.0,1.0);
+        normaldist = std::normal_distribution<double>(0.0,1.0);
     }
        
-    int NumberRand(){
-        return 6;
-    }
-    
-    void Diffuse(double dt,const vec &W){
+    void Diffuse(double dt){
+        vec W(6);
+        for (int j=0; j < 6; j++){
+            W[j]=normaldist(rng);
+        }
         vec K(3*_nMonomers*6);
         computeX(_X0,_tau,_X);
         vec3 XCOM = calcKRigid(_X,K);
@@ -144,92 +177,101 @@ class Fiber: public ActinStructure{
             _X0[d]=XCOM[d]+dt*OmegaU[3+d]+X0FromCOM[d];
         }
     }
+    
+    virtual double NextEventTime(const intvec &nActinMonomers, const intvec &nBarbedBinders){
+        // Polymerization on pointed end: Rxns [0,_nMonBinders)
+        _NextReactionIndex = 0;
+        double deltaT = 1.0/0.0;
+        double TryDt = deltaT;
+        for (int iMonProtein = 0; iMonProtein < _nMonBinders; iMonProtein++){
+            TryDt = PointedBindingTime(nActinMonomers[iMonProtein],iMonProtein);
+            if (TryDt < deltaT){
+                deltaT = TryDt;
+                _NextReactionIndex = iMonProtein;
+            }
+        }
+        // Polymerization on barbed end: Rxns [_nMonBinders,2*_nMonBinders)
+        for (int iMonProtein = 0; iMonProtein < _nMonBinders; iMonProtein++){
+            TryDt = BarbedBindingTime(nActinMonomers[iMonProtein],iMonProtein);
+            if (TryDt < deltaT){
+                deltaT = TryDt;
+                _NextReactionIndex = _nMonBinders+iMonProtein;
+            }
+        }
+        // Depolymerization on pointed end: Rxn 2*_nMonBinders
+        TryDt = PointedUnbindingTime();
+        if (TryDt < deltaT){
+            deltaT = TryDt;
+            _NextReactionIndex = 2*_nMonBinders;
+        }
+
+        TryDt = BarbedUnbindingTime();
+        if (TryDt < deltaT){
+            deltaT = TryDt;
+            _NextReactionIndex = 2*_nMonBinders+1;
+        }
+        // Reactions with things bound/unbound from barbed end
+        if (_ProteinAtBarbedEnd > 0){
+            // Unbinding reaction
+            TryDt = logrand()/(_BarbedBindersOnOffRates[2*_ProteinAtBarbedEnd-1]);
+            if (TryDt < deltaT && _nMonomers >= NMonForFiber){
+                deltaT = TryDt;
+               _NextReactionIndex = 2*_nMonBinders+2;
+            }
+        } else { // Nothing on the barbed end
+            for (int iBarbedProt = 0; iBarbedProt < _nBarbedBinders; iBarbedProt++){
+                TryDt = logrand()/(_BarbedBindersOnOffRates[2*iBarbedProt]*nBarbedBinders[iBarbedProt]);  
+                if (TryDt < deltaT && _nMonomers >= NMonForFiber){
+                    deltaT = TryDt;
+                    _NextReactionIndex = 2*_nMonBinders+3+iBarbedProt;
+                }
+            }
+        }
+        return deltaT;
+    }
+    
+    virtual bool ShouldBeAFiber(){
+        if (_nMonomers < NMonForFiber && _ProteinAtBarbedEnd==0){
+            return false;
+        }
+        return true;
+    }
+    
+    virtual void ReactNextEvent(intvec &nActinMonomers, intvec &nMonomerBinders, intvec &nBarbedBinders){
+        if (_NextReactionIndex < _nMonBinders){ // Polymerization on pointed end
+            int iMonProtein = _NextReactionIndex;
+            nActinMonomers[iMonProtein]--;
+            if (iMonProtein > 0){
+                nMonomerBinders[iMonProtein-1]++;
+            }
+            PointedBindReaction();
+        } else if (_NextReactionIndex < 2*_nMonBinders){
+            int iMonProtein = _NextReactionIndex-_nMonBinders;
+            nActinMonomers[iMonProtein]--;
+            if (iMonProtein > 0){
+                nMonomerBinders[iMonProtein-1]++;
+            }
+            BarbedBindReaction();
+        } else if (_NextReactionIndex < 2*_nMonBinders+2){
+            nActinMonomers[0]++;
+            bool Pointed = (_NextReactionIndex==2*_nMonBinders);
+            UnbindReaction(Pointed);
+        } else if (_NextReactionIndex == 2*_nMonBinders+2){
+            nBarbedBinders[_ProteinAtBarbedEnd-1]++;
+            _ProteinAtBarbedEnd = 0;
+        } else { 
+            int ProtToBind = _NextReactionIndex - (2*_nMonBinders+2);
+            _ProteinAtBarbedEnd = ProtToBind;
+            nBarbedBinders[ProtToBind-1]--;
+        }
+    }
         
-       
     vec getX(){
         _X.resize(3*_nMonomers);
         computeX(_X0,_tau,_X);
         return _X;
     }
         
-    virtual double PointedBindingRate(){    
-        if (MaxFive && _nMonomers == 5){
-            return 0;
-        }
-        return _PointedBindRate;
-    }
-    
-    virtual void PointedBindReaction(){
-        _nMonomers++;
-        for (int d=0; d < 3; d++){
-            _X0[d]-=_spacing*_tau[d];
-        }
-    }
-    
-    virtual double BarbedBindingRateNoFormin(){    
-        if ((MaxFive && _nMonomers == 5) || _ForminOn){
-           // std::cout << "MAX 5 MONOMERS " << std::endl;
-            return 0;
-        }
-        return _BarbedBindRate;
-    }
-    
-    virtual double BarbedBindingRateWithFormin(){
-        if ((MaxFive && _nMonomers == 5) || !_ForminOn){
-            return 0;
-        }
-        return _BarbedBindRate*_ForminEnhancement;
-    }
-    
-    virtual void BarbedBindReaction(double r, bool ForminEnd){
-        _nMonomers++;
-    }
-    
-    virtual double PointedUnbindingRate(){
-        if (_nMonomers == 2 && _ForminOn){
-            return 0;
-        }
-        return _PointedUnbindRate;
-    }
-    
-    virtual double BarbedUnbindingRate(){
-        if (_nMonomers == 2 && _ForminOn){
-            return 0;
-        }
-        return _BarbedUnbindRate;
-    }
-    
-    virtual void UnbindReaction(double r, bool PointedEnd){
-        _nMonomers--;
-        if (PointedEnd) {// adjust the start point
-            for (int d=0; d < 3; d++){
-                _X0[d]+=_spacing*_tau[d];
-            }
-        }
-    }
-    
-    virtual double ForminBindRate(double ForminBRate){
-        if (_ForminOn || _nMonomers < NMonomersForFormin){
-            return 0;
-        } 
-        return ForminBRate;
-    }
-    
-    virtual double ForminUnbindRate(double ForminUBRate){
-        // Formin cannot unbind from filaments with less than 4 monomers
-        if (!_ForminOn || _nMonomers < NMonomersForFormin){
-            return 0;
-        } 
-        return ForminUBRate;
-    }
-    
-    virtual void BindFormin(double rU){
-        _ForminOn = true;
-    }
-    
-    virtual void UnbindFormin(double rU){
-        _ForminOn = false;
-    }
             
     virtual int NumMonomers(int FibIndex){
         return _nMonomers;
@@ -247,14 +289,13 @@ class Fiber: public ActinStructure{
         return _tau;
     }
     
-    virtual void addBranch(double rUF, double rUM, vec3 RandomGaussian){
-        throw std::runtime_error("Cannot add branch to non-branched fiber");
-    }
-   
-    virtual void removeBranch(double u1){
-        throw std::runtime_error("Cannot remove branch from non-branched fiber");
+    virtual void SetBoundBarbed(int iB){
+        _ProteinAtBarbedEnd=iB;
     }
     
+    virtual int getBoundBarbed(int jFib){
+        return _ProteinAtBarbedEnd;
+    }
        
     vec3 getBarbedEnd(){
         vec3 Be;
@@ -264,12 +305,9 @@ class Fiber: public ActinStructure{
         return Be;  
     }
     
-    virtual bool ForminBound(int FibIndex){
-        return _ForminOn;
-    }
-    
+   
     virtual uint nFibersEligibleForBranching(){
-        if (_nMonomers >= NMonomersForBranch){
+        if (_nMonomers >= NMonForFiber){
             return 1;
         } else {
             return 0;
@@ -293,10 +331,11 @@ class Fiber: public ActinStructure{
         
     protected: 
         int _nMonomers;
+        int _ProteinAtBarbedEnd, _nBarbedBinders, _nMonBinders;
+        int _NextReactionIndex;
         double _spacing;
-        vec _tau;
+        vec _tau, _AlphasPointed, _AlphasBarbed, _BarbedBindersOnOffRates;
         double _BarbedBindRate, _BarbedUnbindRate, _PointedBindRate, _PointedUnbindRate,_ForminEnhancement;
-        bool _ForminOn;
         
         vec3 calcKRigid(const vec &X, vec &K){
             /*
@@ -347,6 +386,59 @@ class Fiber: public ActinStructure{
             return XCOM;
         }
         
+        virtual double PointedBindingTime(int nMons, int MonBoundProtein){    
+            if (MaxFive && _nMonomers == 5){
+                return 1.0/0.0;
+            }
+            double alpha = _AlphasPointed[MonBoundProtein];
+            return logrand()/(_PointedBindRate*alpha*nMons);
+        }
+    
+        virtual void PointedBindReaction(){
+            _nMonomers++;
+            for (int d=0; d < 3; d++){
+                _X0[d]-=_spacing*_tau[d];
+            }
+        }
+        
+        virtual double BarbedBindingTime(int nMons, int MonBoundProtein){    
+            if (MaxFive && _nMonomers == 5){
+                return 1.0/0.0;
+            }
+            double alpha = _AlphasBarbed[MonBoundProtein*_nBarbedBinders+_ProteinAtBarbedEnd];
+            double TotalRate =  _BarbedBindRate*alpha*nMons;
+            return logrand()/TotalRate;
+        }
+        
+        
+        virtual void BarbedBindReaction(){
+            _nMonomers++;
+        }
+        
+        virtual double PointedUnbindingTime(){
+            if (_nMonomers == 2 && _ProteinAtBarbedEnd > 0){
+                return 1.0/0.0;
+            }
+            return logrand()/ _PointedUnbindRate;
+        }
+        
+        virtual double BarbedUnbindingTime(){
+            if (_nMonomers == 2 && _ProteinAtBarbedEnd > 0){
+                return 1.0/0.0;
+            }
+            return logrand()/_BarbedUnbindRate;
+        }
+        
+        virtual void UnbindReaction(bool PointedEnd){
+            _nMonomers--;
+            if (PointedEnd) {// adjust the start point
+                for (int d=0; d < 3; d++){
+                    _X0[d]+=_spacing*_tau[d];
+                }
+            }
+        }
+        
+        
     private:
         
         virtual void computeX(const vec3 &X0, const vec &tau, vec &X){
@@ -370,6 +462,7 @@ class Fiber: public ActinStructure{
        }            
 };  
 
+/*
 class BranchedFiber: public Fiber{
     
     public:
@@ -744,7 +837,7 @@ class BranchedFiber: public Fiber{
     private:
        intvec _nMonomersPerFib, _Mothers, _AttachPoints; 
        int _nLinearFib;
-       boolvec _ForminsOn;
+       intvec _ProteinAtBarbedEnd;
        std::normal_distribution<double> normaldist;
        std::mt19937_64 rng;
        double _SeventyDegrees = 70.0*M_PI/180.0;
@@ -811,3 +904,4 @@ class BranchedFiber: public Fiber{
             return tau2;
         }
 };
+*/

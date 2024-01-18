@@ -2,15 +2,15 @@ import numpy as np
 import sys
 from ActinMixedNucleates import ActinMixedNucleates
 
-for ForminEnhance in [0.5, 1, 2, 5]:
-    for ConcArp in [0]:
-        for ConcFormin in [0,1e-4,2e-4,5e-4,1e-3,2e-3,5e-3]:
+for ForminEnhance in [1]:
+    for ConcArp in [200e-3]:
+        for ConcFormin in [1e-3]:
             # Parameters
             a = 4e-3;
             kbT = 4.1e-3;
             mu = 0.01;
             LBox = 5; # in um
-            Conc = 5; # in uM
+            Conc = 2; # in uM
             #ConcFormin = 0.001; # in uM
             #ConcArp = 0.02;
 
@@ -80,12 +80,12 @@ for ForminEnhance in [0.5, 1, 2, 5]:
                 NumFibers[i]=len(NumOnEach)-3;
                 BranchedOrLinear = np.append(BranchedOrLinear,AllActin.BranchedOrLinear(True))
                 BoundFormins = np.append(BoundFormins,AllActin.BoundFormins())
-                #if (i==0):
-                #    AllX0 = AllActin.AllX0();
-                #    AllTau = AllActin.AllTaus();
-                #else:
-                #    AllX0 = np.append(AllX0,AllActin.AllX0(),axis=0);
-                #    AllTau = np.append(AllTau,AllActin.AllTaus(),axis=0);
+                if (i==0):
+                    AllX0 = AllActin.AllX0();
+                    AllTau = AllActin.AllTaus();
+                else:
+                    AllX0 = np.append(AllX0,AllActin.AllX0(),axis=0);
+                    AllTau = np.append(AllTau,AllActin.AllTaus(),axis=0);
                 print('Time %f, Percent free %f' %((i+1)*dt, NumOnEach[0]/Nmon))
                 
             np.savetxt('NumFibs'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
@@ -97,6 +97,6 @@ for ForminEnhance in [0.5, 1, 2, 5]:
             np.savetxt('BranchedOrLinear'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
                 +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',BranchedOrLinear);
             #np.savetxt('AllX0'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
-            #    +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'Ld3.txt',AllX0);
+            #    +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'P.txt',AllX0);
             #np.savetxt('AllTau'+str(Conc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
-            #    +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'Ld3.txt',AllTau);
+            #    +'em4uM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'P.txt',AllTau);

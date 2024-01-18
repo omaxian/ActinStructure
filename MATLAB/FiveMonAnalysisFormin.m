@@ -7,7 +7,7 @@ ForminConc = 0.1;
 % Parameters 
 kplusDimer = 3.5e-3; % uM^(-1)*s^(-1) 
 kminusDimer = 0.041; %s^(-1)
-kplusTrimer = 13e-1; % uM^(-1)*s^(-1) 
+kplusTrimer = 13e-2; % uM^(-1)*s^(-1) 
 kminusTrimer = 22; %s^(-1)
 kplusBarbed = 1.6; % uM^(-1)*s^(-1) 
 kminusBarbed = 1.4; %s^(-1)
@@ -37,8 +37,8 @@ tf=40;
 [tvals,yvals] = ode45(RHSFcn,[0 tf],y0);
 
 % Import the data
-nError=3;
-nTrial=10;
+nError=1;
+nTrial=1;
 NumFibs=load(strcat('ForminOnly_NumFibs1.txt'));
 nT = length(NumFibs);
 MeanNumOfEach = zeros(2*nMax,nT,nError);
