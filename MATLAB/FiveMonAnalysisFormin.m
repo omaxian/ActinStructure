@@ -38,7 +38,7 @@ tf=40;
 
 % Import the data
 nError=2;
-nTrial=4;
+nTrial=5;
 NumFibs=load(strcat('ForminOnly_NumFibs1.txt'));
 nT = length(NumFibs);
 MeanNumOfEach = zeros(2*nMax,nT,nError);
@@ -62,7 +62,7 @@ for iT=1:nT
     end
     rest = StructInfo(StartInd+3:EndInd);
     Branched = BranchedOrLinear(FibStarts(iT)+1:FibStarts(iT+1));
-    HasFormin = BoundFormins(FibStarts(iT)+1:FibStarts(iT+1));
+    HasFormin = BoundFormins(FibStarts(iT)+1:FibStarts(iT+1))>0;
     NumOfEach(4,iT,iTrial)=sum(rest==4 & ~Branched & ~HasFormin);
     NumOfEach(5,iT,iTrial)=sum(rest==5 & ~Branched & ~HasFormin);
     NumOfEach(6,iT,iTrial)=Nfor-sum(HasFormin);

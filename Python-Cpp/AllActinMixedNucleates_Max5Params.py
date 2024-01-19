@@ -4,12 +4,13 @@ from ActinMixedNucleates import ActinMixedNucleates
 
 # Parameters
 a = 4e-3;
+spacing = 0.5; #units of a
 kbT = 4.1e-3;
 mu = 0.01;
 LBox = 3; # in um
 Conc = 2; # in uM
 ConcFormin = 0.1; # in uM
-ConcArp23 = 0.1;
+ConcArp23 = 0;
  # in uM
 
 # Parameters from Kovar & Pollard paper for actin alone
@@ -19,9 +20,9 @@ kminusDimer = 0.041; #s^(-1)
 kplusTrimer = 13e-2; # uM^(-1)*s^(-1) 
 kminusTrimer = 22; #s^(-1)
 kplusBarbed = 1.6#11.6; # uM^(-1)*s^(-1) 
-kminusBarbed = 0*1.4; #s^(-1)
+kminusBarbed = 1.4; #s^(-1)
 kplusPointed = 1.3; #uM^(-1)*s^(-1)
-kminusPointed = 0*0.8; #s^(-1)
+kminusPointed = 0.8; #s^(-1)
 
 # Formin rates
 kForNuc = 2e-3; # uM^(-2)*s^(-1)
@@ -54,10 +55,12 @@ seed = int(sys.argv[1]);
 
 
 nThr=1;
-spacing = 0.5; #units of a
 AllActin = ActinMixedNucleates(Nmon,Lens,SpontaneousRxnRates,a,spacing,kbT,mu, seed,nThr);
+print([NFormin//2+1, NFormin//2])
 if (ConcFormin > 0):
-    AllActin.InitializeBarbedBinders([NFormin],[RxnRatesFormin[0]],RxnRatesFormin[1:3],[1.0, RxnRatesFormin[3]]);
+    AllActin.InitializeBarbedBinders([NFormin//2+1, NFormin//2],[RxnRatesFormin[0],RxnRatesFormin[0]],\
+        [RxnRatesFormin[1],RxnRatesFormin[2],RxnRatesFormin[1],RxnRatesFormin[2]],\
+        [1.0, RxnRatesFormin[3],RxnRatesFormin[3]]);
 if (ConcArp23 > 0):
     AllActin.InitializeBranchers(NArp23,RxnRatesArp23);
 
@@ -81,10 +84,14 @@ for i in range(nSteps):
     Nmon = NumOnEach[0]+2*NumOnEach[1]+3*NumOnEach[2]+np.sum(NumOnEach[3:]);
     print('Time %f, Percent free %f' %((i+1)*dt, NumOnEach[0]/Nmon))
     
-np.savetxt('ForminArpNoUnbind_NumFibs'+str(seed)+'.txt',NumFibers);
-np.savetxt('ForminArpNoUnbind_StructInfo'+str(seed)+'.txt',NumberPerFiber);
-np.savetxt('ForminArpNoUnbind_BoundFormins'+str(seed)+'.txt',BoundFormins);
-np.savetxt('ForminArpNoUnbind_BranchedOrLinear'+str(seed)+'.txt',BranchedOrLinear);
+#np.savetxt('ForminArpNoUnbind_NumFibs'+str(seed)+'.txt',NumFibers);
+#np.savetxt('ForminArpNoUnbind_StructInfo'+str(seed)+'.txt',NumberPerFiber);
+#np.savetxt('ForminArpNoUnbind_BoundFormins'+str(seed)+'.txt',BoundFormins);
+#np.savetxt('ForminArpNoUnbind_BranchedOrLinear'+str(seed)+'.txt',BranchedOrLinear);
+np.savetxt('ForminOnly_NumFibs'+str(seed)+'.txt',NumFibers);
+np.savetxt('ForminOnly_StructInfo'+str(seed)+'.txt',NumberPerFiber);
+np.savetxt('ForminOnly_BoundFormins'+str(seed)+'.txt',BoundFormins);
+np.savetxt('ForminOnly_BranchedOrLinear'+str(seed)+'.txt',BranchedOrLinear);
 #np.savetxt('AllX.txt',AllX);
 #np.savetxt('NumFibs'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',NumFibers);
 #np.savetxt('StructInfo'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',StructInfo);
