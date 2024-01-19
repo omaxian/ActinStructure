@@ -210,7 +210,9 @@ class ActinMixedNucleates {
             // in each method
             intvec NumOnEach = NumBoundToEachProtein(_nFreeMon);
             double deltaT = TimeNucleationReactions(index,NumOnEach);
-            int numSingleRxns = 4+_nBarbedBinders.size();
+            deltaT = TimeNucleateBarbedBindReactions(index, deltaT);
+            int numNucRxns = 5*(_nBarbedProts+1);
+            int numBindNucRxns = 4*_nBarbedProts;
             //std::cout << "Nuc time and index " << deltaT << " , " << index << std::endl;
             uint nFib = _Fibers.size();
             //std::cout << "Number of fibers " << nFib << std::endl;
@@ -227,7 +229,7 @@ class ActinMixedNucleates {
                 int MinFibIndex = std::distance(std::begin(FiberEventTimes), it);
                 if (FiberEventTimes[MinFibIndex] < deltaT){
                     deltaT = FiberEventTimes[MinFibIndex];
-                    index = numSingleRxns+1+MinFibIndex;
+                    index = numNucRxns+numBindNucRxns+MinFibIndex;
                 }
             }
             //std::cout << "Event time " << deltaT << " index " << index << std::endl;
@@ -235,8 +237,10 @@ class ActinMixedNucleates {
                 //std::cout << "Free formins and arps (to check) " << _FreeFormins << " , " << _FreeArp << std::endl;
                 return;
             }
-            if (index <= numSingleRxns){
+            if (index < numNucRxns){
                 ProcessNucleateReaction(index);
+            } else if (index < numNumRxns+numBindRxns){
+                ProcessNucleateBarbedBindReaction(index);
             } else {
                 int iFib = index - (numSingleRxns+1);
                 int StructChange = _Fibers[iFib]->NeedsStructureChange();
@@ -471,35 +475,47 @@ class ActinMixedNucleates {
                         index = 4*NumPossBarbed+iBp;
                     }
                 }
-               // TODO: Left off here! Be careful with the binding/unbinding. It can bind bare dimers
-               // and unbind from decorated dimers, etc. Each set of dimers gets one reaction; the q
-               // question is just is it bind or unbind. 
-                double RateBindToDimer = _BarbedBindersRates[2*iBp]*_nBarbedBinders[iBp]*_nDimers[0];
-                TryDeltaT = logrand()/RateBindToDimer; 
-                if (TryDeltaT < deltaT){
-                    deltaT = TryDeltaT;
-                    index = 5*NumPossBarbed+iBp;
-                }
-                double RateUnbindFromDimer = _BarbedBindersRates[2*iBp+1]**_nDimers[iBp];
-                TryDeltaT = logrand()/RateBindToDimer; 
-                if (TryDeltaT < deltaT){
-                    deltaT = TryDeltaT;
-                    index = 5*NumPossBarbed+iBp;
-                }
-                
-                double RateBindToTrimer = _BarbedBindersRates[2*iBp]*_nBarbedBinders[iBp]*_nTrimers[0];
-                TryDeltaT = logrand()/RateBindToTrimer; 
-                if (TryDeltaT < deltaT){
-                    deltaT = TryDeltaT;
-                    index = 7*NumPossBarbed+iBp;
-                }
-                
-                
             }
             return deltaT;
         }
         
-        void ProcessNucleateReaction(uint index){
+        double TimeNucleateBarbedBindReactions(int &index, double deltaT){
+            if (_nBarbedProts==0){
+                return deltaT;
+            }
+            int FirstIndex = 5*(_nBarbedProts+1);
+            // There is something which can bind barbed ends
+            for (int iBp = 0; iBp < _nBarbedProts; iBp++){ 
+                // Binding empty dimers
+                double RateBindToDimer = _BarbedBindersRates[2*iBp]*_nBarbedBinders[iBp]*_nDimers[0];
+                TryDeltaT = logrand()/RateBindToDimer; 
+                if (TryDeltaT < deltaT){
+                    deltaT = TryDeltaT;
+                    index = FirstIndex+iBp;
+                }
+                double RateUnbindFromDimer = _BarbedBindersRates[2*iBp+1]*_nDimers[iBp];
+                TryDeltaT = logrand()/RateUnbindFromDimer; 
+                if (TryDeltaT < deltaT){
+                    deltaT = TryDeltaT;
+                    index = FirstIndex+_nBarbedProts+iBp;
+                }
+                double RateBindToTrimer = _BarbedBindersRates[2*iBp]*_nBarbedBinders[iBp]*_nTrimers[0];
+                TryDeltaT = logrand()/RateBindToTrimer; 
+                if (TryDeltaT < deltaT){
+                    deltaT = TryDeltaT;
+                    index = FirstIndex+2*_nBarbedProts+iBp;
+                }
+                double RateUnbindTrimer = _BarbedBindersRates[2*iBp+1]*_nTrimers[iBp];
+                TryDeltaT = logrand()/RateUnbindTrimer; 
+                if (TryDeltaT < deltaT){
+                    deltaT = TryDeltaT;
+                    index =  FirstIndex+3*_nBarbedProts+iBp;
+                }             
+            }
+            return deltaT;
+        }
+        
+        void ProcessNucleateReaction(const uint &index){
             int NumPossBarbed = _nBarbedProts+1;
             int ProtOnBarbed = index % NumPossBarbed;
             std::cout << "The index " << index << " so I'm putting " << ProtOnBarbed << " on the barbed end " << std::endl;
@@ -539,6 +555,34 @@ class ActinMixedNucleates {
             }
         }  
         
+        void ProcessNucleateBarbedBindReaction(const int &index){
+            int FirstIndex = 5*(_nBarbedProts+1);
+            int RelIndex  = index-FirstIndex;
+            int iBp = RelIndex % _nBarbedProts;
+            // There is something which can bind barbed ends
+            if (RelIndex < _nBarbedProts){
+                // Binding to dimer
+                _nDimers[0]--;
+                _nDimers[iBp]++;
+                _nBarbedBinders[iBp]--;
+            } else if (RelIndex < 2*_nBarbedProts){
+                // Unbinding from dimer
+                _Dimers[0]++;
+                _nDimers[iBp]--;
+                _nBarbedBinders[iBp]++;
+            } else if (RelIndex < 3*_nBarbedProts){
+                // Binding to trimer
+                _nTrimers[0]--;
+                _nTrimers[iBp]++;
+                _nBarbedBinders[iBp]--;
+            } else { 
+                // Unbinding from trimer
+                _nTrimers[0]++;
+                _nTrimers[iBp]--;
+                _nBarbedBinders[iBp]++;
+            }
+        }
+                        
         int MatrixIndex(int iMB, int iBB){
             return (_nBarbedBinders.size()+1)*iMB+iBB;     
         }  
