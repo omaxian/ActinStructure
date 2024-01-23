@@ -4,7 +4,7 @@
 Conc = 2; % in uM
 LBox = 3;
 ForminConc = 0.1;
-ArpConc = 0.1;
+ArpConc = 0;
 
 % Parameters 
 kplusDimer = 3.5e-3; % uM^(-1)*s^(-1) 
@@ -16,9 +16,9 @@ kminusBarbed = 0; %s^(-1)
 kplusPointed = 1.3; %uM^(-1)*s^(-1)
 kminusPointed = 0; %s^(-1)
 kForNuc = 2e-3; % uM^(-2)*s^(-1)
-kplusFor = 29.1; %uM^(-1)*s^(-1)
-kminusFor = 8.1e-2; %s^(-1)
-ForEnhance = 2;
+kplusFor = 0*29.1; %uM^(-1)*s^(-1)
+kminusFor = 0*8.1e-2; %s^(-1)
+ForEnhance = 1;
 
 kplusARF = 5.2e-2;
 kminusARF = 0.5;

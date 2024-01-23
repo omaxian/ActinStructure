@@ -26,9 +26,9 @@ kminusPointed = 0.8; #s^(-1)
 
 # Formin rates
 kForNuc = 2e-3; # uM^(-2)*s^(-1)
-kplusFor = 29.1; # uM^(-1)*s^(-1)
-kminusFor = 8.1e-2; # s^(-1)
-ForminEnhance = 2.0;
+kplusFor = 0*29.1; # uM^(-1)*s^(-1)
+kminusFor = 0*8.1e-2; # s^(-1)
+ForminEnhance = 1.0;
 
 # Arp 2/3 rates
 kplusARF = 5.2e-2;
@@ -40,7 +40,7 @@ uMInvToMicron3 = 1.0e15/(6.022e17);
 ConversionFactor = uMInvToMicron3/Volume; # everything will be in s^(-1)
 SpontaneousRxnRates=[kplusDimer*ConversionFactor, kminusDimer, kplusTrimer*ConversionFactor, kminusTrimer, \
     kplusBarbed*ConversionFactor, kminusBarbed, kplusPointed*ConversionFactor, kminusPointed];
-RxnRatesFormin = [kForNuc*ConversionFactor**2, kplusFor*ConversionFactor, kminusFor, ForminEnhance];
+
 RxnRatesArp23 = [kplusARF*ConversionFactor**2, kMinusARF];
 
 Nmon = int(Conc*Volume/uMInvToMicron3);
@@ -56,11 +56,17 @@ seed = int(sys.argv[1]);
 
 nThr=1;
 AllActin = ActinMixedNucleates(Nmon,Lens,SpontaneousRxnRates,a,spacing,kbT,mu, seed,nThr);
-print([NFormin//2+1, NFormin//2])
 if (ConcFormin > 0):
-    AllActin.InitializeBarbedBinders([NFormin//2+1, NFormin//2],[RxnRatesFormin[0],RxnRatesFormin[0]],\
-        [RxnRatesFormin[1],RxnRatesFormin[2],RxnRatesFormin[1],RxnRatesFormin[2]],\
-        [1.0, RxnRatesFormin[3],RxnRatesFormin[3]]);
+    NBarbed = [NFormin];
+    BarbedOnOff = [kplusFor*ConversionFactor, kminusFor];
+    AlphaDimersMinus = [1,0];
+    AlphaDimersPlus = [1,kForNuc*ConversionFactor/kplusDimer];
+    AlphaTrimersMinus = [1,0];
+    AlphaTrimersPlus = [1, 10]#(kplusBarbed+kplusPointed)/kplusTrimer];
+    print(AlphaTrimersPlus)
+    AlphaBarbed = [1, ForminEnhance];
+    AllActin.InitializeBarbedBinders(NBarbed,BarbedOnOff,AlphaDimersMinus,AlphaTrimersMinus);
+    AllActin.InitializeRateMatrices(AlphaDimersPlus,AlphaTrimersPlus,AlphaBarbed);
 if (ConcArp23 > 0):
     AllActin.InitializeBranchers(NArp23,RxnRatesArp23);
 
@@ -69,31 +75,28 @@ dt = 0.5;
 nSteps = int(Tf/dt+1e-6);
 
 NumFibers = np.zeros(nSteps,dtype=np.int64);
+FreeMonomers = np.zeros(nSteps,dtype=np.int64);
 NumberPerFiber = np.array([],dtype=np.int64);
 BranchedOrLinear = np.array([],dtype=bool);
-BoundFormins = np.array([],dtype=bool);
-
+BoundProteins = np.array([],dtype=bool);
 
 for i in range(nSteps):
     AllActin.React(dt);
     NumOnEach = AllActin.NumMonOnEachFiber();
     NumberPerFiber = np.append(NumberPerFiber,NumOnEach)
-    NumFibers[i]=len(NumOnEach)-3;
+    NumFibers[i] = len(NumOnEach);
+    FreeMonomers[i] = AllActin.nFreeMonomers();
     BranchedOrLinear = np.append(BranchedOrLinear,AllActin.BranchedOrLinear(False))
-    BoundFormins = np.append(BoundFormins,AllActin.BoundBarbedStates())
-    Nmon = NumOnEach[0]+2*NumOnEach[1]+3*NumOnEach[2]+np.sum(NumOnEach[3:]);
-    print('Time %f, Percent free %f' %((i+1)*dt, NumOnEach[0]/Nmon))
+    BoundProteins = np.append(BoundProteins,AllActin.BoundBarbedStates())
+    print('Time %f, Percent free %f' %((i+1)*dt, FreeMonomers[i]/Nmon))
     
 #np.savetxt('ForminArpNoUnbind_NumFibs'+str(seed)+'.txt',NumFibers);
 #np.savetxt('ForminArpNoUnbind_StructInfo'+str(seed)+'.txt',NumberPerFiber);
 #np.savetxt('ForminArpNoUnbind_BoundFormins'+str(seed)+'.txt',BoundFormins);
 #np.savetxt('ForminArpNoUnbind_BranchedOrLinear'+str(seed)+'.txt',BranchedOrLinear);
+np.savetxt('ForminOnly_FreeMons'+str(seed)+'.txt',FreeMonomers);
 np.savetxt('ForminOnly_NumFibs'+str(seed)+'.txt',NumFibers);
 np.savetxt('ForminOnly_StructInfo'+str(seed)+'.txt',NumberPerFiber);
-np.savetxt('ForminOnly_BoundFormins'+str(seed)+'.txt',BoundFormins);
+np.savetxt('ForminOnly_BoundFormins'+str(seed)+'.txt',BoundProteins);
 np.savetxt('ForminOnly_BranchedOrLinear'+str(seed)+'.txt',BranchedOrLinear);
-#np.savetxt('AllX.txt',AllX);
-#np.savetxt('NumFibs'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',NumFibers);
-#np.savetxt('StructInfo'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',StructInfo);
-#np.savetxt('BoundFormin'+str(Conc)+'uM_Formin'+str((ConcFormin*1000))+'nM_Alpha'+str(ForminEnhance)+'_'+str(seed)+'.txt',BoundFormins);
 

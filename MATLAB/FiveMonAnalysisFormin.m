@@ -14,9 +14,9 @@ kminusBarbed = 1.4; %s^(-1)
 kplusPointed = 1.3; %uM^(-1)*s^(-1)
 kminusPointed = 0.8; %s^(-1)
 kForNuc = 2e-3; % uM^(-2)*s^(-1)
-kplusFor = 29.1; %uM^(-1)*s^(-1)
-kminusFor = 8.1e-2; %s^(-1)
-ForEnhance = 2;
+kplusFor = 0*29.1; %uM^(-1)*s^(-1)
+kminusFor = 0*8.1e-2; %s^(-1)
+ForminEnhance = 1;
 
 % Convert to microscopic assuming well-mixed system
 Volume = LBox^3;
@@ -24,14 +24,19 @@ uMInvToMicron3 = 1.0e15/(6.022e17);
 ConversionFactor = uMInvToMicron3/Volume; % everything will be in s^(-1)
 RxnRates=[kplusDimer*ConversionFactor; kminusDimer; kplusTrimer*ConversionFactor; ...
     kminusTrimer; kplusBarbed*ConversionFactor; kminusBarbed; ...
-    kplusPointed*ConversionFactor; kminusPointed; ...
-    kForNuc*ConversionFactor^2; kplusFor*ConversionFactor; kminusFor; ForEnhance];
-
+    kplusPointed*ConversionFactor; kminusPointed];
+BarbedOnOff = [kplusFor*ConversionFactor kminusFor];
+AlphaDimerMinus = [1 0];
+AlphaDimerPlus = [1 kForNuc*ConversionFactor/kplusDimer];
+AlphaTrimerMinus = [1 0];
+AlphaTrimerPlus = [1 10];%(kplusBarbed+kplusPointed)/kplusTrimer];
+AlphaBarbed = [1 ForminEnhance];
 Nmon = floor(Conc*Volume/uMInvToMicron3);
 Nfor = floor(ForminConc*Volume/uMInvToMicron3);
 nMax=5;
 % Solve the ODEs
-RHSFcn = @(t,y) RHS(t,y,RxnRates,nMax);
+RHSFcn = @(t,y) RHS(t,y,RxnRates,nMax,2,0,BarbedOnOff, ...
+    AlphaDimerPlus,AlphaDimerMinus,AlphaTrimerPlus,AlphaTrimerMinus,AlphaBarbed);
 y0 = [Nmon;zeros(nMax-1,1);Nfor;zeros(nMax-1,1)];
 tf=40;
 [tvals,yvals] = ode45(RHSFcn,[0 tf],y0);
@@ -46,30 +51,26 @@ for iError=1:nError
 NumOfEach = zeros(2*nMax,nT,nTrial);
 for iTrial=1:nTrial
 TriIndex = (iError-1)*nTrial+iTrial;
+FreeMons=load(strcat('ForminOnly_FreeMons',num2str(TriIndex),'.txt'));
 StructInfo=load(strcat('ForminOnly_StructInfo',num2str(TriIndex),'.txt'));
 NumFibs=load(strcat('ForminOnly_NumFibs',num2str(TriIndex),'.txt'));
-BoundFormins=load(strcat('ForminOnly_BoundFormins',num2str(TriIndex),'.txt'));
+BoundBarbed=load(strcat('ForminOnly_BoundFormins',num2str(TriIndex),'.txt'));
 BranchedOrLinear=load(strcat('ForminOnly_BranchedOrLinear',num2str(TriIndex),'.txt'));
 nT = length(NumFibs);
-TotalEntries = NumFibs+3;
-StartIndex = [0;cumsum(TotalEntries)];
 FibStarts = [0;cumsum(NumFibs)];
 for iT=1:nT
-    StartInd = StartIndex(iT)+1;
-    EndInd = StartIndex(iT)+TotalEntries(iT);
-    for iS=0:2
-        NumOfEach(1+iS,iT,iTrial)=StructInfo(StartInd+iS);
-    end
-    rest = StructInfo(StartInd+3:EndInd);
+    NumOfEach(1,:,iTrial)=FreeMons;
+    FibNumbers = StructInfo(FibStarts(iT)+1:FibStarts(iT+1));
     Branched = BranchedOrLinear(FibStarts(iT)+1:FibStarts(iT+1));
-    HasFormin = BoundFormins(FibStarts(iT)+1:FibStarts(iT+1))>0;
-    NumOfEach(4,iT,iTrial)=sum(rest==4 & ~Branched & ~HasFormin);
-    NumOfEach(5,iT,iTrial)=sum(rest==5 & ~Branched & ~HasFormin);
-    NumOfEach(6,iT,iTrial)=Nfor-sum(HasFormin);
-    NumOfEach(7,iT,iTrial)=sum(rest==2 & ~Branched & HasFormin);
-    NumOfEach(8,iT,iTrial)=sum(rest==3 & ~Branched & HasFormin);
-    NumOfEach(9,iT,iTrial)=sum(rest==4 & ~Branched & HasFormin);
-    NumOfEach(10,iT,iTrial)=sum(rest==5 & ~Branched & HasFormin);
+    for iB=0:1
+        MatchBarbed = BoundBarbed(FibStarts(iT)+1:FibStarts(iT+1))==iB;
+        if (iB == 1)
+            NumOfEach(5*iB+1,iT,iTrial) = Nfor-sum(MatchBarbed);
+        end
+        for Num=2:5
+            NumOfEach(5*iB+Num,iT,iTrial)=sum(FibNumbers==Num & ~Branched & MatchBarbed);
+        end
+    end
 end
 end
 MeanNumOfEach(:,:,iError) = mean(NumOfEach,3);
@@ -124,53 +125,56 @@ errorbar(ts,MeanOfMean(nMax+1:2*nMax,:)/LBox^3,StdOfMean(nMax+1:2*nMax,:)/LBox^3
 % mean(MeanOfAll(:,(end-1)/2+1:end)')
 % StdOfAll(:,(end-1)/2+1:end)'
 
-function dydt = RHS(t,y,RxnRates,nMax)
+function dydt = RHS(t,y,RxnRates,nMax,nBarbedProts,nMonProts,BarbedOnOff, ...
+    AlphaDimerPlus,AlphaDimerMinus,AlphaTrimerPlus,AlphaTrimerMinus,AlphaBarbed)
     dydt=zeros(length(y),1);
-    PolyOn = RxnRates(5)+RxnRates(7);
-    PolyOff = RxnRates(6)+RxnRates(8);
-    % Stuff without attached formin
-    dydt(1) = -2*RxnRates(1)*y(1).^2 + 2*RxnRates(2)*y(2) ...
-        -RxnRates(3)*y(1)*y(2) + RxnRates(4)*y(3);
-    % Dimers: form, unform, form trimers, unform trimers
-    dydt(2) = RxnRates(1)*y(1).^2 + RxnRates(4)*y(3) ...
-        - RxnRates(2)*y(2) - RxnRates(3)*y(1)*y(2);
-    % Trimers: form, unform, form tetramers, unform tetramers
-    dydt(3) = RxnRates(3)*y(1)*y(2) - RxnRates(4)*y(3) ...
-        - PolyOn*y(1)*y(3) + PolyOff*y(4); % trimers
-    for iD = 4:nMax-1
-        dydt(iD)=PolyOn*y(iD-1)*y(1) - PolyOff*y(iD) - PolyOn*y(iD)*y(1) + PolyOff*y(iD+1);
-    end
-    iD = nMax;
-    dydt(iD)=PolyOn*y(iD-1)*y(1) - PolyOff*y(iD);
-    for iD = 4:nMax
-        dydt(1) = dydt(1) - PolyOn*y(iD-1)*y(1) + PolyOff*y(iD);
-    end
-    % Formin bound things
-    % nMax+1 = formin
-    % nMax+2 = formin + dimer
-    % nMax+n = formin + n-mer
-    ForminNuc = RxnRates(9);
-    ForminBind = RxnRates(10);
-    Forminunbind = RxnRates(11);
-    ForminEnhance = RxnRates(12);
-    EnhancedPolyOn = ForminEnhance*RxnRates(5)+RxnRates(7);
-    dydt(1) = dydt(1) - 2*ForminNuc*y(nMax+1)*y(1)*y(1);
-    dydt(nMax+1) = -ForminNuc*y(nMax+1)*y(1)*y(1);
-    dydt(nMax+2) = ForminNuc*y(nMax+1)*y(1)*y(1) -EnhancedPolyOn*y(nMax+2)*y(1)...
-        + PolyOff*y(nMax+3);
-    for iD=3:nMax-1
-        dydt(nMax+iD) = EnhancedPolyOn*y(nMax+iD-1)*y(1)-PolyOff*y(nMax+iD) + ...
-            PolyOff*y(nMax+iD+1)-EnhancedPolyOn*y(nMax+iD)*y(1);
-    end
-    iD=nMax;
-    dydt(nMax+iD) = EnhancedPolyOn*y(nMax+iD-1)*y(1)-PolyOff*y(nMax+iD);
-    for iD = 3:nMax
-        dydt(1) = dydt(1) - EnhancedPolyOn*y(nMax+iD-1)*y(1) + PolyOff*y(nMax+iD);
-    end
-    % Formin binding and unbinding (from fibers 4 or larger)
-    for iD=4:nMax
-        dydt(iD)=dydt(iD)-ForminBind*y(iD)*y(nMax+1)+Forminunbind*y(nMax+iD);
-        dydt(nMax+1)=dydt(nMax+1)-ForminBind*y(iD)*y(nMax+1)+Forminunbind*y(nMax+iD); % formin
-        dydt(nMax+iD)=dydt(nMax+iD)+ForminBind*y(iD)*y(nMax+1)-Forminunbind*y(nMax+iD);
+    % 1 = free monomers
+    % 2--5 = nothing on them
+    % 5*nBarbed+1 = free barbed protein
+    % 5*nBarbed+j = number with protein j on barbed end
+    DimerPlus = RxnRates(1);
+    DimerMinus = RxnRates(2);
+    TrimerPlus = RxnRates(3);
+    TrimerMinus = RxnRates(4);
+    BrbPlus = RxnRates(5);
+    BrbMinus = RxnRates(6);
+    PtPlus = RxnRates(7);
+    PtMinus = RxnRates(8);
+    PolyOff = BrbMinus+PtMinus;
+    FreeMon = y(1);
+    for iB=1:nBarbedProts
+        % Nucleation and polymerization
+        PolyOn = BrbPlus*AlphaBarbed(iB)+PtPlus;
+        if (iB==1)
+            dydt((iB-1)*nMax+2)=dydt((iB-1)*nMax+2)+FreeMon*FreeMon*DimerPlus;
+            dydt(1)=dydt(1)-2*FreeMon*FreeMon*DimerPlus;
+        else
+            dydt((iB-1)*nMax+2) = dydt((iB-1)*nMax+2)+FreeMon*FreeMon*DimerPlus...
+                *AlphaDimerPlus(iB)*y((iB-1)*nMax+1);
+            dydt(1) = dydt(1)-2*FreeMon*FreeMon*DimerPlus*AlphaDimerPlus(iB)*y((iB-1)*nMax+1);
+            dydt((iB-1)*nMax+1) = dydt((iB-1)*nMax+1)-FreeMon*FreeMon*DimerPlus...
+                *AlphaDimerPlus(iB)*y((iB-1)*nMax+1);
+        end
+        dydt((iB-1)*nMax+2) =  dydt((iB-1)*nMax+2) ...
+            - DimerMinus*AlphaDimerMinus(iB)*y((iB-1)*nMax+2) ...
+            - TrimerPlus*AlphaTrimerPlus(iB)*y((iB-1)*nMax+2)*FreeMon ...
+            + TrimerMinus*AlphaTrimerMinus(iB)*y((iB-1)*nMax+3);
+        dydt(1) = dydt(1)+2*DimerMinus*AlphaDimerMinus(iB)*y((iB-1)*nMax+2) ...
+            -TrimerPlus*AlphaTrimerPlus(iB)*y((iB-1)*nMax+2)*FreeMon;
+        dydt((iB-1)*nMax+3) = dydt((iB-1)*nMax+3) ...
+            + TrimerPlus*AlphaTrimerPlus(iB)*y((iB-1)*nMax+2)*FreeMon ...
+            - TrimerMinus*AlphaTrimerMinus(iB)*y((iB-1)*nMax+3) ...
+            - PolyOn*y((iB-1)*nMax+3)*FreeMon + PolyOff*y((iB-1)*nMax+4);
+        dydt(1) = dydt(1) + TrimerMinus*AlphaTrimerMinus(iB)*y((iB-1)*nMax+3);
+        for iM=4:nMax-1
+            dydt((iB-1)*nMax+iM) = dydt((iB-1)*nMax+iM) ...
+                + PolyOn*FreeMon*(y((iB-1)*nMax+iM-1)-y((iB-1)*nMax+iM)) ...
+                + PolyOff*(y((iB-1)*nMax+iM+1)-y((iB-1)*nMax+iM));
+            dydt(1) = dydt(1) - PolyOn*FreeMon*y((iB-1)*nMax+iM-1)+ PolyOff*y((iB-1)*nMax+iM);
+        end
+        dydt((iB-1)*nMax+nMax) = dydt((iB-1)*nMax+nMax) ...
+            + PolyOn*FreeMon*(y((iB-1)*nMax+nMax-1)) ...
+            - PolyOff*y((iB-1)*nMax+nMax);
+        dydt(1) = dydt(1) - PolyOn*FreeMon*y((iB-1)*nMax+nMax-1)+ PolyOff*y((iB-1)*nMax+nMax);
     end
 end
