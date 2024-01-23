@@ -26,9 +26,9 @@ kminusPointed = 0.8; #s^(-1)
 
 # Formin rates
 kForNuc = 2e-3; # uM^(-2)*s^(-1)
-kplusFor = 0*29.1; # uM^(-1)*s^(-1)
-kminusFor = 0*8.1e-2; # s^(-1)
-ForminEnhance = 1.0;
+kplusFor = 5; # uM^(-1)*s^(-1)
+kminusFor = 8.1e-2; # s^(-1)
+ForminEnhance = 2.0;
 
 # Arp 2/3 rates
 kplusARF = 5.2e-2;
@@ -57,14 +57,13 @@ seed = int(sys.argv[1]);
 nThr=1;
 AllActin = ActinMixedNucleates(Nmon,Lens,SpontaneousRxnRates,a,spacing,kbT,mu, seed,nThr);
 if (ConcFormin > 0):
-    NBarbed = [NFormin];
-    BarbedOnOff = [kplusFor*ConversionFactor, kminusFor];
-    AlphaDimersMinus = [1,0];
-    AlphaDimersPlus = [1,kForNuc*ConversionFactor/kplusDimer];
-    AlphaTrimersMinus = [1,0];
-    AlphaTrimersPlus = [1, 10]#(kplusBarbed+kplusPointed)/kplusTrimer];
-    print(AlphaTrimersPlus)
-    AlphaBarbed = [1, ForminEnhance];
+    NBarbed = [NFormin, NFormin-200];
+    BarbedOnOff = [kplusFor*ConversionFactor, kminusFor, 0.7*kplusFor*ConversionFactor, 0.6*kminusFor];
+    AlphaDimersMinus = [1,0.2,0.5];
+    AlphaDimersPlus = [1,kForNuc*ConversionFactor/kplusDimer,1.5*kForNuc*ConversionFactor/kplusDimer];
+    AlphaTrimersMinus = [1,0.2, 1.2];
+    AlphaTrimersPlus = [1, 10, 5]#(kplusBarbed+kplusPointed)/kplusTrimer];
+    AlphaBarbed = [1, ForminEnhance, ForminEnhance*0.1];
     AllActin.InitializeBarbedBinders(NBarbed,BarbedOnOff,AlphaDimersMinus,AlphaTrimersMinus);
     AllActin.InitializeRateMatrices(AlphaDimersPlus,AlphaTrimersPlus,AlphaBarbed);
 if (ConcArp23 > 0):

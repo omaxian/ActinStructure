@@ -785,7 +785,7 @@ class BranchedFiber: public Fiber{
             double MinTime = 1.0/0.0;
             for (int iFib = 0; iFib < _nLinearFib; iFib++){
                 int ProteinBound = _ProteinAtBarbedEnds[iFib];
-                if (ProteinBound > 0 && _nMonomersPerFib[iFib] >= NMonForFiber){
+                if (ProteinBound > 0){
                     double ThisTime = logrand()/_BarbedBindersOnOffRates[2*ProteinBound-1];
                     if (ThisTime < MinTime){
                         MinTime = ThisTime;
@@ -804,7 +804,7 @@ class BranchedFiber: public Fiber{
         double BarbedProteinBindTime(const int &iBarbedProt, const int &numBarbedProts, int &BranchIndex) override{
             double MinTime = 1.0/0.0;
             for (int iFib = 0; iFib < _nLinearFib; iFib++){
-                if (_ProteinAtBarbedEnds[iFib]== 0 && _nMonomersPerFib[iFib] >= NMonForFiber){
+                if (_ProteinAtBarbedEnds[iFib]== 0){
                     double ThisTime = logrand()/(_BarbedBindersOnOffRates[2*iBarbedProt]*numBarbedProts);  
                     if (ThisTime < MinTime){
                         MinTime = ThisTime;

@@ -72,7 +72,7 @@ class ActinMixedNucleates {
         _nMonBinders = intvec(_nMonProts);
         std::memcpy(_nMonBinders.data(),nMonBinders.data(),nMonBinders.size()*sizeof(int));
         _MonBindKEqs = vec(_nMonProts);
-        std::memcpy(_MonBindKEqs.data(),EquilConsts.data(),EquilConsts.size()*sizeof(int));
+        std::memcpy(_MonBindKEqs.data(),EquilConsts.data(),EquilConsts.size()*sizeof(double));
         _PointedPlus.resize(_nMonProts+1);
         int pAlphSize = PointedAlphas.size();
         if (_nMonProts != pAlphSize){
@@ -90,7 +90,7 @@ class ActinMixedNucleates {
         _nBarbedBinders = intvec(_nBarbedProts);
         std::memcpy(_nBarbedBinders.data(),nBarbedBinders.data(),nBarbedBinders.size()*sizeof(int));
         _BarbedBindersRates = vec(2*_nBarbedProts);
-        std::memcpy(_BarbedBindersRates.data(),BarbedBinderRates.data(),BarbedBinderRates.size()*sizeof(int));
+        std::memcpy(_BarbedBindersRates.data(),BarbedBinderRates.data(),BarbedBinderRates.size()*sizeof(double));
         
         _DimerMinus.resize(_nBarbedProts+1);
         _TrimerMinus.resize(_nBarbedProts+1);
@@ -248,7 +248,6 @@ class ActinMixedNucleates {
             if (index < numNucRxns){
                 ProcessNucleateReaction(index);
             } else if (index < numNucRxns+numBindNucRxns){
-                std::cout << "Should never be here!" << std::endl;
                 ProcessNucleateBarbedBindReaction(index);
             } else {
                 int iFib = index - (numNucRxns+numBindNucRxns);
@@ -259,8 +258,7 @@ class ActinMixedNucleates {
                     // Delete structure or turn branched fiber into linear fiber
                     uint nFibers = _Fibers[iFib]->nFibers();
                     if (nFibers == 1){
-                        // Find out what's on the end
-                        int BarbedProt = _Fibers[iFib]->getBoundBarbed(0);
+                        int BarbedProt = _Fibers[iFib]->getBoundBarbed(0);  // Find out what's on the end
                         _Fibers.erase(_Fibers.begin() + iFib);   
                         _nTrimers[BarbedProt]++;
                         _nFreeMon++;
@@ -523,7 +521,7 @@ class ActinMixedNucleates {
                     deltaT = TryDeltaT;
                     index = FirstIndex+iBp;
                 }
-                double RateUnbindFromDimer = _BarbedBindersRates[2*iBp+1]*_nDimers[iBp];
+                double RateUnbindFromDimer = _BarbedBindersRates[2*iBp+1]*_nDimers[iBp+1];
                 TryDeltaT = logrand()/RateUnbindFromDimer; 
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
@@ -535,7 +533,7 @@ class ActinMixedNucleates {
                     deltaT = TryDeltaT;
                     index = FirstIndex+2*_nBarbedProts+iBp;
                 }
-                double RateUnbindTrimer = _BarbedBindersRates[2*iBp+1]*_nTrimers[iBp];
+                double RateUnbindTrimer = _BarbedBindersRates[2*iBp+1]*_nTrimers[iBp+1];
                 TryDeltaT = logrand()/RateUnbindTrimer; 
                 if (TryDeltaT < deltaT){
                     deltaT = TryDeltaT;
@@ -594,22 +592,22 @@ class ActinMixedNucleates {
             if (RelIndex < _nBarbedProts){
                 // Binding to dimer
                 _nDimers[0]--;
-                _nDimers[iBp]++;
+                _nDimers[iBp+1]++;
                 _nBarbedBinders[iBp]--;
             } else if (RelIndex < 2*_nBarbedProts){
                 // Unbinding from dimer
                 _nDimers[0]++;
-                _nDimers[iBp]--;
+                _nDimers[iBp+1]--;
                 _nBarbedBinders[iBp]++;
             } else if (RelIndex < 3*_nBarbedProts){
                 // Binding to trimer
                 _nTrimers[0]--;
-                _nTrimers[iBp]++;
+                _nTrimers[iBp+1]++;
                 _nBarbedBinders[iBp]--;
             } else { 
                 // Unbinding from trimer
                 _nTrimers[0]++;
-                _nTrimers[iBp]--;
+                _nTrimers[iBp+1]--;
                 _nBarbedBinders[iBp]++;
             }
         }
