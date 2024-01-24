@@ -3,6 +3,7 @@
 Conc = 2; % in uM
 LBox = 3;
 ForminConc = 0.1;
+ProfConc = 0.05;
 
 % Parameters 
 kplusDimer = 3.5e-3; % uM^(-1)*s^(-1) 
@@ -25,21 +26,24 @@ ConversionFactor = uMInvToMicron3/Volume; % everything will be in s^(-1)
 RxnRates=[kplusDimer*ConversionFactor; kminusDimer; kplusTrimer*ConversionFactor; ...
     kminusTrimer; kplusBarbed*ConversionFactor; kminusBarbed; ...
     kplusPointed*ConversionFactor; kminusPointed];
-BarbedOnOff = [kplusFor*ConversionFactor kminusFor ...
-     0.7*kplusFor*ConversionFactor, 0.6*kminusFor];
-AlphaDimerMinus = [1 0.2 0.5];
-AlphaDimerPlus = [1 kForNuc*ConversionFactor/kplusDimer 1.5*kForNuc*ConversionFactor/kplusDimer];
-AlphaTrimerMinus = [1 0.2 1.2];
-AlphaTrimerPlus = [1 10 5];
-AlphaBarbed = [1 ForminEnhance ForminEnhance*0.1];
+BarbedOnOff = [kplusFor*ConversionFactor kminusFor];
+AlphaDimerMinus = [1 0.2];
+AlphaDimerPlus = [1 kForNuc*ConversionFactor/kplusDimer; ...
+    0.1 0.5*kForNuc*ConversionFactor/kplusDimer];
+AlphaTrimerMinus = [1 0.4];
+AlphaTrimerPlus = [1 10; 0.5 2];
+AlphaBarbed = [1 ForminEnhance; 0.2 2.5];
+AlphaPointed = [1;0.25];
+MonEqs = 5*ConversionFactor;
 Nmon = floor(Conc*Volume/uMInvToMicron3);
 Nfor = floor(ForminConc*Volume/uMInvToMicron3);
-NBarbed = [Nfor max(0,Nfor-200)];
+NBarbed = Nfor;
 nMax=5;
 % Solve the ODEs
 nBarbedProts = length(BarbedOnOff)/2;
-RHSFcn = @(t,y) RHS(t,y,RxnRates,nMax,nBarbedProts,0,BarbedOnOff, ...
-    AlphaDimerPlus,AlphaDimerMinus,AlphaTrimerPlus,AlphaTrimerMinus,AlphaBarbed);
+nMonProts = floor(ProfConc*Volume/uMInvToMicron3);
+RHSFcn = @(t,y) RHS(t,y,RxnRates,nMax,nBarbedProts,nMonProts,BarbedOnOff,MonEqs, ...
+    AlphaDimerPlus,AlphaDimerMinus,AlphaTrimerPlus,AlphaTrimerMinus,AlphaBarbed,AlphaPointed);
 y0 = zeros((nBarbedProts+1)*nMax,1);
 y0(1) = Nmon;
 for iB=1:nBarbedProts
@@ -49,8 +53,8 @@ tf=40;
 [tvals,yvals] = ode45(RHSFcn,[0 tf],y0);
 
 % Import the data
-nError=2;
-nTrial=5;
+nError=3;
+nTrial=10;
 NumFibs=load(strcat('ForminOnly_NumFibs1.txt'));
 nT = length(NumFibs);
 MeanNumOfEach = zeros((nBarbedProts+1)*nMax,nT,nError);
@@ -100,7 +104,7 @@ end
 
 
 function dydt = RHS(t,y,RxnRates,nMax,nBarbedProts,NumMonProts,BarbedOnOff,MonEqConsts, ...
-    AlphaDimerPlus,AlphaDimerMinus,AlphaTrimerPlus,AlphaTrimerMinus,AlphaBarbed)
+    AlphaDimerPlus,AlphaDimerMinus,AlphaTrimerPlus,AlphaTrimerMinus,AlphaBarbed,AlphaPointed)
     dydt=zeros(length(y),1);
     % 1 = free monomers
     % 2--5 = nothing on them
@@ -120,15 +124,15 @@ function dydt = RHS(t,y,RxnRates,nMax,nBarbedProts,NumMonProts,BarbedOnOff,MonEq
     % Determine percentage of monomer bound to different proteins
     if (~isempty(NumMonProts))
         EqSum = sum(MonEqConsts.*NumMonProts);
-        BoundToEach=[FreeMon; FreeMon.*NumMonProts]/(1+EqSum);
+        BoundToEach=[FreeMon; FreeMon.*NumMonProts.*MonEqConsts]/(1+EqSum);
     end
     for iB=1:nBarbedProts+1
         % Nucleation and polymerization
-        DimerPlusRate = DimerPlus*sum(BoundToEach.*BoundToEach.*AlphaDimerPlus(:,iB)');
+        DimerPlusRate = DimerPlus*sum(BoundToEach.*BoundToEach.*AlphaDimerPlus(:,iB));
         DimerMinusRate = DimerMinus*AlphaDimerMinus(iB)*y((iB-1)*nMax+2);
-        TrimerPlusRate = TrimerPlus*sum(BoundToEach.*AlphaTrimerPlus(:,iB)')*y((iB-1)*nMax+2);
+        TrimerPlusRate = TrimerPlus*sum(BoundToEach.*AlphaTrimerPlus(:,iB))*y((iB-1)*nMax+2);
         TrimerMinusRate = TrimerMinus*AlphaTrimerMinus(iB)*y((iB-1)*nMax+3);
-        PolyOn = sum((PtPlus+BrbPlus*AlphaBarbed(:,iB)').*BoundToEach);
+        PolyOn = sum((PtPlus*AlphaPointed+BrbPlus*AlphaBarbed(:,iB)).*BoundToEach);
         if (iB > 1)
             DimerPlusRate = DimerPlusRate*y((iB-1)*nMax+1);
             dydt((iB-1)*nMax+1) = dydt((iB-1)*nMax+1)-DimerPlusRate + DimerMinusRate;

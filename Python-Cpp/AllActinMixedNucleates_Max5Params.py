@@ -11,6 +11,7 @@ LBox = 3; # in um
 Conc = 2; # in uM
 ConcFormin = 0.1; # in uM
 ConcArp23 = 0;
+ConcProf = 0.05;
  # in uM
 
 # Parameters from Kovar & Pollard paper for actin alone
@@ -34,6 +35,9 @@ ForminEnhance = 2.0;
 kplusARF = 5.2e-2;
 kMinusARF = 0.5;
 
+# Profilin rate
+ProfEq = 5;
+
 # Convert to microscopic assuming well-mixed system
 Volume = LBox**3;
 uMInvToMicron3 = 1.0e15/(6.022e17);
@@ -49,6 +53,8 @@ NFormin = int(ConcFormin*Volume/uMInvToMicron3);
 print('Number of formins %d' %NFormin)
 NArp23 = int(ConcArp23*Volume/uMInvToMicron3);
 print('Number of Arp 2/3 %d' %NArp23)
+NProf = int(ConcProf*Volume/uMInvToMicron3);
+print('Number of profilin %d' %NProf)
 
 Lens=np.array([LBox,LBox,LBox]);
 seed = int(sys.argv[1]);
@@ -57,17 +63,30 @@ seed = int(sys.argv[1]);
 nThr=1;
 AllActin = ActinMixedNucleates(Nmon,Lens,SpontaneousRxnRates,a,spacing,kbT,mu, seed,nThr);
 if (ConcFormin > 0):
-    NBarbed = [NFormin, NFormin-200];
-    BarbedOnOff = [kplusFor*ConversionFactor, kminusFor, 0.7*kplusFor*ConversionFactor, 0.6*kminusFor];
-    AlphaDimersMinus = [1,0.2,0.5];
-    AlphaDimersPlus = [1,kForNuc*ConversionFactor/kplusDimer,1.5*kForNuc*ConversionFactor/kplusDimer];
-    AlphaTrimersMinus = [1,0.2, 1.2];
-    AlphaTrimersPlus = [1, 10, 5]#(kplusBarbed+kplusPointed)/kplusTrimer];
-    AlphaBarbed = [1, ForminEnhance, ForminEnhance*0.1];
+    NBarbed = [NFormin];
+    BarbedOnOff = [kplusFor*ConversionFactor, kminusFor];
+    AlphaDimersMinus = [1,0.2];
+    AlphaDimersPlus = [1,kForNuc*ConversionFactor/kplusDimer];
+    AlphaTrimersMinus = [1,0.4];
+    AlphaTrimersPlus = [1, 10]#(kplusBarbed+kplusPointed)/kplusTrimer];
+    AlphaBarbed = [1, ForminEnhance];
     AllActin.InitializeBarbedBinders(NBarbed,BarbedOnOff,AlphaDimersMinus,AlphaTrimersMinus);
     AllActin.InitializeRateMatrices(AlphaDimersPlus,AlphaTrimersPlus,AlphaBarbed);
 if (ConcArp23 > 0):
     AllActin.InitializeBranchers(NArp23,RxnRatesArp23);
+if (ConcProf > 0):
+    NMonProts = [NProf]
+    KsMon = [ProfEq*ConversionFactor];
+    AlphasPointed = [1,0.25];
+    AllActin.InitializeMonomerBinders(NMonProts,KsMon,AlphasPointed);
+    # Re-initialize the rate matrices with all rates
+    AlphaDimersPlus = [1,kForNuc*ConversionFactor/kplusDimer, \
+        0.1, 0.5*kForNuc*ConversionFactor/kplusDimer];
+    AlphaTrimersPlus = [1, 10, 0.5, 2]#(kplusBarbed+kplusPointed)/kplusTrimer];
+    AlphaBarbed = [1, ForminEnhance, 0.2, 2.5];
+    AllActin.InitializeRateMatrices(AlphaDimersPlus,AlphaTrimersPlus,AlphaBarbed);
+    
+    
 
 Tf = 40;
 dt = 0.5;

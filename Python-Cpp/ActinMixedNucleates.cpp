@@ -75,11 +75,11 @@ class ActinMixedNucleates {
         std::memcpy(_MonBindKEqs.data(),EquilConsts.data(),EquilConsts.size()*sizeof(double));
         _PointedPlus.resize(_nMonProts+1);
         int pAlphSize = PointedAlphas.size();
-        if (_nMonProts != pAlphSize){
+        if (_nMonProts+1 != pAlphSize){
             throw std::runtime_error("Size mismatch in pointed alpha array");
         }
         for (int iProt=1; iProt <= _nMonProts; iProt++){
-            _PointedPlus[iProt] = _PointedPlus[0]*PointedAlphas[iProt-1];
+            _PointedPlus[iProt] = _PointedPlus[0]*PointedAlphas[iProt];
         }
     } 
 
@@ -186,23 +186,21 @@ class ActinMixedNucleates {
     }
     
     intvec NumBoundToEachProtein(int nFreeMon){
-        intvec NToEach(_nMonBinders.size()+1,nFreeMon);
-        if (_nMonBinders.size()==0){
+        intvec NToEach(_nMonProts+1,nFreeMon);
+        if (_nMonProts==0){
             return NToEach;
         }
         // Now we are in the case when there are multiple proteins
-        int NMonProt = _nMonBinders.size();
         double denom=1;
-        for (int j=0; j < NMonProt; j++){
+        for (int j=0; j < _nMonProts; j++){
             denom+=_MonBindKEqs[j]*_nMonBinders[j];
         }
-        int nAlreadyBd=0;
-        for (int j=NMonProt; j > 0; j--){
-            NToEach[j]=1.0/denom*nFreeMon*_nMonBinders[j-1];
-            nAlreadyBd+=NToEach[j];
+        int TotalBound=0;
+        for (int j=1; j <= _nMonProts; j++){
+            NToEach[j]=1.0/denom*nFreeMon*_nMonBinders[j-1]*_MonBindKEqs[j-1];
+            TotalBound+=NToEach[j];
         }
-        NToEach[0] = nFreeMon-nAlreadyBd;
-        std::cout << "Number free monomers (no protein) = " << NToEach[0] << std::endl;
+        NToEach[0] = nFreeMon-TotalBound;
         return NToEach;
     }
     
