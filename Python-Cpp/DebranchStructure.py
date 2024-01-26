@@ -35,8 +35,8 @@ kMinusARF = 0.5#*3.4e-3;
 NPerBranch = np.array([4,6,8,10],dtype=np.int64);
 #Mothers = np.array([0,0,1,2],dtype=np.int64);
 #AttachPts = np.array([0,3,5,7],dtype=np.int64);
-Mothers = np.array([0,0,0,0],dtype=np.int64);
-AttachPts = np.array([0,3,3,3],dtype=np.int64);
+Mothers = np.array([0,0,1,2],dtype=np.int64);
+AttachPts = np.array([0,3,5,7],dtype=np.int64);
 BoundBarbed = np.zeros(len(NPerBranch),dtype=np.int64);
 
 # Convert to microscopic assuming well-mixed system

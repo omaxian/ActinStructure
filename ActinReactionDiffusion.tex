@@ -50,8 +50,8 @@
 \global\long\def\kforn{k_\text{for}^{(n)}}
 \global\long\def\kforp{k_\text{for}^+}
 \global\long\def\kform{k_\text{for}^-}
-\global\long\def\kbrp{k_\text{brnc}^+}
-\global\long\def\kbrm{k_\text{brnc}^-}
+\global\long\def\kbrp{k^\text{br+}}
+\global\long\def\kbrm{k^\text{br-}}
 \global\long\def\afor{\alpha_\text{for}}
 \global\long\def\Nm{N_1}
 \global\long\def\Nd{N_2}
@@ -355,11 +355,13 @@ The rate at which dimers become trimers is given by
 \end{gather}
 and the rates at which fibers of larger sizes are formed are 
 \begin{gather}
+\label{eq:GM}
 \j R_m = \sum_{i=0}^{P_M} \left(\kfp_{ij} \i M \j B_{m-1}\right) - \kfm  \j B_m, \qquad 4 \leq m \leq M.
 \end{gather}
 Finally, the rate at which barbed binding proteins bind and unbind from the bound end of a fiber of size $m$ is 
 \begin{gather}
-\j S_m = \kon \j B \z B_m - \koff \j B_m. 
+\label{eq:BX}
+\j S_m = \kon_j \j B \z B_m - \koff_j \j B_m. 
 \end{gather}
 With these intermediates defined, the ODEs that govern the dynamics are 
 \begin{gather}
@@ -377,13 +379,13 @@ With these intermediates defined, the ODEs that govern the dynamics are
 We validate our code by comparing the ODEs to stochastic simulations with the following rates
 \begin{gather}
 \nonumber
-\kdp_{ij} = 3.5 \times 10^{-3} \, \mu \textrm{M}^{-1} \cdot \text{s}^{-1} \begin{pmatrix} 1 & 0.57 \, \mu \textrm{M}^{-1} \\ 0.1 & 0.29  \, \mu \textrm{M}^{-1}\end{pmatrix} \qquad 
-\ktrp_{ij} = 0.13 \, \mu \textrm{M}^{-1} \cdot \text{s}^{-1} \begin{pmatrix} 1 & 10 \\ 0.5 & 2\end{pmatrix} \\ \label{eq:ODERates}
-\kbp_{ij} = 1.6 \, \mu \textrm{M}^{-1} \cdot \text{s}^{-1} \begin{pmatrix} 1 & 2 \\ 0.2 & 0.5\end{pmatrix} \qquad \kpp_i = 1.3 \, \mu \textrm{M}^{-1} \cdot \text{s}^{-1} \begin{pmatrix} 1 & 0.25 \end{pmatrix}\\ \nonumber
+\kdp_{ij} = 3.5 \times 10^{-3} \, \mu \textrm{M}^{-1} \cdot \text{s}^{-1} \begin{pmatrix} 1 & 0.57 \, \mu \textrm{M}^{-1} \\ 1.7 & 0.29  \, \mu \textrm{M}^{-1}\end{pmatrix} \qquad 
+\ktrp_{ij} = 0.13 \, \mu \textrm{M}^{-1} \cdot \text{s}^{-1} \begin{pmatrix} 1 & 10 \\ 0.4 & 2\end{pmatrix} \\ \label{eq:ODERates}
+\kbp_{ij} = 1.6 \, \mu \textrm{M}^{-1} \cdot \text{s}^{-1} \begin{pmatrix} 1 & 2 \\ 0.2 & 2.5\end{pmatrix} \qquad \kpp_i = 1.3 \, \mu \textrm{M}^{-1} \cdot \text{s}^{-1} \begin{pmatrix} 1 & 0.25 \end{pmatrix}\\ \nonumber
 \kappa_1 = 5 \, \mu \text{M} \qquad P^{(1)}=0.05 \, \mu \text{M} \qquad B^{(1)}(t=0)= 0.1 \, \mu \text{M}\qquad   \kon_1 = 5 \, \mu \textrm{M}^{-1} \cdot\text{s}^{-1}\qquad \koff_1 = 8.1 \times 10^{-2} \, \text{s}^{-1}  \\ \nonumber
 \kdm_j = 0.041 \, \text{s}^{-1} \begin{pmatrix} 1 & 0.2 \end{pmatrix} \qquad 
 \ktrm_j = 22 \, \text{s}^{-1} \begin{pmatrix} 1 & 0.4 \end{pmatrix}\qquad 
-\kpm = 0.8 \, \text{s}^{-1} \qquad \kbm = 1.4 \, \text{s}^{-1}
+\kpm = 0.8 \, \text{s}^{-1} \qquad \kbm = 1.4 \, \text{s}^{-1}\begin{pmatrix} 1 & 0.1 \end{pmatrix}
 \end{gather}
 Figure\ \ref{fig:ForminValid} shows that the solution of the ODEs (dashed-dotted lines) matches the output from stochastic simulations, thus validating all parts of our algorithm up to the branching of filaments. 
 
@@ -394,53 +396,43 @@ Figure\ \ref{fig:ForminValid} shows that the solution of the ODEs (dashed-dotted
 \end{figure}
 
 \subsection{Branched filaments}
-Given the set of rules formulated in Section\ \ref{sec:BF}, we can now formulate the reactions involving arp 2/3 complex. We let $B$ be the number of free arp 2/3 complexes, and $B_j$ be a branch of length $j$. We then consider the following reactions
+Given the set of rules formulated in Section\ \ref{sec:BF}, we can now formulate the reactions involving arp 2/3 complex. Letting $D$ be the number of free arp 2/3 complexes, the reactions are
 \begin{enumerate}
-\item A branch can form with rate $r=\left(\kbrp/V^2\right) B N_1 N_\text{elig}$, where the number of fibers eligible to have a branch form is
-\begin{equation}
-\label{eq:NBElig}
-N_\text{elig}=\sum_{j=N_\text{mb}}^M N_j+F_j +B_j.
-\end{equation}
-If this reaction is selected, we form a new branch with one monomer at a 70 degree angle from the mother filament (chosen at random from the branches once a particular structure is selected), and decrease $B$ by 1 and $N_1$ by 1. 
-\item Branches of length one can come off the mother filament with rate $\kbrm$. This is the reverse of reaction 1, and results in $B$ and $N_1$ increasing by 1.
-\item Branches can polymerize from their barbed ends only with rate $\kbp$ (no attached formins) or $\kbp \afor$ (if formin is attached). In this case, we decrease $N_1$ by 1. 
-\item Branches can depolymerize from their barbed ends with rate $\kbm$, as long as the geometry permits it (see rules above). This results in $N_1$ increasing by 1.   
-\item The mother filament's pointed end can depolymerize with rate $\kpp$, as long as the geometry permits it (see rules above). This also results in $N_1$ increasing by 1.   
-\item Branches of length 4 or higher can bind and unbind formins from the barbed end with rates $\kforp$ and $\kform$ (resulting in $F$ decreasing or increasing by 1, respectively). 
+\item \emph{Branch formation.} Each fiber (or branch) of length 4 or more can form a branch with rate $r=\left(\kbrp_i/V^2\right) D \i M m$, where $m$ is the number of monomers on the fiber. If this reaction is selected, we form a new branch with one monomer at a 70 degree angle from the mother filament (chosen at random from the branches once a particular structure is selected).
+\item \emph{Branch unbinding.} Branches of length one can come off the mother filament with rate $\kbrm$.
+\item \emph{Branch polymerization.} For each $i$, branches can polymerize from their barbed ends only with rate $\left(\kbp_{ij}/V\right) \i M$. 
+\item \emph{Branch depolymerization.} Branches can depolymerize from their barbed ends with rate $\kbm$, as long as the geometry permits it (see rules above).
+\item \emph{Barbed protein binding and unbinding.} These are the same reactions as for linear fibers. 
 \end{enumerate}
 
 Because of the spatial complexity of branched networks, it is difficult to validate depolymerization using ODEs, as it becomes complicated to work out the probability that an unbinding event, if selected, will actually be successful. Because of this, we divide our validation work into two steps: all events \emph{other than} depolymerization, and depolymerization alone. The first case allows us to work with ODEs, as we have done previously, while the second requires us to synthesize a specific structure and look at its depolymerization. 
 
 \subsubsection{ODE-based validation (excludes depolymerization)}
-In the case when we disallow unbinding of monomers from barbed and pointed ends of fibers/branches, we have the ODEs\ \eqref{eq:ODEsMix}, \eqref{eq:1plus}, and\ \eqref{eq:ODEsFormin} with $\kfm=\kbm=\kpm=0$, with modifications
-\begin{align*}
-\label{eq:1plusplus}
-\tag{1++}
-\frac{dN_1}{dt} +&=-\kbrp N_1 B N_\text{elig}+\kbrm B_1 -\kbp N_1 \sum_{j=1}^{M-1}  B_i -\kbp \afor N_1 \sum_{j=4}^{M-1} F_i \\
-\frac{d F}{dt} +&= \sum_{j=4}^{M} \kform R_j - \kforp B_j F,
-\end{align*}
-where $B_j$ stands for a branch of length $j$, $B$ stands for arp 2/3 complex, and $R_j$ stands for a branch with attached formin of length $j$ (can only be 4 or higher). We then have the following ODEs for the branches (again, assuming that there is no depolymerization)
+In the presence of branching, additional terms are required for the ODEs. We let $D$ be the number of arp 2/3 complexes, and $\j D_m$ be a branch of length $m$ with barbed-bound protein $j$. If $\kbrp$ is a rate of branching in units of concentration$^{-2}$ $\times$ s$^{-1}$ per monomer of mother filament, the total rate of branch formation is 
 \begin{subequations}
-\label{eq:ODEsBrOnly}
-\begin{align}
-\frac{dB}{dt} &= -\kbrp N_1 B N_\text{elig}+\kbrm B_1 \\
-\frac{d B_1}{dt } &= \kbrp N_1 B N_\text{elig}- \kbrm B_1 -\kbp B_1 N_1 \\
-\frac{d B_j}{dt } & = \kbrp N_1 \left(B_{j-1}-B_j\right) \qquad j=2,3\\
-\frac{d B_j}{dt} & = \kbrp N_1 \left(B_{j-1}-B_j\right)+\kform R_j - \kforp B_j F \qquad 4 \leq j < M\\
-\frac{d B_M}{dt} & = \kbrp N_1 B_{M-1}+\kform R_M - \kforp B_M F\\
-\frac{d R_4}{dt} & = -\afor \kbrp N_1 R_4 -\kform R_4 + \kforp B_4 F \\
-\frac{d R_j}{dt} & = \afor \kbrp N_1 \left(R_{j-1}-R_j\right)-\kform R_j + \kforp B_j F \qquad 4 < j < M\\
-\frac{d R_M}{dt} & = \afor \kbrp N_1 R_{M-1}-\kform R_M + \kforp B_M F
-\end{align}
+\label{eq:BrODEs}
+\begin{equation}
+\label{eq:Rb}
+R_b =  D\left(\sum_{i=0}^{P_M}\kbrp_i \i M\right) \left(\sum_{j=0}^{P_B} \sum_{m=4}^M m \j D_m\right)-\kbrm \sum_j \j D_1.
+\end{equation}
+In addition to forming and being removed, branches exchange barbed proteins with rates given by\ \eqref{eq:BX}, and the flux between branches of size $m$ and size $m-1$ is given by
+\begin{gather}
+\j C_m = \sum_{i=0}^{P_M} \left(\kbp_{ij} \i M \j D_{m-1}\right) - \kbm  \j D_m, \qquad 2 \leq m \leq M,
+\end{gather}
+which is\ \eqref{eq:GM} with polymerization from the barbed end only. It is straightforward to combine these rates into equations for $D$ and $\j D_m$. The only complication becomes if a depolymerization event is successful.
 \end{subequations}
-To validate this system, we use an actin concentration 2 $\mu$M in a box of length 3 $\mu$m on all size, and a formin and arp 2/3 concentration of 0.1 $\mu$M. The polymerization parameters we use are $\kdp=0.0035$, $\ktrp=1.3$, $\kbp=1.6$, and $\kpp=1.3$, all of these having units $\mu$M$^{-1}\cdot$s$^{-1}$. For depolymerization, we use parameters $\kdm = 0.041$, $\ktrm = 22$, $\kbm=0$, $\kpm=0$ (all units $s^{-1}$; there is no dissociation from barbed/pointed ends). For formin, we use $\kforn = 0.002$ $\mu$M$^{-2}\cdot$s$^{-1}$, $\kforp = 29.1$ $\mu$M$^{-1}\cdot$s$^{-1}$, $\kforn = 0.081$ $s^{-1}$, and $\afor=2$. For branched actin, we set $\kbrp=0.052$ $\mu$M$^{-2}\cdot$s$^{-1}$ and $\kbrm=0.1$ s$^{-1}$. As shown in Fig.\ \ref{fig:GrowArpValid}, the stochastic dynamics we observe agree well with the corresponding ODEs, thereby validating our implementation.
+For branching, we combine the rates in\ \eqref{eq:ODERates} with the additional branching rates, 
+\begin{gather}
+\label{eq:BrRates}
+\kbrp_i = 10^{-2} \,\mu \text{M}^{-2}\cdot\text{s}^{-1}\begin{pmatrix} 1 & 1.3 \end{pmatrix} \qquad \kbrm=0.5 \, \text{s}^{-1} D(t=0)=0.1 \, \mu \text{M}
+\end{gather}
+to validate our code \emph{without} depolymerization of barbed and pointed ends (i.e., $\kbm=\kpm=0$). Figure\ \ref{fig:GrowArpValid} shows that the trajectories we obtain from simulations (mean over 10  trajectories repeated 3 times for error bars) match those predicted by the ODEs.
 
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{GrowArpValidation.eps}
-\caption{\label{fig:GrowArpValid}Validating the stochastic simulation algorithm for well-mixed systems with formins and arp 2/3 complex, where we only allow growth of fibers. We use the equations\ \eqref{eq:ODEsMix},\eqref{eq:1plus},\eqref{eq:ODEsFormin},\eqref{eq:1plusplus}, and\ \eqref{eq:ODEsBrOnly}, and set $\kfm=\kbm=\kpm=0$, so that fibers can only grow. We show linear filaments at left, formin-bound linear filaments in middle, and branched filaments at right. There $B$ denotes free arp 2/3 complex, $B_5$ is branches of length 5 without formin, and $R_5$ is branches of length 5 with formin.  }
+\caption{\label{fig:GrowArpValid}Validating the stochastic simulation algorithm with formins and arp 2/3 complex, where we only allow growth of fibers. We compare our stochastic simulations to ODEs (based on\ \eqref{eq:ODEs} and\ \eqref{eq:BrODEs} with rates given in\ \eqref{eq:ODERates} and \eqref{eq:BrRates}). }
 \end{figure}
-
 
 \subsubsection{Structure-based validation for depolymerization}
 \begin{figure}
@@ -449,9 +441,9 @@ To validate this system, we use an actin concentration 2 $\mu$M in a box of leng
 \caption{\label{fig:BranchedGeo}The branched geometry for the depolymerization test. Red points show the mother filament, blue the branches.}
 \end{figure}
 
-Let us consider the structure shown in Fig.\ \ref{fig:BranchedGeo}. It is composed of a mother filament with 4 monomers, and then three branches with 6, 8, and 10 monomers. Because each branch is attached to the previous one, our rules state that this filament can only depolymerize linearly. The average time to depolymerize the branches (remove all the blue monomers) should be $21/\kbm+3/\kbrm$, since there are 21 monomers not attached to arp 2/3 and 3 monomers attached to arp 2/3. If $\kbm=1.4$/s and $\kbrm=0.5$/s, this comes out to $6+15=21$ s. To verify that our code reproduces this depolymerization time, we perform a set of 1000 simulations with depolymerization only and record the time it takes for the filament to collapse down to the mother filament. This time is $20.9 \pm 0.3$, which validates our implementation. 
+Let us consider the structure shown in Fig.\ \ref{fig:BranchedGeo}. It is composed of a mother filament with 4 monomers, and then three branches with 6, 8, and 10 monomers. Because each branch is attached to the previous one, our rules state that this filament can only depolymerize linearly. The average time to depolymerize the branches (remove all the blue monomers) should be $21/\kbm+3/\kbrm$, since there are 21 monomers not attached to arp 2/3 and 3 monomers attached to arp 2/3. If $\kbm=1.4$/s and $\kbrm=0.5$/s, this comes out to $6+15=21$ s. To verify that our code reproduces this depolymerization time, we perform a set of 1000 simulations with depolymerization only and record the time it takes for the filament to collapse down to the mother filament. This time is $20.9 \pm 0.2$ (error bar generated by repeating 20 times), which validates our implementation. 
 
-In the case when the mother filament has length 8 instead of 4, the time does not change significantly ($21.1 \pm 0.2$), since the three monomers at the pointed end can unbind rapidly ($\kpm=0.8$/s). The time does change significantly when we put all the branches onto the same barbed end of the mother filament. In this case, all of the branches can depolymerize simultaneously, and the measured time for depolymerization is $9.7 \pm 0.2$ s, which is slightly longer than the theoretical time for the longest branch ($9/\kbm+1/\kbrm=8.4$ s) to unbind, in accordance with the theoretical expectation that the expected value maximum is longer than the expected value of the longest event.
+In the case when the mother filament has length 8 instead of 4, the time does not change significantly ($21.1 \pm 0.5$), since the three monomers at the pointed end can unbind rapidly ($\kpm=0.8$/s). The time does change significantly when we put all the branches onto the same barbed end of the mother filament. In this case, all of the branches can depolymerize simultaneously, and the measured time for depolymerization is $9.9 \pm 0.1$ s, which is slightly longer than the theoretical time for the longest branch ($9/\kbm+1/\kbrm=8.4$ s) to unbind, in accordance with the theoretical expectation that the expected value maximum is longer than the expected value of the longest event.
 
 
 \end{appendices}
