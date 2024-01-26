@@ -31,28 +31,25 @@ RxnRates=[kplusDimer*ConversionFactor; kminusDimer; kplusTrimer*ConversionFactor
 Nmon = floor(Conc/ConversionFactor);
 % Alphas for monomer-bound proteins
 nMonProts = floor(ProfConc*Volume/uMInvToMicron3);
-nMonProts = [nMonProts; nMonProts-200];
-AlphaPointed = [1;0.5;0.1];
-MonEqs = [5*ConversionFactor; 0.8*ConversionFactor];
+AlphaPointed = [1;0.25];
+MonEqs = 5*ConversionFactor;
 % Alphas for barbed bound proteins
 Nfor = floor(ForminConc/ConversionFactor);
-NBarbed = [Nfor Nfor-300];
-nBarbedProts = 2;
-BarbedOnOff = [kplusFor*ConversionFactor kminusFor 0.6*kplusFor*ConversionFactor 0.2*kminusFor];
-AlphaBarbedMinus = [1 0.1 1.2];
-AlphaTrimerMinus = [1 0.4 1.3];
-AlphaDimerMinus = [1 0.2 0.7];
+NBarbed = Nfor;
+nBarbedProts = 1;
+BarbedOnOff = [kplusFor*ConversionFactor kminusFor];
+AlphaBarbedMinus = [1 0.1];
+AlphaTrimerMinus = [1 0.4];
+AlphaDimerMinus = [1 0.2];
 % Alphas for both
 ForFac =kForNuc*ConversionFactor/kplusDimer;
-AlphaDimerPlus = [1 ForFac 1.8*ForFac; ...
-    1.7 0.5*ForFac 0.9*ForFac; ...
-    0.6 3*ForFac 1.2*ForFac];
-AlphaTrimerPlus = [1 10 3; 0.4 2 1.9; 1.5 2 0.5];
-AlphaBarbedPlus = [1 2 1.5; 2 2.5 1.25; 0.1 0.7 1.1];
+AlphaDimerPlus = [1 ForFac;1.7 0.5*ForFac];
+AlphaTrimerPlus = [1 10; 0.4 2];
+AlphaBarbedPlus = [1 2; 0.2 2.5];
 % Branching
 Narp = floor(ArpConc/ConversionFactor);
 BranchRates = [10e-2*ConversionFactor^2 0.5];
-AlphaBranchOn = [1; 1.3; 0.6];
+AlphaBranchOn = [1; 1.3];
 nMax=5;
 % Solve the ODEs
 RHSFcn = @(t,y) RHS(t,y,RxnRates,nMax,nBarbedProts,nMonProts,BarbedOnOff,MonEqs, ...
@@ -70,8 +67,8 @@ tf=40;
 [tvals,yvals] = ode45(RHSFcn,[0 tf],y0);
 
 % Import the data
-nError=2;
-nTrial=5;
+nError=3;
+nTrial=10;
 NumFibs=load(strcat('ForminOnly_NumFibs1.txt'));
 nT = length(NumFibs);
 MeanNumOfEach = zeros((nBarbedProts+1)*nMax,nT,nError);

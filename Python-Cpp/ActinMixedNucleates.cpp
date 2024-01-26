@@ -153,7 +153,6 @@ class ActinMixedNucleates {
         }
         for (int iMB=0; iMB < _nMonProts+1; iMB++){
             _BranchOnRates[iMB] = AlphaBranchOn[iMB]*BranchRates[0];
-            std::cout << "The branch on rate is = " << _BranchOnRates[iMB] << std::endl;
         }
     }
     

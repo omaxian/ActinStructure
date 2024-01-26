@@ -289,8 +289,6 @@ class Fiber: public ActinStructure{
         }
         if (_NextReactionIndex ==2*NumPossMon || _NextReactionIndex ==2*NumPossMon+1){ // remove me
             if (_nMonomers == NMonForFiber){
-                std::cout << "Delete linear fiber??" << std::endl;
-                std::cout << "Reaction index " << _NextReactionIndex << std::endl;
                 return -1;
             }
         }
