@@ -27,27 +27,34 @@ ConversionFactor = uMInvToMicron3/Volume; % everything will be in s^(-1)
 RxnRates=[kplusDimer*ConversionFactor; kminusDimer; kplusTrimer*ConversionFactor; ...
     kminusTrimer; kplusBarbed*ConversionFactor; kminusBarbed; ...
     kplusPointed*ConversionFactor; kminusPointed];
-BarbedOnOff = [kplusFor*ConversionFactor kminusFor];
 
-AlphaBarbedMinus = [1 0.1];
-AlphaDimerMinus = [1 0.2];
-AlphaDimerPlus = [1 kForNuc*ConversionFactor/kplusDimer; ...
-    1.7 0.5*kForNuc*ConversionFactor/kplusDimer];
-AlphaTrimerMinus = [1 0.4];
-AlphaTrimerPlus = [1 10; 0.4 2];
-AlphaBarbedPlus = [1 ForminEnhance; 2 2.5];
-AlphaPointed = [1;0.5];
-MonEqs = 5*ConversionFactor;
 Nmon = floor(Conc/ConversionFactor);
-Nfor = floor(ForminConc/ConversionFactor);
-Narp = floor(ArpConc/ConversionFactor);
-NBarbed = Nfor;
-nMax=5;
-BranchRates = [10e-2*ConversionFactor^2 0.5];
-AlphaBranchOn = [1; 1.3];
-% Solve the ODEs
-nBarbedProts = ForminConc>0;
+% Alphas for monomer-bound proteins
 nMonProts = floor(ProfConc*Volume/uMInvToMicron3);
+nMonProts = [nMonProts; nMonProts-200];
+AlphaPointed = [1;0.5;0.1];
+MonEqs = [5*ConversionFactor; 0.8*ConversionFactor];
+% Alphas for barbed bound proteins
+Nfor = floor(ForminConc/ConversionFactor);
+NBarbed = [Nfor Nfor-300];
+nBarbedProts = 2;
+BarbedOnOff = [kplusFor*ConversionFactor kminusFor 0.6*kplusFor*ConversionFactor 0.2*kminusFor];
+AlphaBarbedMinus = [1 0.1 1.2];
+AlphaTrimerMinus = [1 0.4 1.3];
+AlphaDimerMinus = [1 0.2 0.7];
+% Alphas for both
+ForFac =kForNuc*ConversionFactor/kplusDimer;
+AlphaDimerPlus = [1 ForFac 1.8*ForFac; ...
+    1.7 0.5*ForFac 0.9*ForFac; ...
+    0.6 3*ForFac 1.2*ForFac];
+AlphaTrimerPlus = [1 10 3; 0.4 2 1.9; 1.5 2 0.5];
+AlphaBarbedPlus = [1 2 1.5; 2 2.5 1.25; 0.1 0.7 1.1];
+% Branching
+Narp = floor(ArpConc/ConversionFactor);
+BranchRates = [10e-2*ConversionFactor^2 0.5];
+AlphaBranchOn = [1; 1.3; 0.6];
+nMax=5;
+% Solve the ODEs
 RHSFcn = @(t,y) RHS(t,y,RxnRates,nMax,nBarbedProts,nMonProts,BarbedOnOff,MonEqs, ...
     AlphaDimerPlus,AlphaDimerMinus,AlphaTrimerPlus,AlphaTrimerMinus,AlphaBarbedPlus,...
     AlphaBarbedMinus,AlphaPointed,BranchRates,AlphaBranchOn);
@@ -225,12 +232,13 @@ function dydt = RHS(t,y,RxnRates,nMax,nBarbedProts,NumMonProts,BarbedOnOff,MonEq
         dydt(ArpInd) = dydt(ArpInd) - NewBranchRate;
         dydt(ArpInd+1) = dydt(ArpInd+1) + NewBranchRate;
         % Bulk unbinding of protein-bound
-%         for iB=2:nBarbedProts+1
-%             UnbindRate = BranchRates(2)*y(ArpInd+(iB-1)*nMax+1);
-%             dydt(1) = dydt(1) + UnbindRate;
-%             dydt(ArpInd) = dydt(ArpInd) + UnbindRate;
-%             dydt(ArpInd+(iB-1)*nMax+1) = dydt(ArpInd+(iB-1)*nMax+1) - UnbindRate;
-%         end
+        for iB=2:nBarbedProts+1
+            UnbindRate = BranchRates(2)*y(ArpInd+(iB-1)*nMax+1);
+            dydt(1) = dydt(1) + UnbindRate;
+            dydt(ArpInd) = dydt(ArpInd) + UnbindRate;
+            dydt((iB-1)*nMax+1) = dydt((iB-1)*nMax+1) + UnbindRate;
+            dydt(ArpInd+(iB-1)*nMax+1) = dydt(ArpInd+(iB-1)*nMax+1) - UnbindRate;
+        end
         % Binding of barbed proteins to branches
         for iB=2:nBarbedProts+1
             for j = 1:nMax

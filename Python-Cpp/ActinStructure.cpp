@@ -843,7 +843,7 @@ class BranchedFiber: public Fiber{
         double BranchRemovalTime(int &BranchIndex) override{
             double MinTime = 1.0/0.0;
             for (int iFib=1; iFib < _nLinearFib; iFib++){
-                if (_nMonomersPerFib[iFib]==1 && _ProteinAtBarbedEnds[iFib]==0){
+                if (_nMonomersPerFib[iFib]==1){
                     double ThisTime = logrand()/_BranchOffRate;
                     if (ThisTime < MinTime){
                         MinTime = ThisTime;

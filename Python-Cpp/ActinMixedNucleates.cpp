@@ -252,9 +252,6 @@ class ActinMixedNucleates {
             }
             //
             if (t+deltaT > dt || deltaT < 0){
-                std::cout << "Free arps " << _FreeBranchers << std::endl;
-                int TotMon=TotalMonomers();
-                std::cout << "Total monomers " << TotMon << std::endl;
                 return;
             }
             if (index < numNucRxns){
