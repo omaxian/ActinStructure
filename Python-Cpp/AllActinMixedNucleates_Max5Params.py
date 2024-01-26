@@ -10,7 +10,7 @@ mu = 0.01;
 LBox = 3; # in um
 Conc = 2; # in uM
 ConcFormin = 0.1; # in uM
-ConcArp23 = 0;
+ConcArp23 = 0.1;
 ConcProf = 0.05;
  # in uM
 
@@ -21,9 +21,9 @@ kminusDimer = 0.041; #s^(-1)
 kplusTrimer = 13e-2; # uM^(-1)*s^(-1) 
 kminusTrimer = 22; #s^(-1)
 kplusBarbed = 1.6#11.6; # uM^(-1)*s^(-1) 
-kminusBarbed = 1.4; #s^(-1)
+kminusBarbed = 0*1.4; #s^(-1)
 kplusPointed = 1.3; #uM^(-1)*s^(-1)
-kminusPointed = 0.8; #s^(-1)
+kminusPointed = 0*0.8; #s^(-1)
 
 # Formin rates
 kForNuc = 2e-3; # uM^(-2)*s^(-1)
@@ -32,7 +32,7 @@ kminusFor = 8.1e-2; # s^(-1)
 ForminEnhance = 2.0;
 
 # Arp 2/3 rates
-kplusARF = 5.2e-2;
+kplusARF = 10e-2;
 kMinusARF = 0.5;
 
 # Profilin rate
@@ -44,8 +44,6 @@ uMInvToMicron3 = 1.0e15/(6.022e17);
 ConversionFactor = uMInvToMicron3/Volume; # everything will be in s^(-1)
 SpontaneousRxnRates=[kplusDimer*ConversionFactor, kminusDimer, kplusTrimer*ConversionFactor, kminusTrimer, \
     kplusBarbed*ConversionFactor, kminusBarbed, kplusPointed*ConversionFactor, kminusPointed];
-
-RxnRatesArp23 = [kplusARF*ConversionFactor**2, kMinusARF];
 
 Nmon = int(Conc*Volume/uMInvToMicron3);
 print('Number of monomers %d' %Nmon)
@@ -66,26 +64,36 @@ if (ConcFormin > 0):
     NBarbed = [NFormin];
     BarbedOnOff = [kplusFor*ConversionFactor, kminusFor];
     AlphaDimersMinus = [1,0.2];
-    AlphaDimersPlus = [1,kForNuc*ConversionFactor/kplusDimer];
     AlphaTrimersMinus = [1,0.4];
-    AlphaTrimersPlus = [1, 10]#(kplusBarbed+kplusPointed)/kplusTrimer];
-    AlphaBarbed = [1, ForminEnhance];
-    AllActin.InitializeBarbedBinders(NBarbed,BarbedOnOff,AlphaDimersMinus,AlphaTrimersMinus);
-    AllActin.InitializeRateMatrices(AlphaDimersPlus,AlphaTrimersPlus,AlphaBarbed);
-if (ConcArp23 > 0):
-    AllActin.InitializeBranchers(NArp23,RxnRatesArp23);
+    AlphaBarbedMinus = [1, 0.1];
+    AllActin.InitializeBarbedBinders(NBarbed,BarbedOnOff,AlphaDimersMinus,AlphaTrimersMinus,AlphaBarbedMinus);
+    AlphaDimersPlus = [1,kForNuc*ConversionFactor/kplusDimer];
+    AlphaTrimersPlus = [1, 10]
+    AlphaBarbedPlus = [1, ForminEnhance];
+    AllActin.InitializeRateMatrices(AlphaDimersPlus,AlphaTrimersPlus,AlphaBarbedPlus);
 if (ConcProf > 0):
     NMonProts = [NProf]
     KsMon = [ProfEq*ConversionFactor];
-    AlphasPointed = [1,0.25];
+    AlphasPointed = [1,0.5];
     AllActin.InitializeMonomerBinders(NMonProts,KsMon,AlphasPointed);
     # Re-initialize the rate matrices with all rates
-    AlphaDimersPlus = [1,kForNuc*ConversionFactor/kplusDimer, \
-        0.1, 0.5*kForNuc*ConversionFactor/kplusDimer];
-    AlphaTrimersPlus = [1, 10, 0.5, 2]#(kplusBarbed+kplusPointed)/kplusTrimer];
-    AlphaBarbed = [1, ForminEnhance, 0.2, 2.5];
-    AllActin.InitializeRateMatrices(AlphaDimersPlus,AlphaTrimersPlus,AlphaBarbed);
-    
+    if (ConcFormin == 0):
+        AlphaDimersPlus = [1,1.7];
+        AlphaTrimersPlus = [1, 0.4]#(kplusBarbed+kplusPointed)/kplusTrimer];
+        AlphaBarbedPlus = [1, 2];
+    else:
+        AlphaDimersPlus = [1,kForNuc*ConversionFactor/kplusDimer, \
+            1.7, 0.5*kForNuc*ConversionFactor/kplusDimer];
+        AlphaTrimersPlus = [1, 10, 0.4, 2]#(kplusBarbed+kplusPointed)/kplusTrimer];
+        AlphaBarbedPlus = [1, ForminEnhance, 2, 2.5];
+    AllActin.InitializeRateMatrices(AlphaDimersPlus,AlphaTrimersPlus,AlphaBarbedPlus);
+if (ConcArp23 > 0):
+    RxnRatesArp23 = [kplusARF*ConversionFactor**2, kMinusARF];
+    if (ConcProf > 0):
+        AlphasArp23 = [1, 1.3];
+    else:
+        AlphasArp23 = [1];
+    AllActin.InitializeBranchers(NArp23,RxnRatesArp23,AlphasArp23);   
     
 
 Tf = 40;

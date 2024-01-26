@@ -44,7 +44,7 @@ class ActinMixedNucleates {
         
         // Fiber binding rates
         _BarbedPlus = vec(1,SpontaneousRxnRates[4]); // Barbed binding
-        _BarbedMinus = SpontaneousRxnRates[5]; // Barbed unbinding
+        _BarbedMinus = vec(1,SpontaneousRxnRates[5]); // Barbed unbinding
         _PointedPlus = vec(1,SpontaneousRxnRates[6]); // Pointed binding
         _PointedMinus = SpontaneousRxnRates[7]; // Pointed unbinding
         
@@ -56,7 +56,8 @@ class ActinMixedNucleates {
         _nBarbedBinders = intvec(0);
         _BarbedBindersRates = vec(0);
         _FreeBranchers = 0;
-        _BranchRates = vec(0);
+        _BranchOnRates = vec(0);
+        _BranchOffRate = 0;
         _nMonProts = 0;
         _nMonBinders = intvec(0);
         _MonBindKEqs = vec(0);                
@@ -84,7 +85,7 @@ class ActinMixedNucleates {
     } 
 
     void InitializeBarbedBinders(const intvec &nBarbedBinders,const vec &BarbedBinderRates, 
-        const vec &AlphaDimer, const vec &AlphaTrimer){
+        const vec &AlphaDimer, const vec &AlphaTrimer, const vec &AlphaBarbedMinus){
         
         _nBarbedProts = nBarbedBinders.size();
         _nBarbedBinders = intvec(_nBarbedProts);
@@ -94,6 +95,7 @@ class ActinMixedNucleates {
         
         _DimerMinus.resize(_nBarbedProts+1);
         _TrimerMinus.resize(_nBarbedProts+1);
+        _BarbedMinus.resize(_nBarbedProts+1);
         int nDimSize = AlphaDimer.size();
         if (nDimSize != _nBarbedProts+1){
             throw std::runtime_error("Size mismatch in barbed alpha array (must have leading 1)");
@@ -101,6 +103,7 @@ class ActinMixedNucleates {
         for (int iProt=1; iProt <= _nBarbedProts; iProt++){
             _DimerMinus[iProt] = _DimerMinus[0]*AlphaDimer[iProt];
             _TrimerMinus[iProt]= _TrimerMinus[0]*AlphaTrimer[iProt];
+            _BarbedMinus[iProt] = _BarbedMinus[0]*AlphaBarbedMinus[iProt];
         }
 
         _nDimers.resize(_nBarbedProts+1);
@@ -139,10 +142,19 @@ class ActinMixedNucleates {
     }
         
    
-    void InitializeBranchers(int nBranchers, const vec &BranchRates){
+    void InitializeBranchers(int nBranchers, const vec &BranchRates, const vec &AlphaBranchOn){
         _FreeBranchers = nBranchers;
-        _BranchRates = vec(BranchRates.size());
-        std::memcpy(_BranchRates.data(),BranchRates.data(),BranchRates.size()*sizeof(double)); 
+        _BranchOffRate = BranchRates[1];
+        // The on rate should be in units of 1/(monomers on the mother * time)
+        _BranchOnRates = vec(AlphaBranchOn.size());
+        int nDimSize = AlphaBranchOn.size();
+        if (nDimSize != _nMonProts+1){
+            throw std::runtime_error("Size mismatch in matrix of branching alphas (must have leading 1)");
+        }
+        for (int iMB=0; iMB < _nMonProts+1; iMB++){
+            _BranchOnRates[iMB] = AlphaBranchOn[iMB]*BranchRates[0];
+            std::cout << "The branch on rate is = " << _BranchOnRates[iMB] << std::endl;
+        }
     }
     
     void InitBranchedStructure(const intvec &nMonsPerBranch, const intvec &Mothers,const intvec AttachPts, const intvec &ProteinsOnBarbed){
@@ -157,7 +169,7 @@ class ActinMixedNucleates {
         _FreeBranchers-=nBranches;
         // Initialize fiber
         _Fibers.push_back(std::make_shared<Fiber>(_Lens, nMonsPerBranch[0], _nMonProts, _nBarbedProts, 
-                    _BarbedBindersRates, _PointedPlus, _BarbedPlus, _PointedMinus, _BarbedMinus, _BranchRates,
+                    _BarbedBindersRates, _PointedPlus, _BarbedPlus, _PointedMinus, _BarbedMinus, _BranchOnRates,_BranchOffRate,
                     _spacing, _a, _mu, _kbT,-1));
         // Branches
         uint ind = _Fibers.size()-1;
@@ -240,7 +252,9 @@ class ActinMixedNucleates {
             }
             //
             if (t+deltaT > dt || deltaT < 0){
-                //std::cout << "Free formins and arps (to check) " << _FreeFormins << " , " << _FreeArp << std::endl;
+                std::cout << "Free arps " << _FreeBranchers << std::endl;
+                int TotMon=TotalMonomers();
+                std::cout << "Total monomers " << TotMon << std::endl;
                 return;
             }
             if (index < numNucRxns){
@@ -255,27 +269,30 @@ class ActinMixedNucleates {
                 } else if (StructChange == -1){
                     // Delete structure or turn branched fiber into linear fiber
                     uint nFibers = _Fibers[iFib]->nFibers();
+                    int BarbedProtOnDepol = _Fibers[iFib]->getBoundBarbed(nFibers-1);
                     if (nFibers == 1){
-                        int BarbedProt = _Fibers[iFib]->getBoundBarbed(0);  // Find out what's on the end
+                          // Find out what's on the end
                         _Fibers.erase(_Fibers.begin() + iFib);   
-                        _nTrimers[BarbedProt]++;
+                        _nTrimers[BarbedProtOnDepol]++;
                         _nFreeMon++;
                     } else {
                         // Convert branched filament to linear 
-                        // TODO: Deal with the fact that stuff is on the ends (see above)
-                        int nMonomers=0; 
                         vec3 X0, tau;
-                        int BarbedProtein = _Fibers[iFib]->PrepareForLinearSwitch(X0,tau,nMonomers);
+                        int nMonomers = _Fibers[iFib]->PrepareForLinearSwitch(X0,tau);
+                        int BarbedOnRemain = _Fibers[iFib]->getBoundBarbed(0);
                         if (nMonomers < 4){
                             std::cout << "Fiber should have more than 4 monomers! " << std::endl;
                         }
                         _Fibers[iFib] =  std::make_shared<Fiber>(_Lens, nMonomers, _nMonProts, _nBarbedProts, 
-                            _BarbedBindersRates, _PointedPlus, _BarbedPlus, _PointedMinus, _BarbedMinus, _BranchRates,
+                            _BarbedBindersRates, _PointedPlus, _BarbedPlus, _PointedMinus, _BarbedMinus, _BranchOnRates,_BranchOffRate,
                             _spacing, _a, _mu, _kbT,-1);
                         _Fibers[iFib]-> SetX0AndTau(X0,tau);
-                        _Fibers[iFib]-> SetBoundBarbed(0,BarbedProtein);
+                        _Fibers[iFib]-> SetBoundBarbed(0,BarbedOnRemain);
                         _nFreeMon++;
                         _FreeBranchers++;
+                        if (BarbedProtOnDepol > 0){
+                            _nBarbedBinders[BarbedProtOnDepol-1]++;
+                        }
                     }
                 } else if (StructChange==1){ // Converting linear filament to branched  
                     _Fibers[iFib] =  std::make_shared<BranchedFiber>(_Fibers[iFib].get());
@@ -284,10 +301,6 @@ class ActinMixedNucleates {
                 } 
             }
             // Check conservation of monomers
-            //int TotMon=TotalMonomers();
-            //std::cout << "Total monomers " << TotMon << std::endl;
-            //std::cout << "Free arps " << _FreeBranchers << std::endl;
-            //std::cout << "Free formins " << _nBarbedBinders[0] << std::endl;
             t+=deltaT;
         } // end while loop       
     }
@@ -418,13 +431,14 @@ class ActinMixedNucleates {
         intvec _nMonBinders, _nBarbedBinders;
         vec _MonBindKEqs, _BarbedBindersRates; // rates to come on and off
         vec _DimerPlus, _TrimerPlus, _BarbedPlus; // matrices of rates (i=monomer bound protein, j = barbed bound protein)
-        vec _DimerMinus, _TrimerMinus; // vector of rates only depending on barbed protein
+        vec _DimerMinus, _TrimerMinus, _BarbedMinus; // vector of rates only depending on barbed protein
         vec _PointedPlus; // vector of rates only depending on monomer protein
-        double _BarbedMinus, _PointedMinus;
+        double _PointedMinus;
         
         // Branchers
         int _FreeBranchers;
-        vec _BranchRates;
+        vec _BranchOnRates;
+        double _BranchOffRate;
         
         int TotalMonomers(){
             int TotMon = _nFreeMon;
@@ -455,7 +469,6 @@ class ActinMixedNucleates {
                     double RateDimerForm = _DimerPlus[matindex]*NumBoundToEach[iMp]*NumBoundToEach[iMp];
                     if (iBp > 0){
                         RateDimerForm*= _nBarbedBinders[iBp-1]; 
-                        
                     }
                     if (NumBoundToEach[iMp] < 2){
                         RateDimerForm = 0;
@@ -573,7 +586,7 @@ class ActinMixedNucleates {
                     _nFreeMon--;
                     _nTrimers[ProtOnBarbed]--;
                     _Fibers.push_back(std::make_shared<Fiber>(_Lens, 4, _nMonProts, _nBarbedProts, 
-                            _BarbedBindersRates, _PointedPlus, _BarbedPlus, _PointedMinus, _BarbedMinus, _BranchRates,
+                            _BarbedBindersRates, _PointedPlus, _BarbedPlus, _PointedMinus, _BarbedMinus, _BranchOnRates,_BranchOffRate,
                             _spacing, _a, _mu, _kbT,-1));
                     int iB = index- 4*NumPossBarbed;
                     _Fibers[_Fibers.size()-1]->SetBoundBarbed(0,iB);
