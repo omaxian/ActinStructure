@@ -195,31 +195,13 @@ class ActinMixedNucleates {
             FibObj->Diffuse(dt);
         }
     }
-    
-    intvec NumBoundToEachProtein(int nFreeMon){
-        intvec NToEach(_nMonProts+1,nFreeMon);
-        if (_nMonProts==0){
-            return NToEach;
-        }
-        // Now we are in the case when there are multiple proteins
-        double denom=1;
-        for (int j=0; j < _nMonProts; j++){
-            denom+=_MonBindKEqs[j]*_nMonBinders[j];
-        }
-        int TotalBound=0;
-        for (int j=1; j <= _nMonProts; j++){
-            NToEach[j]=1.0/denom*nFreeMon*_nMonBinders[j-1]*_MonBindKEqs[j-1];
-            TotalBound+=NToEach[j];
-        }
-        NToEach[0] = nFreeMon-TotalBound;
-        return NToEach;
-    }
-    
+        
     void React(double dt){
         /*
         Event-driven simulation with well-mixed monomers and nucleates.
         */       
         double t = 0;
+        CheckRateMatSizes();
         while (t < dt){
             int index = 0;
             //std::cout << "System time " << t << std::endl;
@@ -436,6 +418,19 @@ class ActinMixedNucleates {
         vec _BranchOnRates;
         double _BranchOffRate;
         
+        void CheckRateMatSizes(){
+        // Matrices of rates (i=monomer bound protein, j = barbed bound protein)
+            int nBarbedDim = _nBarbedProts+1;
+            int nMonDim = _nMonProts+1;
+            int ExpectedDim = nBarbedDim*nMonDim;
+            int nDimSize = _DimerPlus.size();
+            int nTriSize = _TrimerPlus.size();
+            int nBAlphSize = _BarbedPlus.size();
+            if (nDimSize != ExpectedDim || nTriSize != ExpectedDim ||nBAlphSize != ExpectedDim){
+                throw std::runtime_error("Size mismatch in matrix of alphas (must have leading 1)");
+            }
+        }
+        
         int TotalMonomers(){
             int TotMon = _nFreeMon;
             TotMon+= 2*std::accumulate(_nDimers.begin(), _nDimers.end(),0);
@@ -452,7 +447,24 @@ class ActinMixedNucleates {
                 nFib+=FibObj->nFibers();
             }
             return nFib;     
-        }    
+        }  
+        
+        intvec NumBoundToEachProtein(int nFreeMon){
+            intvec NToEach(_nMonProts+1,nFreeMon);
+            if (_nMonProts==0){
+                return NToEach;
+            } else if (_nMonProts > 1){
+                throw std::runtime_error("More than 1 binding protein not implemented yet");
+            }
+            // Now we are in the case when there are multiple proteins
+            double A =  _MonBindKEqs[0];
+            double B = 1 + _MonBindKEqs[0]*_nMonBinders[0] -_MonBindKEqs[0]*nFreeMon; 
+            double C = -nFreeMon;
+            double x = (-B + sqrt(B*B-4*A*C))/(2*A);
+            NToEach[0] = int(x);
+            NToEach[1] = nFreeMon-NToEach[0];
+            return NToEach;
+        }  
                
         double TimeNucleationReactions(int &index, const intvec &NumBoundToEach){
             int NumPossBarbed = _nBarbedProts+1;

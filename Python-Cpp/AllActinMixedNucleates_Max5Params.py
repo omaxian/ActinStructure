@@ -10,7 +10,7 @@ mu = 0.01;
 LBox = 3; # in um
 Conc = 2; # in uM
 ConcFormin = 0.1; # in uM
-ConcArp23 = 0.1;
+ConcArp23 = 0;
 ConcProf = 0.05;
  # in uM
 
@@ -21,9 +21,9 @@ kminusDimer = 0.041; #s^(-1)
 kplusTrimer = 13e-2; # uM^(-1)*s^(-1) 
 kminusTrimer = 22; #s^(-1)
 kplusBarbed = 1.6#11.6; # uM^(-1)*s^(-1) 
-kminusBarbed = 0*1.4; #s^(-1)
+kminusBarbed = 1.4; #s^(-1)
 kplusPointed = 1.3; #uM^(-1)*s^(-1)
-kminusPointed = 0*0.8; #s^(-1)
+kminusPointed = 0.8; #s^(-1)
 
 # Formin rates
 kForNuc = 2e-3; # uM^(-2)*s^(-1)

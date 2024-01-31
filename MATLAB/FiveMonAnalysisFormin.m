@@ -4,7 +4,7 @@ Conc = 2; % in uM
 LBox = 3;
 ForminConc = 0.1;
 ProfConc = 0.05;
-ArpConc = 0.1;
+ArpConc = 0;
 
 % Parameters 
 kplusDimer = 3.5e-3; % uM^(-1)*s^(-1) 
@@ -12,9 +12,9 @@ kminusDimer = 0.041; %s^(-1)
 kplusTrimer = 13e-2; % uM^(-1)*s^(-1) 
 kminusTrimer = 22; %s^(-1)
 kplusBarbed = 1.6; % uM^(-1)*s^(-1) 
-kminusBarbed = 0*1.4; %s^(-1)
+kminusBarbed = 1.4; %s^(-1)
 kplusPointed = 1.3; %uM^(-1)*s^(-1)
-kminusPointed = 0*0.8; %s^(-1)
+kminusPointed = 0.8; %s^(-1)
 kForNuc = 2e-3; % uM^(-2)*s^(-1)
 kplusFor = 5; %uM^(-1)*s^(-1)
 kminusFor = 8.1e-2; %s^(-1)
@@ -175,8 +175,9 @@ function dydt = RHS(t,y,RxnRates,nMax,nBarbedProts,NumMonProts,BarbedOnOff,MonEq
     BoundToEach = FreeMon;
     % Determine percentage of monomer bound to different proteins
     if (~isempty(NumMonProts))
-        EqSum = sum(MonEqConsts.*NumMonProts);
-        BoundToEach=[FreeMon; FreeMon.*NumMonProts.*MonEqConsts]/(1+EqSum);
+        B = 1 + MonEqConsts*NumMonProts-MonEqConsts*FreeMon;
+        x = (-B + sqrt(B^2+4*MonEqConsts*FreeMon))/(2*MonEqConsts);
+        BoundToEach=[x; x*NumMonProts*MonEqConsts/(1+MonEqConsts*x)];
     end
     for iB=1:nBarbedProts+1
         % Nucleation and polymerization

@@ -14,7 +14,7 @@ It should just be the tangent vectors we are tracking and the length (in monomer
 **/
 static const int NMonForFiber = 4;
 static const int NMonForBranch = 4;
-static const bool MaxFive = true;
+static const bool MaxFive = false;
 
 // Global variables for periodic ActinStructure
 class ActinStructure {
