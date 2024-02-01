@@ -1,18 +1,18 @@
 % Generate the following plots
 % (1) Plot of free actin concentration over time
 % (2) Histogram of length of fibers (in monomers)
-ConcProfs = 0;
+ConcProfs = 0:5;
 for iFc=1:length(ConcProfs)
 alpha = 1;
 Conc = 5; %uM
 ConcProf = ConcProfs(iFc);
 ArpConc = 0;
-ForminConc = 1e-3;%ConcFormins(iFc);
+ForminConc = 1e-4;%ConcFormins(iFc);
 if (ForminConc>0)
     alpha=0.5;
 end
 MinForFiber = 4;
-LBox = 5;
+LBox = 8;
 Vol = LBox^3;
 uMInvToMicron3 = 1.0e15/(6.022e17);
 Nmon = floor(Conc*Vol/uMInvToMicron3);

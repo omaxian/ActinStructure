@@ -121,7 +121,9 @@ $\kpm_0$ & Pointed end dissociation rate & 0.8 & s$^{-1}$ \\ \hline
 %The previous section showed that the actin nucleation reaction is severely reaction-limited, and that the steady state can be well-approximated assuming that the system is well mixed. Because of this, we seem to be wasting quite a lot of effort tracking the diffusion of individual monomers, especially since tracking them requires us to search for neighbors at every time step. The need to search for reaction neighbors led us to a first-order accurate reaction scheme for simplicity, which limits the time step size so that $k\Delta t \ll 1$, where $k$ is the \emph{fastest} reaction rate (binding of a monomer to a barbed end). Figure\ \ref{fig:FiveRealP} showed that this requires $\Delta t \approx 10^{-4}$ s, and we are interested in simulating timescales on the order of $10^3$ to $10^4$ s. These simulations, while doable, would be quite costly. 
 This section discusses our algorithm for linear filaments. The process of actin polymerization can be separated into a nucleation step and elongation step. In the nucleation step, two actin monomers come together to form a dimer, which then must be joined by another monomer to form a trimer. A trimer has a barbed and pointed end, and monomers can associate at those ends with the same rate as longer filaments. The reactions in the system are therefore: dimer formation and breakup, trimer formation and breakup, and polymerization and depolymerization from the barbed/pointed end of each filament. Table\ \ref{tab:params} lists the parameters, which come from the recent study \cite{rosenbloom2021mechanism}.
 
-As already mentioned in the introduction, we do not explicitly track ``filaments'' (really nucleates) of length 3 or smaller, instead only keeping a count of how many are in the system. Once a tetramer forms, we insert it randomly into the spatial domain and start to track its location explicitly. This allows us to retain some spatial dependence (which will be necessary later when we try to mimic \emph{in vitro} experiments) while not wasting computational time on steps we know are well mixed. Thus, in our system, the key unknowns are the number of monomers, dimers, and trimers, and the length (and coordinates in space) of each filament. Section\ \ref{sec:SSA} gives more details on the stochastic reaction scheme. 
+As already mentioned in the introduction, we do not explicitly track ``filaments'' (really nucleates) of length 3 or smaller, instead only keeping a count of how many are in the system. Once a tetramer forms, we insert it randomly into the spatial domain and start to track its location explicitly. This allows us to retain some spatial dependence (which will be necessary later when we try to mimic \emph{in vitro} experiments) while not wasting computational time on steps we know are well mixed. Thus, in our system, the key unknowns are the number of monomers, dimers, and trimers, and the length (and coordinates in space) of each filament. 
+
+We also incorporate actin binding proteins into our simulations. We allow for two types of proteins: one which binds to actin monomers in solution, and then is kicked off when the actin incorporates into filaments (e.g., profilin, thymosin-$\beta$4, TTH-1), and another which binds to the barbed ends of existing filaments (e.g., formin, capping protein). These barbed-binding proteins can also nucleate new filaments. With this information, simulations become defined by a set of \emph{binding} rates $k_{ij}$, which is the rate at which monomers bound to protein $i$ bind to fibers whose barbed ends are bound by protein $j$, and another set of \emph{unbinding} rates $k_j$, which is the rate at which fibers with barbed end bound by protein $j$ depolymerize. Section\ \ref{sec:SSA} gives more details on the implementation of this stochastic reaction scheme. 
 
 \subsection{Simulations of actin polymerization without spatial dynamics}
 We now perform stochastic simulations of actin polymerization using the algorithm in Section\ \ref{sec:SSA}. In these simulations, we do not simulate the diffusion of the fibers, as there is no reason to do so if we are not interested in spatial information. We consider systems with various concentrations of monomers (2,5, and 10 $\mu$M) in a box of size $125$ $\mu$m$^3$ (5 $\mu$m on each side). 
@@ -144,33 +146,24 @@ Similar to \cite{banerjee2022emergence}, we do not concern ourselves with the lo
 We now incorporate formin into the filament dynamics. We assume that formin can do three things,
 \begin{enumerate}
 \item Formin can nucleate filaments by binding two actin monomers in the reaction $F+A+A \rightarrow FA_2$, which is irreversible and has rate $\kforn$ \cite{paul2008role, zweifel2021nucleation}. Following previous studies \cite{paul2008role, zweifel2021nucleation}, we do not allow formin nucleates to break apart.
-\item This fiber can add monomers to the barbed and pointed ends, with a modified rate at the barbed end $\afor \kbp$. It can also depolymerize from both ends with the normal rates (until it becomes a dimer).
+\item This fiber can add monomers to the barbed and pointed ends, with a modified rate at the barbed end $\afor \kbp$. It can also depolymerize from both ends with the normal rates (until it becomes a trimer).
 \item Formin can bind and unbind from existing filaments (2 or more monomers) barbed ends, with rates $\kforp$ and $\kform$, respectively. 
 \end{enumerate}
-In the language of our simulation platform, the rates with formin are
-\begin{gather*}
-\nonumber
-\kdp_{ij} = \kdp_0 \begin{pmatrix} 1 & 0.057 \, \textrm{nM}^{-1}\end{pmatrix} \qquad 
-\ktrp_{ij} =\ktrp_0 \begin{pmatrix} 1 & 5.5 \times 10^4 \end{pmatrix} \qquad 
-\kbp_{ij} =\kbp_0 \begin{pmatrix} 1 & 0.5\end{pmatrix} \\  \kon_1 = 29.1 \, \mu \textrm{M}^{-1} \cdot\text{s}^{-1}\qquad \koff_1 = 5 \times 10^{-4} \, \text{s}^{-1}  \\ \nonumber
-\kdm_j = \kdm_0 \begin{pmatrix} 1 & 0 \end{pmatrix} \qquad 
-\ktrm_j = \ktrm_0 \begin{pmatrix} 1 & 0 \end{pmatrix}\qquad 
-\kbm = 1.4 \, \text{s}^{-1}\begin{pmatrix} 1 & 1 \end{pmatrix}
-\end{gather*}
-Note the large rate for the trimers; we assume that formin-bound dimers become trimers with rate $\afor \kbp_0+\kpp_0$, which is divided by $\ktrp_0$ to obtain the proportion. We assume that formin bound dimers and trimers do not depolymerize.
 
 \begin{table}
 \begin{center}
 \begin{tabular}{|c|c|c|c|c|c|}\hline
-Parameter & Description & Value & Units & Ref & Notes \\ \hline
-$\kforn$ & Filament nucleation by formin & $2 \times 10^{-4}$ & $\mu$M$^{-2}\cdot$s$^{-1}$& \cite[Tab.~S1]{paul2008role} & \\ 
-$\kforp$ & Formin association to barbed ends& 29.1 & $\mu$M$^{-1} \cdot $s$^{-1}$ & \cite{shekhar2015formin}& \\
-$\kform$ & Formin dissociation from barbed ends& $5 \times 10^{-4}$ & s $^{-1}$ & \cite{kovar2006control}& \\
-$\afor$ &Growth for formin barbed ends (no profilin) & 0.5 & & \cite{kovar2006control}&\\ \hline
+Parameter & Description & Value & Units & Ref  \\ \hline
+$\kforn$ & Filament nucleation by formin & $2 \times 10^{-4}$ & $\mu$M$^{-2}\cdot$s$^{-1}$& \cite[Tab.~S1]{paul2008role}  \\ 
+$\kforp$ & Formin association to barbed ends& 29.1 & $\mu$M$^{-1} \cdot $s$^{-1}$ & \cite{shekhar2015formin} \\
+$\kform$ & Formin dissociation from barbed ends& $5 \times 10^{-4}$ & s $^{-1}$ & \cite{kovar2006control}\\
+$\afor$ &Growth for formin barbed ends (no profilin) & 0.5 & & \cite{kovar2006control}\\ \hline
 \end{tabular}
 \caption{\label{tab:paramsF} Parameter values for formin. We choose an average of values reported in literature for the mammalian formin mDia1 and mDia2 (with the exception of nucleation which comes from budding yeast data Bni1p.)}
 \end{center}
 \end{table}
+
+We choose to model the mammalian formins mDia1 and mDia2, which are able to nucleate filaments from free actin monomers. For these formins, association of free monomers to barbed ends with bound formin takes place at roughly 50\% the rate it does without formin \cite{kovar2006control}. The key rates are reported in Table\ \ref{tab:paramsF}, and Appendix \ref{sec:ForRateDet} reports how we translate these rates into inputs to the simulation. 
 
 \subsubsection{Results with formin}
 \begin{figure}
@@ -182,7 +175,7 @@ $\afor$ &Growth for formin barbed ends (no profilin) & 0.5 & & \cite{kovar2006co
 \caption{\label{fig:ActinNucWithFormin}Dynamics of actin polymerization (at 5 $\mu$M) when formin nucleates actin filaments, and barbed end growth with formin attached occurs at 50\% of the free-ended rate. Top left: the concentration of free actin monomers over time. The colors correspond to different formin concentrations. Top right: the fraction of free formins over time. Bottom left: the percentage of fibers that have a formin-bound barbed end. Bottom right: the number of fibers per unit volume. The solid lines give the total density of filaments per volume, while the dotted lines give the density of formin-bound filaments.}
 \end{figure}
 
-We now consider how nucleating filaments with formin affects the dynamics of actin polymerization at a fixed actin concentration of 5 $\mu$M. Figure\ \ref{fig:ActinNucWithFormin} shows the concentration of free monomers, fraction of free formins, and fiber density (with and without bound formins) from simulations lasting 3600~s, in which we include formin at concentrations varying from 0 to 2 nM. In all cases, we see how formin aids the process of nucleation; at time shorter than 60 seconds, most (almost all for formin concentrations larger than 0.1 nM) of the filaments created are formin-bound, regardless of the formin concentration. As time goes on, this percentage decreases in proportion to the amount of formin in the system, as spontaneous nucleation gives filaments without bound ends. There is then a long-time steady state where formin assumes an equilibrium with about 7\% unbound. The long time steady state demonstrates that the number of fibers is large enough in all cases for formin to assume an equilibrium state (there is never an excess of formins, because at higher formin concentrations more filaments are nucleated).
+We now consider how adding formin affects the dynamics of actin polymerization at a fixed actin concentration of 5 $\mu$M. Figure\ \ref{fig:ActinNucWithFormin} shows the concentration of free monomers, fraction of free formins, and fiber density (with and without bound formins) from simulations lasting 3600~s, in which we include formin at concentrations varying from 0 to 2 nM. In all cases, we see how formin aids the process of nucleation; at time shorter than 60 seconds, most (almost all for formin concentrations larger than 0.1 nM) of the filaments created are formin-bound, regardless of the formin concentration. As time goes on, this percentage decreases in proportion to the amount of formin in the system, as spontaneous nucleation gives filaments without bound ends. There is then a long-time steady state where formin assumes an equilibrium with about 7\% unbound. The long time steady state demonstrates that the number of fibers is large enough in all cases for formin to assume an equilibrium state (there is never an excess of formins, because at higher formin concentrations more filaments are nucleated).
 
 At low ($\leq 0.2$ nM) formin concentrations, the dynamics of polymerization closely resemble the spontaneous nucleation case; we see that it takes about 1500 s to reach the steady state concentration of free monomers. As we increase the formin concentration, the nucleation phase is faster (bottom right plot), going from about 300 s for no formin to 100 s with formin. The faster nucleation phase occurs because more filaments are nucleated. The nucleation of additional filaments leads to a faster growth phase, since there are more barbed ends available to bind actin monomers. Thus, despite the fact that formin-bound barbed ends grow more slowly than free barbed ends, the additional barbed ends still lead to a faster growth phase. If we define the growth phase as the time it takes the free monomer concentration to go from 90\% to 10\%, we obtain a time of $252-30\approx 200$ s with 2 nM formin, compared to $1080-144 \approx 1000$ s without formin. With 2 nM formin, there are ten times as many filaments, but each filament grows at half the speed, which gives a factor of five difference in the dynamics.
 
@@ -192,9 +185,21 @@ At low ($\leq 0.2$ nM) formin concentrations, the dynamics of polymerization clo
 \caption{\label{fig:HistsWithFormin}Length distribution for actin filaments in simulations with formin of varying concentrations. We show the distributions of fiber sizes (in terms of the number of monomers) at four time points ($t=600$ s in blue, $t=1200$ s in red, $t=2400$ s in yellow, and $t=3600$ s in purple). The distributions become more uniform (smaller range) as the formin concentration increases.}
 \end{figure}
 
-How do these dynamics affect the length distribution of fibers? As shown in Fig.\ \ref{fig:HistsWithFormin}, and as previously reported in \cite{banerjee2022emergence}, an increase in the formin concentration leads to the nucleation of more filaments at early times, which translates to a smaller mean and standard deviation in the number of monomers per filament (a more uniform distribution of filament lengths). The slower speed of formin-filament growth leads to a bimodality in the distribution of filament lengths; this is especially clear in the case of 0.1 nM formin, where there is a peak at $2 \times 10^4$ which matches the non-formin-bound fibers, along with a second peak around $1 \times 10^4$ monomers for formin-bound fibers. When the formin concentration increases, we typically observe a large peak associated with formin-bound fibers. This peak tends to lose mass over time, with growth occurring for larger numbers of monomers. This reflects the theoretical expectation that the slower growing fibers (the formin-bound ones) will give up their actin over long times to the faster-growing (non formin-bound) ones \cite{mohapatra2017limiting}. 
+How do these dynamics affect the length distribution of fibers? As shown in Fig.\ \ref{fig:HistsWithFormin}, and as previously reported in \cite{banerjee2022emergence}, an increase in the formin concentration leads to the nucleation of more filaments at early times, which translates to a smaller mean and standard deviation in the number of monomers per filament. The slower speed of formin-filament growth leads to a bimodality in the distribution of filament lengths; this is especially clear in the case of 0.1 nM formin, where there is a peak at $2 \times 10^4$ which matches the non-formin-bound fibers, along with a second peak around $1 \times 10^4$ monomers for formin-bound fibers. When the formin concentration increases, we typically observe a large peak associated with formin-bound fibers. This peak tends to lose mass over time, with growth occurring for larger numbers of monomers. This reflects the theoretical expectation that the slower growing fibers (the formin-bound ones) will give up their actin over long times to the faster-growing (non formin-bound) ones \cite{mohapatra2017limiting}. 
 
 \subsection{Explicitly incorporating profilin}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.6\textwidth]{ActinProfilinEq.eps}
+\caption{\label{fig:ProfilinEq}How the profilin:actin equilibrium affects the fraction of free actin. Here the $x$ axis shows the ratio of profilin to actin, while the $y$ axis shows the fraction of free monomers that result. Because of nonlinearities in the equilibrium, the curves are different for different actin concentrations. The dotted black curve shows the result if all the profilin binds to actin.}
+\end{figure}
+
+
+Profilin is a protein which binds actin monomers in solution. The binding reaction has forward rate 45 $\mu$M$^{-1}\cdot$s$^{-1}$ and reverse rate 10 s$^{-1}$. At typical profilin concentrations of order 1 $\mu$M, this reaction is much faster than the other reactions in the system, which means we can approximate it as in instantaneous equilibrium. Appendix\ \ref{sec:SSA} discusses how we do this; in Fig.\ \ref{fig:ProfilinEq} we show the resulting fraction of free actin as a function of the profilin actin ratio. At low profilin concentrations, all of the profilin binds to actin, while at higher concentrations the equlibrium is more complex.  
+
+In our simulations, monomers bound to profilin cannot nucleate new filaments (dimers), regardless of whether or not they are assisted by formin \cite{paul2009review}. Without formin, profilin-bound monomers bind barbed ends at a rate 80\% of the free monomer value, while with formin the binding rate is 300\% of the free monomer value (these represent average rates for mDia1 and mDia2 from \cite{kovar2006control}). Binding at the pointed end with profilin-bound monomers is small (10\% of the free monomer value). See Appendix\ \ref{sec:ForRateDet} for how these rates are incorporated into simulations. 
+
 \begin{figure}
 \centering
 \includegraphics[width=0.48\textwidth]{DynamicsProfilinOnly.eps}
@@ -203,19 +208,7 @@ How do these dynamics affect the length distribution of fibers? As shown in Fig.
 \caption{\label{fig:ActinProfilin}Dynamics of actin polymerization (at 5 $\mu$M) with profilin. Top left: the concentration of free actin monomers over time. The colors correspond to different profilin concentrations. Top right: the number of fibers per volume over time. Bottom: fiber length distributions over time for 2 $\mu$M profilin (left), 3 $\mu$M profilin (middle), and 4 $\mu$M profilin (right).}
 \end{figure}
 
-The reaction of profilin with actin is known to have equilibrium constant 4.5 $\mu$M$^{-1}$ \cite{perelroizen1994interaction}, which means that profilin aggressively binds actin monomers. We work off the fact that profilin inhibits spontaneous nucleation \cite{paul2009review}, and average the rates reported in \cite{kovar2006control} (for mDia1 and mDia2) to obtain a rate for how profilin affects assembly at the barbed end. This gives the rates
-\begin{gather*}
-\nonumber
-\kdp_{ij} = \kdp_0 \begin{pmatrix} 1 & 0.057 \, \textrm{nM}^{-1} \\ 0 & 0  \, \textrm{nM}^{-1} \end{pmatrix} \qquad 
-\ktrp_{ij} =\ktrp_0 \begin{pmatrix} 1 & 5.5 \times 10^4 \\ 0 & 2.8 \times 10^5 \end{pmatrix} \\
-\kbp_{ij} =\kbp_0 \begin{pmatrix} 1 & 0.5 \\ 0.8 & 3 \end{pmatrix} 
-\qquad 
-\kpp_{i} =\kpp_0 \begin{pmatrix} 1 & 0.1 \\ \end{pmatrix}
-\end{gather*}
-Note the large rate for the trimers; we assume that formin-bound dimers become trimers with rate $\afor^{(P)} \kbp_0+\kpp_0$, which is divided by $\ktrp_0$ to obtain the proportion. 
-%
-
-We begin our study by looking at how profilin affects polymerization without formin. Figure\ \ref{fig:ActinProfilin} compares the dynamics of polymerization of 5 $\mu$M actin with varying profilin concentrations in the range 0 to 5 $\mu$M. Low profilin concentrations do not show too much of a change from the spontaneous nucleation curves, since at 1 $\mu$M profilin concentration we only expect 20\% of the monomers to be bound to profilin. Increasing the profilin concentration has drastic effects; once we reach 5 $\mu$M profilin, the growth phase is not complete by $t=3$ hours. The slowdown in polymerization is driven by two factors: first, profilin has a reduced rate of binding for both pointed and barbed ends, which slows down the rate of polymerization. Second and more importantly, increases in profilin lead to less filaments being nucleated, which means there are less barbed ends available to bind monomers. The length distributions for each profilin concentration show another effect of having less filaments; each filament tends to be longer, and the distributions become more uniform. The reason for the latter is that there is no longer a big nucleation event that spawns many filaments. There are only a few filaments in the system, and the length of each filament is directly correlated with the time since it was nucleated.
+We begin our study by looking at how profilin affects polymerization without formin. Figure\ \ref{fig:ActinProfilin} compares the dynamics of polymerization of 5 $\mu$M actin with varying profilin concentrations in the range 0 to 5 $\mu$M. Low profilin concentrations do not show too much of a change from the spontaneous nucleation curves, since at 1 $\mu$M profilin concentration we only expect about 20\% of the monomers to be bound to profilin. Increasing the profilin concentration has drastic effects; once we reach 5 $\mu$M profilin, the growth phase is not complete by $t=3$ hours. The slowdown in polymerization is driven by two factors: first, profilin has a reduced rate of binding for both pointed and barbed ends, which slows down the rate of polymerization. Second and more importantly, increases in profilin lead to less filaments being nucleated, which means there are less barbed ends available to bind monomers. The length distributions for each profilin concentration show another effect of having less filaments; each filament tends to be longer, and the distributions are more spread out. The reason for the latter is that there is no longer a big nucleation event that spawns many filaments. There are only a few filaments in the system, and the length of each filament is directly correlated with the time since it was nucleated.
 
 \subsubsection{Formin (high concentration) with profilin}
 \begin{figure}
@@ -237,7 +230,18 @@ We begin our study by looking at how profilin affects polymerization without for
 We now consider the effect of adding formin at concentration 1 nM. At this formin concentration, we previously saw (Fig.\ \ref{fig:ActinNucWithFormin}) that about 80\% of the fibers are bound to formin in the absence of profilin. Figure\ \ref{fig:ActinForProf} shows the results of polymerization with formin in the presence of profilin. There is an interesting trade-off in the polymerization dynamics: on the one hand, profilin inhibits nucleation by formin, so the nucleation phase is slower with profilin. On the other hand, once filaments are nucleated, profilin-actin binds at a faster rate to the barbed end than actin without profilin. This process is auto-catalytic: as more profilin-actin binds to fibers, profilin is released, and there is more of it in solution, which means more of the actin monomers are profilin bound. As a result, low profilin concentrations of 1--3 $\mu$M have dynamics which are \emph{faster} than actin without profilin.
 
 
-Unlike for the case without formin, with formin the behavior with increasing profilin concentration is non-monotonic: at higher profilin concentrations (4--5 $\mu$M), the increased growth rate at barbed ends cannot compensate for the smaller number of fibers, and the dynamics are slower. The smaller number of fibers occurs because formin has to nucleate filaments from \emph{free} actin monomers, which are less abundant as the profilin concentration increases. For these high concentrations, formin must do the nucleating, since spontaneous nucleation is too slow. That said, only a few fibers are nucleated before elongation takes over, and there is a seeming paradox where there are more filaments bound to formin as the profilin concentration increases, but more free formins. This is resolved by noting that there are substantially fewer fibers with increasing profilin concentration. The smaller number of filaments gives longer filaments (see Fig.\ \ref{fig:HistsForProf}) for larger profilin concentration.
+Unlike for the case without formin, with formin the behavior with increasing profilin concentration is non-monotonic: at higher profilin concentrations (4--5 $\mu$M), the increased growth rate at barbed ends cannot compensate for the smaller number of fibers, and the dynamics are slower. The smaller number of fibers occurs because formin has to nucleate filaments from \emph{free} actin monomers, which are less abundant as the profilin concentration increases. For these high concentrations, formin must do the nucleating, since spontaneous nucleation is too slow. That said, only a few fibers are nucleated before elongation takes over, and there is a seeming paradox where there are more filaments bound to formin as the profilin concentration increases, but more free formins. This is resolved by noting that there are substantially fewer fibers with increasing profilin concentration. The smaller number of filaments gives longer filaments (see Fig.\ \ref{fig:HistsForProf}).
+
+\begin{figure}
+\centering
+\includegraphics[width=0.48\textwidth]{FreeMonConcForminLowProf.eps}
+\includegraphics[width=0.48\textwidth]{FractionFreeForminLowProf.eps}
+\includegraphics[width=0.48\textwidth]{PercentForminBoundLowProf.eps}
+\includegraphics[width=0.48\textwidth]{FibersPerVolForminLowProf.eps}
+\caption{\label{fig:ActinForLowProf}Dynamics of actin polymerization (at 5 $\mu$M) with 0.1 nM formin and various profilin concentrations. Top left: the concentration of free actin monomers over time. The colors correspond to different formin concentrations. Top right: the fraction of free formins over time. Bottom left: the percentage of fibers that have a formin-bound barbed end. Bottom right: the number of fibers per unit volume. In addition to the colors representing different concentrations, the solid lines give the total density of filaments per volume, while the dotted lines give the density of formin-bound filaments.}
+\end{figure}
+
+Decreasing the formin concentration to 0.1 nM (Fig.\ \ref{fig:ActinForLowProf}) gives the same trends as for 1 nM formin concentration. We observe initially faster speeds of polymerization for 1--3 $\mu$M profilin concentrations, followed by slower speeds for 4 and 5 $\mu$M profilin. Increasing profilin concentration gives less fibers, a higher percentage of which are formin bound, and more free formins. 
 
 
 \section{Stochastic simulations of branched filaments \label{sec:BF}}
@@ -346,9 +350,10 @@ Let us now consider what happens when we change the formin elongation factor $\a
 \section{Algorithm and validation}
 This appendix contains the details of our algorithm and the validation. For validation, we use ODEs, and close the system by assuming a maximum of five monomers per fiber.
 
-\subsection{Stochastic simulation algorithm \label{sec:SSA}}
-To keep our algorithm general, let us suppose that we have $P_M$ proteins which bind to monomers in solution, and are kicked off of the monomers once they bind to fibers. We also assume that there are $P_B$ proteins which bind barbed ends of actin filaments. Letting $M$ be the total number of free actin monomers, and $\z{M}$ the amount of free actin monomers attached to no protein. The equilibrium reactions \red{fix this}
+\subsection{Stochastic simulation algorithm for linear filaments \label{sec:SSA}}
+To keep our algorithm general, let us suppose that we have $P_M$ proteins which bind to monomers in solution, and are kicked off of the monomers once they bind to fibers. We also assume that there are $P_B$ proteins which bind barbed ends of actin filaments. Letting $M$ be the total number of free actin monomers, and $\z{M}$ the amount of free actin monomers attached to no protein. The equilibrium reactions
 \begin{subequations}
+\label{eq:MonEq}. 
 \begin{gather}
 \z M + \i{P} \xleftrightarrow{\i{\kappa}} \i{M} \\
 \i{M} = \i{\kappa} \z M  \left(\i{P}-\i M\right)\rightarrow \i M = \frac{\i \kappa \z M \i P}{1+\i \kappa \z M}
@@ -361,12 +366,12 @@ can be solved to obtain a closed-form solution for the amount of free monomers
 \begin{gather}
 \z M = \frac{1}{2 \kappa^{(1)} }\left(-\left(1+\kappa^{(1)}\left(P^{(1)}-M\right)\right) + \sqrt{\left(1+\kappa^{(1)}\left(P^{(1)}-M\right)\right)^2+ 4 \kappa^{(1)}M}\right). 
 \end{gather}
-
+Thus, prior to calculating any reaction rates, the first step of our reaction algorithm is to compute the number of monomers attached to each protein using\ \eqref{eq:MonEq}. 
 \end{subequations}
 
-We let $\kdp_{ij}$ be the rate of dimer formation for monomers bound to protein $i$ (starting from 0, to include no bound protein), and barbed end bound tom protein $j$ (starting from 0, again to include no protein). Likewise, $\ktrp_{ij}$ is the rate of trimer formation, and $\kfp_{ij}$ is the rate of addition to fibers (length 3 or more). The rate of addition to fibers is broken into $\kfp_{ij}=\kpp_i + \kbp_{ij}$, since the pointed end rate is assumed to depend only on the protein bound to the monomer, while the barbed end addition rate depends on both bound proteins. The rates of unbinding $\kfm=\kpm+\kbm$. are assumed to be independent of the bound protein. Finally, we let $\kon_j$ and $\koff_j$ be the rates of binding and unbinding of the barbed end proteins. 
+For our reactions, we let $\kdp_{ij}$ be the rate of dimer formation for monomers bound to protein $i$ (starting from 0, to include no bound protein), and barbed end bound to protein $j$ (starting from 0, again to include no protein). Likewise, $\ktrp_{ij}$ is the rate of trimer formation, and $\kfp_{ij}$ is the rate of addition to fibers (length 3 or more). The rate of addition to fibers is broken into $\kfp_{ij}=\kpp_i + \kbp_{ij}$, since the pointed end rate is assumed to depend only on the protein bound to the monomer, while the barbed end addition rate depends on both bound proteins. The rates of unbinding $\kfm_j=\kpm+\kbm_j$ are a function of the barbed-bound protein only. Finally, we let $\kon_j$ and $\koff_j$ be the rates of binding and unbinding of the barbed end proteins. 
 
-Given this notation, the next reaction method proceeds as follows: at the beginning of each step, we compute the total number of monomers bound to each protein via\ \eqref{eq:NumMBd}. Then, we sample a time for each of the following reactions to occur:
+Given this notation, the next reaction method proceeds as follows: at the beginning of each step, we compute the total number of monomers bound to each protein via\ \eqref{eq:MonEq}. Then, we sample a time for each of the following reactions to occur:
 \begin{enumerate}
 \item \emph{Spontaneous dimer formation}. For all $i$ and $j=0$, dimer formation occurs with rate $(\kdp_{i0}/V)\i M \i M$. %If this reaction is chosen, $M$ decreases by 2 and $\z B_2$ increases by 1. 
 \item \emph{Barbed-bound-protein-induced nucleation.} For all $i$ and $j> 0$, dimer formation occurs with rate $(\kdp_{ij}/V^2)\i M \i M \j B$. %If this reaction is chosen, $M$ decreases by 2, $\j B$ decreases by 1, and $\j B_2$ increases by 1. 
@@ -374,15 +379,15 @@ Given this notation, the next reaction method proceeds as follows: at the beginn
 \item \emph{Trimer formation.} For all $i$ and $j$, each individual dimer becomes a trimer with rate $(\ktrp_{ij}/V)\i M$.
 \item \emph{Trimer breakup.} For all $j$, each individual trimer breaks up with rate $\ktrm_j$.
 \item \emph{Fiber growth.} For each individual fiber of length 3 or more, fiber growth occurs with rate $(\kfp/V) \i M$, where $\kfp=\kpp_i+\kbp_{ij}$.
-\item \emph{Fiber shrinkage.} For each individual fiber of length 4 or more, removal of monomers occurs at the barbed end with rate $\kbm$ and at the pointed end with rate $\kpm$ (this is actually two reactions). 
-\item \emph{Barbed protein binding.} Barbed protein $j$ binds to fibers of length 2 or more with rate $\kon_j  \j B$. 
+\item \emph{Fiber shrinkage.} For each individual fiber of length 4 or more with barbed bound protein $j$, removal of monomers occurs at the barbed end with rate $\kbm_j$ and at the pointed end with rate $\kpm$ (this is actually two reactions). 
+\item \emph{Barbed protein binding.} Barbed protein $j$ binds to each fiber of length 2 or more with rate $\kon_j  \j B$. 
 \item \emph{Barbed protein unbinding.} Barbed protein $j$ unbinds from each fiber that it is attached to with rate $\koff_j$.
 \end{enumerate}
-We use an exact Gillespie simulation algorithm \cite{gillespie2007stochastic} to simulate these reactions. If a reaction has rate $r_i$, we sample a time for it to occur according to an exponential distribution, $\Delta t_i=-\log(u)/r_i$, where $u \in (0,1]$. The reaction chosen is then the one that occurs soonest. We increment time by this minimum amount, then repeat this entire process until the time step is complete. Because this is an exact simulation algorithm, the time step $\Delta t$ is arbitrary and is not a restriction on accuracy.
+We use an exact Gillespie simulation algorithm \cite{gillespie2007stochastic} to simulate these reactions. If a reaction has rate $r_i$, we sample a time for it to occur according to an exponential distribution, $\Delta t_i=-\log(u)/r_i$, where $u \in (0,1]$. The reaction chosen is then the one that occurs soonest. Once a reaction is chosen, we increment time by this minimum amount and process the reation by changing the state of the system to reflect its outcome (e.g., unbinding from the barbed end removes one monomer from a filament and adds it to the free monomer count). We then repeat this entire process (including the calculation of bound monomers in \eqref{eq:MonEq}) until the time step is complete. Because this is an exact simulation algorithm, the time step $\Delta t$ is arbitrary and is not a restriction on accuracy.
 
 To efficiently implement these reactions, we take an approach where we track a number of fiber nucleates, which we denote as $\j B_m$ for $m=2, 3$. Once fibers reach a size of four, we create an object in space to track each of them individually. 
 
-\subsection{Algorithm validation}
+\subsubsection{Algorithm validation}
 We validate our stochastic simulation algorithm by comparing to ODEs. To facilitate this, we must cap the length of fibers at a maximum size $M$, which we set to $M=5$. To formulate the ODEs, we begin by defining the rate at which monomers become dimers with the barbed end bound with protein $j$. Given the rates and reactions defined in Section\ \ref{sec:SSA}, this rate is given by 
 \begin{subequations}
 \label{eq:ODEs}
@@ -434,6 +439,22 @@ Figure\ \ref{fig:ForminValid} shows that the solution of the ODEs (dashed-dotted
 \includegraphics[width=\textwidth]{ForminValidation.eps}
 \caption{\label{fig:ForminValid}Validating the stochastic simulation algorithm with one monomer-binding and one barbed-binding protein. We consider an actin concentration of 2 $\mu$M in a box of size 3 $\mu$m on each side, and the rates given in \eqref{eq:ODERates}. The dashed-dotted lines show the concentration (in units $\mu$m$^{-3}$) of each particular species ($\j B_m$ denotes a polymer of size $m$ with barbed protein $j$ bound to it) predicted by the ODEs\ \eqref{eq:ODEs}. The solid lines with error bars show the output from the stochastic simulations. These data points show the mean over 3 sets of 10 simulations, with the error bars the standard error in the mean.   }
 \end{figure}
+
+\subsubsection{Rates for formin and profilin \label{sec:ForRateDet}}
+In the language of our simulation platform, the rates with formin and profilin are
+\begin{gather*}
+\kon_1 = 29.1 \, \mu \textrm{M}^{-1} \cdot\text{s}^{-1}\qquad \koff_1 = 5 \times 10^{-4} \, \text{s}^{-1}  \\ \nonumber
+\kdm_j = \kdm_0 \begin{pmatrix} 1 & 0 \end{pmatrix} \qquad 
+\ktrm_j = \ktrm_0 \begin{pmatrix} 1 & 0 \end{pmatrix}\qquad 
+\kbm = \kbm_0 \begin{pmatrix} 1 & 1 \end{pmatrix},\\
+\nonumber
+\kdp_{ij} = \kdp_0 \begin{pmatrix} 1 & 0.057 \, \textrm{nM}^{-1} \\ 0 & 0  \, \textrm{nM}^{-1} \end{pmatrix} \qquad 
+\ktrp_{ij} =\ktrp_0 \begin{pmatrix} 1 & 5.5 \times 10^4 \\ 0 & 2.8 \times 10^5 \end{pmatrix} \\
+\kbp_{ij} =\kbp_0 \begin{pmatrix} 1 & 0.5 \\ 0.8 & 3 \end{pmatrix} 
+\qquad 
+\kpp_{i} =\kpp_0 \begin{pmatrix} 1 & 0.1 \\ \end{pmatrix}.
+\end{gather*}
+where the base rates are given in Table\ \ref{tab:params}. Note the large rate for the trimers; we assume that formin-bound dimers become trimers with rate $\afor \kbp_0+\kpp_0$, which is divided by $\ktrp_0$ to obtain the proportion ($\afor$ is 0.5 without profilin and 3 with profilin). We assume that formin bound dimers and trimers do not depolymerize.
 
 \subsection{Branched filaments}
 Given the set of rules formulated in Section\ \ref{sec:BF}, we can now formulate the reactions involving arp 2/3 complex. Letting $D$ be the number of free arp 2/3 complexes, the reactions are
