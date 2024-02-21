@@ -715,7 +715,7 @@ class BranchedFiber: public Fiber{
                 
         void BarbedBindReaction() override{
             _nMonomersPerFib[_NextReactionBranch]++;
-            if (_nMonomersPerFib[_NextReactionBranch] > 5){
+            if (MaxFive && _nMonomersPerFib[_NextReactionBranch] > 5){
                 std::cout << "In barbed bind too many " << std::endl;
                 throw std::runtime_error("Bad");
             }

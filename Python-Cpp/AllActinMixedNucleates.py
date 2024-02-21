@@ -4,18 +4,18 @@ from ActinMixedNucleates import ActinMixedNucleates
 
 WritePos = False;
 
-for ConcProf in [0,1,2,3,4,5]:
-    for ConcArp in [0]:
-        for ConcFormin in [1e-4]: # in uM
+for ConcProf in [1,2,3,4]:
+    for ConcArp in [200e-3]:
+        for ConcFormin in [1e-3]: # in uM
             # Parameters
             a = 4e-3;
             kbT = 4.1e-3;
             spacing = 0.5; # units of a
             mu = 0.01;
-            if (ConcFormin > 5e-4):
+            if (ConcProf < 2):
                 LBox = 5;
             else:
-                LBox = 8; # in um
+                LBox = 5; # in um
             Conc = 5; # in uM
             #ConcFormin = 0.001; # in uM
             #ConcArp = 0.02;
@@ -37,7 +37,7 @@ for ConcProf in [0,1,2,3,4,5]:
             ForminAlphaNoProf = 0.5;
 
             # Arp 2/3 rates
-            kplusARF = 5.2e-3;
+            kplusARF = 5e-3*spacing*a; # This is now a rate in uM^2 per monomer of mother
             kMinusARF = 3.4e-3;
             
             # Profilin equilibrium constant
@@ -45,7 +45,6 @@ for ConcProf in [0,1,2,3,4,5]:
             AlphaWithProf = 0.8
             ForminAlphaWithProf = 3;
             AlphaPtdProf = 0.1;
-            
             
 
             # Convert to microscopic assuming well-mixed system
@@ -98,10 +97,15 @@ for ConcProf in [0,1,2,3,4,5]:
                     AlphaBarbedPlus = [1, ForminAlphaNoProf, AlphaWithProf, ForminAlphaWithProf];
                 AllActin.InitializeRateMatrices(AlphaDimersPlus,AlphaTrimersPlus,AlphaBarbedPlus);
             if (ConcArp > 0):
-                AllActin.InitializeArp(NArp23,RxnRatesArp23);
+                NArp23 = int(ConcArp*Volume/uMInvToMicron3);
+                BranchRates = [kplusARF*ConversionFactor**2, kMinusARF];
+                AlphaBranch = [1];
+                if (ConcProf > 0):
+                    AlphaBranch = [1,0];
+                AllActin.InitializeBranchers(NArp23,BranchRates,AlphaBranch);
 
-            Tf = 10800;
-            dt = 10;
+            Tf = 3600;
+            dt = 5;
             nSteps = int(Tf/dt+1e-6);
 
             NumFibers = np.zeros(nSteps,dtype=np.int64);
