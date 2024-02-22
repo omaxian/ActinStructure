@@ -286,9 +286,7 @@ This set of rules ensures simplicity in the construction and deconstruction of b
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{FreeMons_Arp.eps}
-\includegraphics[width=0.48\textwidth]{PBranched_ArpFree.eps}
-\includegraphics[width=0.48\textwidth]{FiberDensity_Arp.eps}
-\caption{\label{fig:PolyDynamicsArp}Course of polymerization and assembly with 5 $\mu$M actin concentration and various concentrations of arp 2/3 (2 nM in blue, 20 nM in red, and 200 nM in yellow). The top row of plots shows how the concentration of monomers changes between free monomers (left), linear filaments (middle), and branched structures (right). The bottom left plot shows the fraction of fibers that are branched. The bottom right plot shows the density of fibers per unit volume for each concentration, separated into linear filaments and mothers of branches (dashed-dotted line), and branches (dotted line).  }
+\caption{\label{fig:PolyDynamicsArp}Course of polymerization and assembly with 5 $\mu$M actin concentration and various concentrations of arp 2/3 (2 nM in blue, 20 nM in red, and 200 nM in yellow). From left to right, these plots show the total amount of polymerized actin, the number of linear fibers (including mother filaments) per volume, and the number of branches per length. }
 \end{figure}
 
 We begin by looking at the branching process with spontaneous nucleation of actin filaments only (no formins). We fix the actin concentration at 5 $\mu$M and vary the concentration of arp 2/3 across two orders of magnitude (2 nM, 20 nM, and 200 nM). The dynamics of polymerization and assembly are shown in Fig.\ \ref{fig:PolyDynamicsArp}, and the filament length distributions are shown in Fig.\ \ref{fig:LengthDistsArp}. 
@@ -311,8 +309,7 @@ Because profilin competes with VCA for binding actin monomers, and because VCA i
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{FreeMons_Arp2nMProf.eps}
-\includegraphics[width=\textwidth]{FiberStats_Arp2nMProfilin.eps}
-\caption{\label{fig:PolyArp2Prof}Course of polymerization and assembly with 5 $\mu$M actin concentration, 2 nM profilin, and varying profilin concentration. The top row of plots shows how the concentration of monomers changes between free monomers (left), linear filaments (middle), and branched structures (right). The bottom plot shows the density of fibers per unit volume for each concentration, separated into linear filaments and mothers of branches (left), and branches (right).  }
+\caption{\label{fig:PolyArp2Prof}Course of polymerization and assembly with 5 $\mu$M actin concentration, 2 nM profilin, and varying profilin concentration. From left to right, these plots show the total amount of polymerized actin, the number of linear fibers (including mother filaments) per volume, and the number of branches per length.  }
 \end{figure}
 
 Figure\ \ref{fig:PolyArp2Prof} uses a small (2 nM) concentration of arp 2/3, where without profilin about 50\% of the actin goes into linear filaments. When we add a small amount (1--2 $\mu$M) or profilin, the course of polymerization is slowed down, but there is not a big change in the percentage of monomers in linear filaments vs.\ branched structures. This difference is due to two factors: on the one hand, profilin inhibits spontaneous nucleation, so there are less linear filaments, which get longer and have a higher rate of branching. On the other hand, profilin directly inhibits branching, so when the profilin-actin concentration is high (at the end of the simulations), no new branches can form. At small profilin concentrations, these two effects roughly cancel out. At larger concentrations (3--5 $\mu$M), there are two few linear filaments, relatively more branches, and more of the actin goes into branched structures. 
@@ -322,8 +319,7 @@ These effects are also present, though less obvious, when we increase the arp 2/
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{FreeMons_Arp20nMProf.eps}
-\includegraphics[width=\textwidth]{FiberStats_Arp20nMProfilin.eps}
-\caption{\label{fig:PolyArp20Prof}Course of polymerization and assembly with 5 $\mu$M actin concentration, 20 nM profilin, and varying profilin concentration. The top row of plots shows how the concentration of monomers changes between free monomers (left), linear filaments (middle), and branched structures (right). The bottom plot shows the density of fibers per unit volume for each concentration, separated into linear filaments and mothers of branches (left), and branches (right).   }
+\caption{\label{fig:PolyArp20Prof}Course of polymerization and assembly with 5 $\mu$M actin concentration, 20 nM profilin, and varying profilin concentration. From left to right, these plots show the total amount of polymerized actin, the number of linear fibers (including mother filaments) per volume, and the number of branches per length.   }
 \end{figure}
 
 The basic takeaway here: a little bit of profilin will preserve actin in linear filaments, while too much will block linear filaments from being created and lead to more branching on the existing ones.
@@ -335,7 +331,6 @@ The basic takeaway here: a little bit of profilin will preserve actin in linear 
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{DynamicsArpForminOnly.eps}
-\includegraphics[width=\textwidth]{FiberDataArpForminOnly.eps}
 \caption{\label{fig:ArpFormin}Course of polymerization and assembly with 5 $\mu$M actin concentration, 1 nM formin concentration, and three arp 2/3 concentrations. The top plots show the concentration of free monomers, monomers in linear filaments, and monomers in branched structures. The bottom plot shows the dynamics of fiber and branch growth. }
 \end{figure}
 
@@ -355,16 +350,9 @@ Based on the results without profilin in Fig.\ \ref{fig:ArpFormin}, a nice param
 
 \begin{figure}
 \centering
-\includegraphics[width=\textwidth]{DynamicsArp20ForminProf.eps}
-\includegraphics[width=\textwidth]{FiberDataArp20ForminProf.eps}
-\caption{\label{fig:Arp20ForminProf}Course of polymerization and assembly with 5 $\mu$M actin concentration, 1 nM formin concentration, 20 nM arp 2/3 concentration, and varying profilin concentration The top plots show the concentration of free monomers, monomers in linear filaments, and monomers in branched structures. The bottom plot shows the dynamics of fiber and branch growth. }
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics[width=\textwidth]{DynamicsArp200ForminProf.eps}
-\includegraphics[width=\textwidth]{FiberDataArp200ForminProf.eps}
-\caption{\label{fig:Arp200ForminProf}Course of polymerization and assembly with 5 $\mu$M actin concentration, 1 nM formin concentration, 200 nM arp 2/3 concentration, and varying profilin concentration The top plots show the concentration of free monomers, monomers in linear filaments, and monomers in branched structures. The bottom plot shows the dynamics of fiber and branch growth. }
+\subfigure[20 nM Arp 2/3]{\includegraphics[width=\textwidth]{DynamicsArp20ForminProf.eps}}
+\subfigure[200 nM Arp 2/3]{\includegraphics[width=\textwidth]{DynamicsArp200ForminProf.eps}}
+\caption{\label{fig:Arp20ForminProf}Course of polymerization and assembly with 5 $\mu$M actin concentration, 1 nM formin concentration, and varying profilin concentration. (a) 20 nM Arp 2/3 and (b) 200 nM Arp 2/3. The top plots show the concentration of free monomers, monomers in linear filaments, and monomers in branched structures. The bottom plot shows the dynamics of fiber and branch growth. }
 \end{figure}
 
 \begin{appendices}
