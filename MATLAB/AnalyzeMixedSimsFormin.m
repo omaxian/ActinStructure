@@ -1,18 +1,18 @@
 % Generate the following plots
 % (1) Plot of free actin concentration over time
 % (2) Histogram of length of fibers (in monomers)
-ConcProfs = 0:5;
+ConcProfs = [1 4];
 for iFc=1:length(ConcProfs)
 alpha = 1;
 Conc = 5; %uM
 ConcProf = ConcProfs(iFc);
 ArpConc = 0;
-ForminConc = 1e-4;%ConcFormins(iFc);
+ForminConc = 1e-3;%ConcFormins(iFc);
 if (ForminConc>0)
     alpha=0.5;
 end
 MinForFiber = 4;
-LBox = 8;
+LBox = 5;
 Vol = LBox^3;
 uMInvToMicron3 = 1.0e15/(6.022e17);
 Nmon = floor(Conc*Vol/uMInvToMicron3);
@@ -94,12 +94,12 @@ StdOfEach = std(NumOfEach,0,3);
 ts=(1:nT)*dt;
 figure(1)
 set(gca,'ColorOrderIndex',iFc)
-plot(ts,MeanOfEach(1,:))
+plot(ts,Conc-MeanOfEach(1,:))
 hold on
 skip=floor(nT/30);
 skip=skip+mod(skip,2);
 set(gca,'ColorOrderIndex',iFc)
-errorbar(ts(skip:skip:end),MeanOfEach(1,skip:skip:end),...
+errorbar(ts(skip:skip:end),Conc-MeanOfEach(1,skip:skip:end),...
     2*StdOfEach(1,skip:skip:end)/sqrt(nError),'o','MarkerSize',0.1)
 ylabel('Concentration free monomers ($\mu$M)')
 figure(2)

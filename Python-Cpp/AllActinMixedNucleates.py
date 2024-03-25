@@ -6,7 +6,7 @@ WritePos = False;
 
 for ConcProf in [1,2,3,4]:
     for ConcArp in [200e-3]:
-        for ConcFormin in [1e-3]: # in uM
+        for ConcFormin in [0]: # in uM
             # Parameters
             a = 4e-3;
             kbT = 4.1e-3;
@@ -15,7 +15,7 @@ for ConcProf in [1,2,3,4]:
             if (ConcProf < 2):
                 LBox = 5;
             else:
-                LBox = 5; # in um
+                LBox = 8; # in um
             Conc = 5; # in uM
             #ConcFormin = 0.001; # in uM
             #ConcArp = 0.02;

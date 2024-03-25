@@ -2,19 +2,21 @@
 % (1) Plot of free actin concentration over time
 % (2) Histogram of length of fibers (in monomers)
 ArpConcs = [2 20 200]; % in nM
-ProfConcs = 0:4;
+ProfConcs = [0:4];
 spacing = 2e-3;
 for iF=1:length(ProfConcs)
 Conc = 5;
 ConcProf =ProfConcs(iF);
-ArpConc=200e-3;
-ForminConc = 1e-3;
+ArpConc= 20e-3;
+ForminConc = 0;
 LBox = 5;
-% if (ConcProf < 2)
-%     LBox = 5;
-% else
-%     LBox = 8;
-% end
+if (ForminConc==0)
+if (ConcProf < 2)
+    LBox = 5;
+else
+    LBox = 8;
+end
+end
 MinForFiber = 4;
 Vol = LBox^3;
 uMInvToMicron3 = 1.0e15/(6.022e17);
@@ -25,7 +27,7 @@ dt = 5;
 nT = tf/dt;
 nError=3;
 nTrial=10;
-NumOfEach = zeros(5,nT,nError);
+NumOfEach = zeros(6,nT,nError);
 PercentBranched = zeros(nError,nT);
 for iError=1:nError
 LinFibLens = cell(nT,1);
@@ -69,6 +71,7 @@ for iT=1:nT
         TotalLength = sum(TheseLens)*spacing;
         NLin=sum(TheseBranched==0 | TheseBranched==2);
         NumOfEach(3,iT,iError)=NumOfEach(3,iT,iError)+1/nTrial*(nFibs-NLin)/TotalLength;
+        NumOfEach(6,iT,iError)=NumOfEach(6,iT,iError)+1/nTrial*sum(TheseFormins)/nFibs;
     end
     NumOfEach(4,iT,iError)=NumOfEach(4,iT,iError)+1/nTrial*NLin/Vol;
     FreeArps = (NArp-sum(TheseBranched==1))/NArp;
@@ -105,7 +108,7 @@ MeanOfEach = mean(NumOfEach,3);
 StdOfEach = std(NumOfEach,0,3);
 ts=(1:nT)*dt;
 figure(1)
-subplot(1,3,1)
+subplot(2,2,1)
 plot(ts,Conc-MeanOfEach(1,:))
 hold on
 skip=floor(nT/20);
@@ -115,7 +118,16 @@ errorbar(ts(skip:skip:end),Conc-MeanOfEach(1,skip:skip:end),...
 title('Polymerized actin ($\mu$M)')
 xlabel('$t$ (s)')
 xlim([0 tf])
-subplot(1,3,2)
+subplot(2,2,2)
+plot(ts,MeanOfEach(6,:),'-.')
+hold on
+set(gca,'ColorOrderIndex',get(gca,'ColorOrderIndex')-1)
+errorbar(ts(skip:skip:end),MeanOfEach(6,skip:skip:end),...
+    2*StdOfEach(6,skip:skip:end)/sqrt(nError),'o','MarkerSize',0.5)
+xlabel('$t$ (s)')
+xlim([0 tf])
+title('Fraction formin-bound barbed ends')
+subplot(2,2,3)
 plot(ts,MeanOfEach(4,:),'-.')
 hold on
 set(gca,'ColorOrderIndex',get(gca,'ColorOrderIndex')-1)
@@ -124,7 +136,7 @@ errorbar(ts(skip:skip:end),MeanOfEach(4,skip:skip:end),...
 xlabel('$t$ (s)')
 xlim([0 tf])
 title('Linear fibers per volume')
-subplot(1,3,3)
+subplot(2,2,4)
 plot(ts,MeanOfEach(3,:),':')
 hold on
 set(gca,'ColorOrderIndex',get(gca,'ColorOrderIndex')-1)
