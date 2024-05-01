@@ -321,6 +321,7 @@ class Fiber: public ActinStructure{
             nFreeMonomers++;
             removeBranch(_NextReactionBranch, nBarbedBinders);
         }
+        CheckYourself();
     }
            
     vec getX(){
@@ -328,8 +329,7 @@ class Fiber: public ActinStructure{
         computeX(_X0,_tau,_X);
         return _X;
     }
-        
-            
+               
     virtual int NumMonomers(int FibIndex){
         return _nMonomers;
     }
@@ -467,6 +467,9 @@ class Fiber: public ActinStructure{
             double Rate = nMons*_BarbedBindRate[MatIndex];
             return logrand()/Rate;
         }
+        
+        virtual void CheckYourself(){
+        }    
         
         
         virtual void BarbedBindReaction(){
@@ -784,6 +787,30 @@ class BranchedFiber: public Fiber{
             }
         }
         
+        void CheckYourself() override{
+            for (int jFib=1; jFib < _nLinearFib; jFib++){
+                int NumMother =  _nMonomersPerFib[_Mothers[jFib]];
+                if (_AttachPoints[jFib] >= NumMother){
+                    std::cout << "Event that just occured " << _NextReactionIndex << std::endl;
+                    std::cout << "Mother filament has number " << _Mothers[jFib] << std::endl;
+                    std::cout << "This filament has number " << jFib << std::endl;
+                    std::cout << "Number monomers on mother is " << NumMother << std::endl;
+                    std::cout << "Number of fibers " << _nLinearFib << std::endl;
+                    std::cout << "Attachment point on mother " << _AttachPoints[jFib] << std::endl;
+                    throw std::runtime_error("STOP -- geometry makes no sense");
+                } else if (NumMother < 4){
+                    std::cout << "Event that just occured " << _NextReactionIndex << std::endl;
+                    std::cout << "The mother has been reduced to less than 4 " << std::endl;
+                    std::cout << "Mother filament has number " << _Mothers[jFib] << std::endl;
+                    std::cout << "This filament has number " << jFib << std::endl;
+                    std::cout << "Number monomers on mother is " << NumMother << std::endl;
+                    std::cout << "Number of fibers " << _nLinearFib << std::endl;
+                    std::cout << "Attachment point on mother " << _AttachPoints[jFib] << std::endl;
+                    throw std::runtime_error("STOP -- geometry makes no sense");
+                }
+            }  
+        }
+        
         double BarbedBoundProteinUnbindTime(int &BranchIndex) override{
             double MinTime = 1.0/0.0;
             for (int iFib = 0; iFib < _nLinearFib; iFib++){
@@ -853,6 +880,18 @@ class BranchedFiber: public Fiber{
         }
         
         void removeBranch(int BranchNum, intvec &nBarbedBinders) override{
+            /*std::cout << "Removing branch number " << BranchNum << std::endl;
+            std::cout << "The number of monomers " << _nMonomersPerFib[BranchNum] << std::endl;
+            std::cout << std::endl << "Old mother list ";
+            for (uint jFib=0; jFib < _Mothers.size(); jFib++){
+                std::cout << _Mothers[jFib] << " , ";
+            }*/
+            // Renumber all the mothers larger than BranchNum
+            for (int jFib=0; jFib < _nLinearFib; jFib++){
+                if (_Mothers[jFib] > BranchNum){
+                    _Mothers[jFib]--;
+                }
+            }    
             _Mothers.erase(_Mothers.begin() + BranchNum); 
             _nMonomersPerFib.erase(_nMonomersPerFib.begin() + BranchNum); 
             if (_ProteinAtBarbedEnds[BranchNum] > 0){
@@ -861,6 +900,10 @@ class BranchedFiber: public Fiber{
             _ProteinAtBarbedEnds.erase(_ProteinAtBarbedEnds.begin() + BranchNum); 
             _AttachPoints.erase(_AttachPoints.begin() + BranchNum); 
             _nLinearFib--;
+            /*std::cout << std::endl << "New mother list ";
+            for (uint jFib=0; jFib < _Mothers.size(); jFib++){
+                std::cout << _Mothers[jFib] << " , ";
+            }*/
             //std::cout << "Removed branch " << BranchNum << std::endl;
             for (int d=2; d >=0; d--){
                 //std::cout << "Erasing element " << 3*BranchNum+d << " from tau " << std::endl;

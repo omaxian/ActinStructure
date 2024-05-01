@@ -4,19 +4,18 @@ from ActinMixedNucleates import ActinMixedNucleates
 
 WritePos = False;
 
-for ConcProf in [1,2,3,4]:
-    for ConcArp in [200e-3]:
-        for ConcFormin in [0]: # in uM
+for ConcProf in [0]:
+    for ConcArp in [40e-3]:
+        for ConcFormin in [1e-4]: # in uM
             # Parameters
             a = 4e-3;
             kbT = 4.1e-3;
             spacing = 0.5; # units of a
             mu = 0.01;
-            if (ConcProf < 2):
-                LBox = 5;
-            else:
-                LBox = 8; # in um
-            Conc = 5; # in uM
+            LBox = 10;
+            if (ConcProf==6):
+                LBox=20;
+            Conc = 1.5; # in uM
             #ConcFormin = 0.001; # in uM
             #ConcArp = 0.02;
 
@@ -104,8 +103,8 @@ for ConcProf in [1,2,3,4]:
                     AlphaBranch = [1,0];
                 AllActin.InitializeBranchers(NArp23,BranchRates,AlphaBranch);
 
-            Tf = 3600;
-            dt = 5;
+            Tf = 28800;
+            dt = 50;
             nSteps = int(Tf/dt+1e-6);
 
             NumFibers = np.zeros(nSteps,dtype=np.int64);
@@ -130,7 +129,7 @@ for ConcProf in [1,2,3,4]:
                     AllX0 = np.append(AllX0,AllActin.AllX0(),axis=0);
                     AllTau = np.append(AllTau,AllActin.AllTaus(),axis=0);
             
-            FileName = str(Conc)+'uM_Prof'+str(ConcProf)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
+            FileName = 'Tf'+str(Tf)+'_Box'+str(LBox)+'_Actin'+str(Conc)+'uM_Prof'+str(ConcProf)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4))\
                 +'em4uM_'+str(seed)+'.txt';
             np.savetxt('FreeMons'+FileName,FreeMonomers);    
             np.savetxt('NumFibs'+FileName,NumFibers);
