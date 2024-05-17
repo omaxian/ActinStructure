@@ -192,93 +192,48 @@ Profilin is a protein which binds actin monomers in solution. The binding reacti
 In our simulations, monomers bound to profilin cannot nucleate new filaments (dimers), regardless of whether or not they are assisted by formin \cite{paul2009review}. Without formin, profilin-bound monomers bind barbed ends at a rate 80\% of the free monomer value, while with formin the binding rate is 300\% of the free monomer value (these represent average rates for mDia1 and mDia2 from \cite{kovar2006control}). Binding at the pointed end with profilin-bound monomers is small (10\% of the free monomer value). Because profilin competes with VCA for binding actin monomers, and because VCA is (in most systems) required for arp 2/3 complex to bind an actin monomer and form a branch, we assume that branching with profilin-bound monomers is impossible. 
 
 \section{Results \label{sec:FilAct}}
-\subsection{Spontaneous assembly}
+
+\subsection{Linear filaments}
+\subsubsection{Spontaneous assembly}
 
 \begin{figure}
 \centering
-\includegraphics[width=0.48\textwidth]{FreeActinTimeConc.eps}
-\includegraphics[width=0.48\textwidth]{FibersTimeConc.eps}
-\caption{\label{fig:ActinPolyMix}Stochastic simulations of polymerization dynamics at three different concentrations. (a) The dynamics of polymerization, with the concentration of free monomers shown at left and the number of fibers per unit volume (1 $\mu$m$^3$) shown at right. The number of fibers comes to a steady state when about half the actin is depleted. (b) The distribution of fiber sizes (in terms of the number of monomers) at three different time points for each concentration. \red{NEED a summary figure for linear fiber growth that shows polymerization + fibers per volume with spontaneous polarization, different formin, different formin + profilin. Remove Figure 5.} }
+\includegraphics[width=0.8\textwidth]{LinearFibers1.pdf}
+\caption{\label{fig:ActinPolyMix}Stochastic simulations of polymerization dynamics at three different concentrations. In all cases, the concentration of polymerized actin is shown at left, and the number of fibers per $\mu$m$^3$ is shown at right. The blue curves (5 $\mu$M actin with no other proteins) are the same in all cases. }
 \end{figure}
 
-We first consider the spontaneous assembly of actin filaments using the rates reported in \cite{rosenbloom2021mechanism}. As shown in Fig.\ \ref{fig:ActinPolyMix}, the dynamics can be divided into the traditional three phases of actin polymerization: a ``lag phase'' for nucleation (which is longer for smaller concentrations), followed by a ``growth phase'' (in which free actin is incorporated into the existing fibers), terminated by an ``equilibrium phase.'' At the end of the lag phase, the number of fibers per volume reaches a steady state, so that in the growth phase the decrease in free actin is driven exclusively by incorporation into existing fibers. After the growth phase is complete, the concentration of free actin remains constant at 0.17 $\mu$M, and the fibers must exchange monomers with other fibers to grow in length \cite{hu2007theoretical}.
+We first consider the spontaneous assembly of actin filaments using the rates reported in \cite{rosenbloom2021mechanism}. As shown in Fig.\ \ref{fig:ActinPolyMix}A, the dynamics can be divided into the traditional three phases of actin polymerization: a ``lag phase'' for nucleation (which is longer for smaller concentrations), followed by a ``growth phase'' (in which free actin is incorporated into the existing fibers), terminated by an ``equilibrium phase.'' At the end of the lag phase, the number of fibers per volume reaches a steady state, so that in the growth phase the decrease in free actin is driven exclusively by incorporation into existing fibers. After the growth phase is complete, the concentration of free actin remains constant at 0.17 $\mu$M, and the fibers must exchange monomers with other fibers to grow in length \cite{hu2007theoretical}.
 
 Similar to \cite{banerjee2022emergence}, we do not concern ourselves with the long-time ``steady state'' distribution of actin filament lengths, which can take days to reach \cite{hu2007theoretical, fass2008stochastic, mohapatra2017limiting}, and instead focus on the length distributions on an intermediate timescale of a few hours, which corresponds to a typical timescale for \emph{in vitro} experiments. Our results for the filament length distributions, which are shown in Fig.\ \ref{fig:FibSizesSA}, match those of \cite{banerjee2022emergence} for spontaneous nucleation of filaments: intermediate timescales show a quasi-stable length distribution which is skewed to the left and quite broad (c.f.\ \cite[Fig.~2c]{banerjee2022emergence}), and higher concentrations have lower mean filament lengths. More generally, conditions with a higher number of filaments have lower filament lengths beause of the limited actin pool.
 
-\subsection{Linear filaments with formin}
+\subsubsection{Incorporating formin}
+We now consider how adding formin affects the dynamics of actin polymerization at a fixed actin concentration of 5 $\mu$M (results for other concentrations are similar; in Fig.\ \ref{fig:ActinLowNucWithFormin} we demonstrate this with 1.5 $\mu$M actin). Figure\ \ref{fig:ActinPolyMix}B shows the concentration of free monomers and fiber density (with and without bound formins) from simulations lasting three hours, in which we include formin at concentrations varying from 0 to 2 nM. In all cases, we see how formin aids the process of nucleation; at time shorter than 60 seconds, almost all of the filaments created are formin-bound, regardless of the formin concentration. As time goes on, the percentage of formin-bound filaments decreases in proportion to the amount of formin in the system, as spontaneous nucleation gives filaments without bound ends. 
+The nucleation of additional filaments leads to a faster growth phase, since there are more barbed ends available to bind actin monomers. Thus, even though formin-bound barbed ends grow more slowly than free barbed ends, the additional barbed ends still lead to a faster growth phase. If we define the growth phase as the time it takes the free monomer concentration to go from 90\% to 10\%, we obtain a time of $252-30\approx 200$ s with 2 nM formin, compared to $1080-144 \approx 1000$ s without formin. With 2 nM formin, there are ten times as many filaments, but each filament grows at half the speed, which gives a factor of five difference in the dynamics.
+
+%There is then a long-time steady state where formin assumes an equilibrium with about 7\% unbound. The long time steady state demonstrates that the number of fibers is large enough in all cases for formin to assume an equilibrium state (there is never an excess of formins, because at higher formin concentrations more filaments are nucleated).
+
+How do these dynamics affect the length distribution of fibers? As shown in Fig.\ \ref{fig:HistsWithFormin}, and as previously reported in \cite{banerjee2022emergence}, an increase in the formin concentration leads to the nucleation of more filaments at early times, which translates to a smaller mean and standard deviation in the number of monomers per filament. The slower speed of formin-filament growth leads to a bimodality in the distribution of filament lengths. The peak associated with formin-bound filaments tends to lose mass over time, in accordance with the theoretical expectation that the slower growing fibers (the formin-bound ones) will give up their actin over long times to the faster-growing (non formin-bound) ones \cite{mohapatra2017limiting}. 
+
+\subsubsection{Incorporating profilin}
+
+We next study how profilin affects polymerization without formin. Figure\ \ref{fig:ActinPolyMix}C compares the dynamics of polymerization of 5 $\mu$M actin with varying profilin concentrations in the range 0 to 5 $\mu$M. Low profilin concentrations do not show too much of a change from the spontaneous nucleation curves, since at 1 $\mu$M profilin concentration we only expect about 20\% of the monomers to be bound to profilin. Increasing the profilin concentration has drastic effects; once we reach 5 $\mu$M profilin, the growth phase is not complete by $t=3$ hours. The slowdown in polymerization is driven by two factors: first, profilin has a reduced rate of binding for both pointed and barbed ends, which slows down the rate of polymerization. Second and more importantly, increases in profilin lead to less filaments being nucleated, which means there are less barbed ends available to bind monomers. The length distributions for each profilin concentration (Fig.\ \ref{fig:ActinProfilin}) show another effect of having less filaments; each filament tends to be longer, and the distributions are more spread out. The reason for the latter is that there is no longer a big nucleation event that spawns many filaments. There are only a few filaments in the system, and the length of each filament is directly correlated with the time since it was nucleated.
+
+
+\subsubsection{Profilin and formin together}
 \begin{figure}
 \centering
-\includegraphics[width=0.48\textwidth]{FreeMonConcFormin.eps}
-\includegraphics[width=0.48\textwidth]{FractionFreeFormin.eps}
-\includegraphics[width=0.48\textwidth]{PercentForminBoundNoprof.eps}
-\includegraphics[width=0.48\textwidth]{FibersPerVolFormin.eps}
-\caption{\label{fig:ActinNucWithFormin}Dynamics of actin polymerization (at 5 $\mu$M actin) when formin nucleates actin filaments, and barbed end growth with formin attached occurs at 50\% of the free-ended rate. Top left: the concentration of free actin monomers over time. The colors correspond to different formin concentrations. Top right: the fraction of free formins over time. Bottom left: the percentage of fibers that have a formin-bound barbed end. Bottom right: the number of fibers per unit volume. The solid lines give the total density of filaments per volume, while the dotted lines give the density of formin-bound filaments.}
+\includegraphics[width=0.9\textwidth]{LinearFibers2.pdf}
+\caption{\label{fig:ActinForProf}Dynamics of actin polymerization (at 5 $\mu$M) with formin and profilin. Left column shows 1.5 $\mu$M actin, right column shows 5 $\mu$M actin. In all cases, blue, red, and yellow curves show 0 nM formin, 0.1 nM formin, and 1 nM formin, respectively, while solid, dashed, and dashed-dotted curves show 0:0, 0.5:1, and 1:1 profilin:actin ratio, respectively. Top plots show the concentration of polymerized actin, middle plots show the number of filaments per $\mu$m$^3$, and bottom plots show the percentage of formin bound fibers.}
 \end{figure}
 
-We now consider how adding formin affects the dynamics of actin polymerization at a fixed actin concentration of 5 $\mu$M. Figure\ \ref{fig:ActinNucWithFormin} shows the concentration of free monomers, fraction of free formins, and fiber density (with and without bound formins) from simulations lasting 3600~s, in which we include formin at concentrations varying from 0 to 2 nM. In all cases, we see how formin aids the process of nucleation; at time shorter than 60 seconds, almost all of the filaments created are formin-bound, regardless of the formin concentration. As time goes on, the percentage of formin-bound filaments decreases in proportion to the amount of formin in the system, as spontaneous nucleation gives filaments without bound ends. There is then a long-time steady state where formin assumes an equilibrium with about 7\% unbound. The long time steady state demonstrates that the number of fibers is large enough in all cases for formin to assume an equilibrium state (there is never an excess of formins, because at higher formin concentrations more filaments are nucleated).
+Figure \ref{fig:ActinPolyMix} showed that formin and profilin have essentially opposite functions; formin speeds up overall polymerization by increasing nucleation, while profilin slows it down by inhibiting nucleation. The natural expectation is that putting formin and profilin together will rescue the original rate of polymerization. We examine this more closely in Fig.\ \ref{fig:ActinForProf}, where we consider two different actin concentrations (1.5 $\mu$M and 5 $\mu$M). For each actin concentration, we look at three different formin concentrations (0, 0.1, and 1 nM), and three different profilin:actin ratios (0:1, 0.5:1, and 1:1). There we observe a general trend: without formin, adding profilin slows down polymerization. Adding a small amount of formin (0.1 nM) to the reaction then rescues the original timescale of polymerization, in agreement with older bulk-actin polymerization curves in \cite[Fig.~2]{li2003mouse} and \cite[Fig.~6]{harris2004mouse}. 
 
-At low ($\leq 0.2$ nM) formin concentrations, the dynamics of polymerization closely resemble the spontaneous nucleation case; we see that it takes about 1500 s to reach the steady state concentration of free monomers. As we increase the formin concentration, the nucleation phase is faster (bottom right plot), going from about 300 s for no formin to 100 s with formin. The faster nucleation phase occurs because more filaments are nucleated. The nucleation of additional filaments leads to a faster growth phase, since there are more barbed ends available to bind actin monomers. Thus, despite the fact that formin-bound barbed ends grow more slowly than free barbed ends, the additional barbed ends still lead to a faster growth phase. If we define the growth phase as the time it takes the free monomer concentration to go from 90\% to 10\%, we obtain a time of $252-30\approx 200$ s with 2 nM formin, compared to $1080-144 \approx 1000$ s without formin. With 2 nM formin, there are ten times as many filaments, but each filament grows at half the speed, which gives a factor of five difference in the dynamics.
-
-How do these dynamics affect the length distribution of fibers? As shown in Fig.\ \ref{fig:HistsWithFormin}, and as previously reported in \cite{banerjee2022emergence}, an increase in the formin concentration leads to the nucleation of more filaments at early times, which translates to a smaller mean and standard deviation in the number of monomers per filament. The slower speed of formin-filament growth leads to a bimodality in the distribution of filament lengths; this is especially clear in the case of 0.1 nM formin, where there is a peak at $2 \times 10^4$ which matches the non-formin-bound fibers, along with a second peak around $1 \times 10^4$ monomers for formin-bound fibers. When the formin concentration increases, we typically observe a large peak associated with formin-bound fibers. This peak tends to lose mass over time, with growth occurring for larger numbers of monomers. This reflects the theoretical expectation that the slower growing fibers (the formin-bound ones) will give up their actin over long times to the faster-growing (non formin-bound) ones \cite{mohapatra2017limiting}. 
-
-\subsection{Explicitly incorporating profilin}
-
-We begin our study by looking at how profilin affects polymerization without formin. Figure\ \ref{fig:ActinProfilin} compares the dynamics of polymerization of 5 $\mu$M actin with varying profilin concentrations in the range 0 to 5 $\mu$M. Low profilin concentrations do not show too much of a change from the spontaneous nucleation curves, since at 1 $\mu$M profilin concentration we only expect about 20\% of the monomers to be bound to profilin. Increasing the profilin concentration has drastic effects; once we reach 5 $\mu$M profilin, the growth phase is not complete by $t=3$ hours. The slowdown in polymerization is driven by two factors: first, profilin has a reduced rate of binding for both pointed and barbed ends, which slows down the rate of polymerization. Second and more importantly, increases in profilin lead to less filaments being nucleated, which means there are less barbed ends available to bind monomers. The length distributions for each profilin concentration show another effect of having less filaments; each filament tends to be longer, and the distributions are more spread out. The reason for the latter is that there is no longer a big nucleation event that spawns many filaments. There are only a few filaments in the system, and the length of each filament is directly correlated with the time since it was nucleated.
-
-\subsubsection{Formin (high concentration) with profilin}
-\begin{figure}
-\centering
-\includegraphics[width=0.48\textwidth]{FreeMonConcForminProf.eps}
-\includegraphics[width=0.48\textwidth]{FractionFreeForminProf.eps}
-\includegraphics[width=0.48\textwidth]{PercentForminBoundProf.eps}
-\includegraphics[width=0.48\textwidth]{FibersPerVolForminProf.eps}
-\caption{\label{fig:ActinForProf}Dynamics of actin polymerization (at 5 $\mu$M) with 1 nM formin and various profilin concentrations. Top left: the concentration of free actin monomers over time. The colors correspond to different formin concentrations. Note the non-monotonic dependence of overall monomer depletion on profilin concentration. Top right: the fraction of free formins over time. Bottom left: the percentage of fibers that have a formin-bound barbed end. Bottom right: the number of fibers per unit volume. In addition to the colors representing different concentrations, the solid lines give the total density of filaments per volume, while the dotted lines give the density of formin-bound filaments.}
-\end{figure}
-
-\iffalse
-\begin{figure}
-\centering
-\includegraphics[width=\textwidth]{LengthHistsForminProf.eps}
-\caption{\label{fig:HistsForProf}Length distribution for actin filaments in simulations with 1 nM formin and varying concentrations of profilin. We show the distributions of fiber sizes (in terms of the number of monomers) at four time points ($t=300$ s in blue, $t=600$ s in red, $t=1800$ s in yellow, and $t=5400$ s in purple). Increasing profilin concentration gives less filaments, which translates to a more uniform-looking distribution with larger mean and standard deviation.}
-\end{figure}
-\fi
+Because profilin-actin binds to formin-bound barbed ends faster than free actin, but also inhibits fiilament nucleation, there is an interesting trade-off between the lag phase and growth phase in the overall polymerization dynamics. At a fixed (nonzero) formin concentration, increasing the profilin conentration to an 0.5:1 ratio typically \emph{speeds up} polymerization, since there is not enough profilin to completely block nucleation, and once filaments are nucleated they polymerize faster. Increasing to a 1:1 ratio then slows down polymerization because having almost all of the actin bound to profilin signficantly slows down the lag phase, so much so that the faster elongation phase can no longer catch up.
 
 
-We now consider the effect of adding formin at concentration 1 nM. At this formin concentration, we previously saw (Fig.\ \ref{fig:ActinNucWithFormin}) that about 80\% of the fibers are bound to formin in the absence of profilin. Figure\ \ref{fig:ActinForProf} shows the results of polymerization with formin in the presence of profilin. There is an interesting trade-off in the polymerization dynamics: on the one hand, profilin inhibits nucleation by formin, so the nucleation phase is slower with profilin. On the other hand, once filaments are nucleated, profilin-actin binds at a faster rate to the barbed end than actin without profilin. This process is auto-catalytic: as more profilin-actin binds to fibers, profilin is released, and there is more of it in solution, which means more of the actin monomers are profilin bound. As a result, low profilin concentrations of 1--3 $\mu$M have dynamics which are \emph{faster} than actin without profilin.
+\subsection{Branched filaments \label{sec:BF}}
 
-
-Unlike for the case without formin, with formin the behavior with increasing profilin concentration is non-monotonic: at higher profilin concentrations (4--5 $\mu$M), the increased growth rate at barbed ends cannot compensate for the smaller number of fibers, and the dynamics are slower. The smaller number of fibers occurs because formin has to nucleate filaments from \emph{free} actin monomers, which are less abundant as the profilin concentration increases. Indeed, when profilin concentrations are high, there are substantially less filaments, all of which are formin-bound (and therefore elongate rapidly). Unlike for the case without profilin, with profilin formin is in excess, and the number of free formins increases as the profilin concentration increases. Decreasing the formin concentration to 0.1 nM gives the same trends as for 1 nM formin concentration (results not shown). 
-
-\iffalse
-\begin{figure}
-\centering
-\includegraphics[width=0.48\textwidth]{FreeMonConcForminLowProf.eps}
-\includegraphics[width=0.48\textwidth]{FractionFreeForminLowProf.eps}
-\includegraphics[width=0.48\textwidth]{PercentForminBoundLowProf.eps}
-\includegraphics[width=0.48\textwidth]{FibersPerVolForminLowProf.eps}
-\caption{\label{fig:ActinForLowProf}Dynamics of actin polymerization (at 5 $\mu$M) with 0.1 nM formin and various profilin concentrations. Top left: the concentration of free actin monomers over time. The colors correspond to different formin concentrations. Top right: the fraction of free formins over time. Bottom left: the percentage of fibers that have a formin-bound barbed end. Bottom right: the number of fibers per unit volume. In addition to the colors representing different concentrations, the solid lines give the total density of filaments per volume, while the dotted lines give the density of formin-bound filaments.}
-\end{figure}
-\fi
-
-\subsection{Summary of results}
-Summing up our results from this section on linear filaments, we found the following
-\begin{itemize}
-\item For spontaneous nucleation, the number of fibers increases (roughly quadratically) with the actin concentration. Because of the limited pool, higher concentrations have shorter fibers (since there are more fibers to suck up the monomers).
-\item Adding formin accelerates nucleation and polymerization by producing more filaments. Without profilin, the number of additional fibers is linearly proportional to the formin concentration. Consequently, the fraction of free formin is independent of the formin concentration. 
-\item With profilin, we slow down nucleation and (with formin attached) accelerate the growth phase. This gives rise to non-monotonic dynamics: at low profilin concentrations, the nucleation phase is not substantially affected, but the growth phase is substantially faster, and polymerization is overall faster. At higher profilin concentrations, the accelerated growth phase cannot make up for a slow nucleation phase, and the dynamics are overall slower. At high profilin concentrations, formin is in excess, as it cannot nucleate filaments when profilin is bound to actin.
-\end{itemize}
-In general, we see that free monomers at concentration 5 $\mu$M take about $10^3$ s to reach the equilibrium phase. Adding 4 $\mu$M profilin, we do not reach the equlibrium phase until beyond $10^4$ s. When we add formin, the equilibrium phase is reached in about 500 s (rescuing the original timeline). These qualitative results agree with older bulk-actin polymerization curves in \cite[Fig.~2]{li2003mouse} and \cite[Fig.~6]{harris2004mouse}.
-
-\begin{figure}
-\centering
-\includegraphics[width=0.48\textwidth]{SumPlotLinFib-1.eps}
-\includegraphics[width=0.48\textwidth]{SumPlotLinFib-2.eps}
-\caption{\label{fig:SumPlotLin}Summary of the role of formin and profilin for linear fiber growth. We show the base 5 $\mu$M actin in light blue, with 1 $\mu$M profilin in pink and 4 $\mu$M profilin in yellow. The darker colors then show the same concentrations, but with 1 nM formin.}
-\end{figure}
-
-\section{Stochastic simulations of branched filaments \label{sec:BF}}
-
-\subsection{Branching with spontaneous nucleation \label{sec:BrSN}}
+\subsubsection{Branching with spontaneous nucleation \label{sec:BrSN}}
 
 \begin{figure}
 \centering
@@ -300,7 +255,7 @@ To understand these data, it is important to remember that actin filament polyme
 
 Further understanding of the dynamics can be gained by looking at the length distributions in Fig.\ \ref{fig:LengthDistsArp}, where we have made separate distributions for linear fibers (including mothers of branches) in the top set of plots, and branches in the bottom set. For 2 nM Arp 2/3 concentration, the length distributions look similar to the case without arp 2/3, where a quasi-steady state is achieved at roughly 1000 s that has a mean of $2 \times 10^4$ monomers. The branches sit in a rough steady state here, reflecting an equilibrium where monomers typically exchange between existing filaments. For 20 nM and 200 nM Arp 2/3 concentration, the quasi-steady state in the linear fibers occurs at an early time, and they do not elongate past $2 \times 10^4$ monomers. It is instead branches which form, in particular new branches, as the distribution of branch lengths becomes more and more concentrated on smaller branches over time. This is in line with our previous observation that branching is faster than elongation for these concentrations. The formation of new branches at later times demonstrates that there is an excess of arp 2/3 which looks for available monomers to form new branches. 
 
-\subsection{Incorporating profilin}
+\subsubsection{Incorporating profilin}
 Because profilin competes with VCA for binding actin monomers, and because VCA is (in most systems) required for arp 2/3 complex to bind an actin monomer and form a branch, we assume that branching with profilin-bound monomers is impossible. With this assumption, Figure \ref{fig:PolyArp2Prof} shows the effect of adding profilin to a system of polymerizing actin and arp 2/3 complex.
 
 \begin{figure}
@@ -311,10 +266,9 @@ Because profilin competes with VCA for binding actin monomers, and because VCA i
 
 Our observations for the branching process with profilin are similar to what we saw with linear filaments (Fig.\ \ref{fig:ActinProfilin}). Increasing the profilin concentration slows down the nucleation and growth phase, since there are substantially less fibers nucleated. The branching process with profilin is significantly more interesting. When the profilin concentration is slow (1--2 $\mu$M), the branching rate initially ($t \leq 400$ s) is comparable to what it is without profilin. As more of the actin gets polymerized, the branching rate slows down substantially, because more of the actin is bound to profilin and so new branches cannot get nucleated. In systems without profilin, the branch density grows in the equilibrium phase, since free monomers can form new branches (especially when a lot of arp 2/3 is available). But with profilin, the branch rate is constant in the equilibrium phase; because the free actin concentration is low, almost all of it is bound to profilin, and no new branches can form. 
 
-\subsection{Incorporating formins}
+\subsubsection{Incorporating formins}
 We now incorporate formin into the branching dynamics. As in linear filaments, formin can bind to the barbed end of branched filaments and modify the growth rate there. 
 
-\subsubsection{Without profilin}
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{DynamicsArpForminOnly.eps}
@@ -335,18 +289,17 @@ We first consider 5 $\mu$M actin and 1 nM formin with varying concentrations of 
 The length distributions in Fig.\ \ref{fig:LengthDistsArpFormin} show how the concentration of arp 2/3 sets the length of the filaments over time. At arp concentrations in the range 2--20 nM, there is initially build-up of actin into fibers with about 4000 monomers. Most of these fibers then shrink over time as monomers get taken away to form new branches, most of which are small in size. This effect is strongest at 200 nM arp 2/3, when the fibers do not build up to be as large initially (branching and nucleation happen at the same time), and most of the fibers rapidly shrink down, giving way to more branching.
 \fi
 
-\subsubsection{With profilin}
 Based on previous results, we now consider adding in profilin to a system with 1 nM formin and 20 nM arp 2/3. Without profilin, we saw that adding formin made little difference in the branch density; will this also be true when we add in profilin?
 
 \begin{figure}
 \centering
-\includegraphics[width=\textwidth]{DynamicsArp20ForminProf.eps}
+%\includegraphics[width=\textwidth]{DynamicsArp20ForminProf.eps}
 \caption{\label{fig:Arp20ForminProf}Course of polymerization and assembly with 5 $\mu$M actin concentration, 1 nM formin concentration, 20 nM arp 2/3 concentration, and varying profilin concentration.  The top plots show the concentration of polymerized actin and the percentage of formin-bound barbed ends. The bottom plots show the dynamics of fiber and branch growth. }
 \end{figure}
 
 Figure\ \ref{fig:Arp20ForminProf} shows the results for a system that includes formin, arp, and profilin (everything). As we have seen previously, adding profilin reduces the number of fibers and number of branches. This means there are less barbed ends available, and so a higher fraction of the formin is bound to the barbed ends. As a result of profilin accelerating polymerization, the polymerization dynamics with profilin concentrations 1--3 $\mu$M are again faster than without profilin, which is the same conclusion we reached for linear fibers (see Fig.\ \ref{fig:ActinForProf}). But the faster dynamics have strong consequences for branching: for a fixed parameter set, the number of branches without formin (Fig.\ \ref{fig:PolyArp2Prof}) is substantially \emph{higher} than with formin. This is because the balance of rates has shifted; with profilin, polymerization of linear filaments is faster, and so more of the actin goes there than into the branches. 
 
-\subsection{Summary of results}
+\subsubsection{Summary of results}
 Our results on branching can be summarized as follows
 \begin{itemize}
 \item Branching occurs after the assembly of linear filaments. When the arp 2/3 concentration is high enough, the formation of new branches can compete with linear filaments, and there are less linear filaments at the end of the nucleation phase. 
@@ -354,7 +307,7 @@ Our results on branching can be summarized as follows
 \item With formin, there are more linear fibers per volume, but the branch density is unchanged from the case without formin (because the amount of polymerized actin is the same). This conclusion changes when we add profilin: because profilin-actin goes into formin-bound fibers at a faster rate, the number of branches drops relative to the case without formin. Thus, if we wanted to use formin to reduce the branch frequency, we need to add profilin as well. \red{(This would be a nice experiment to try.)}
 \end{itemize}
 
-\subsection{Concentrations corresponding to in vitro experiments}
+\subsection{In vitro experiments}
 Typical TIRF experiments can only go up to actin concentrations of 1.5 $\mu$M. Figure\ \ref{fig:Actin15} shows our experiments at this concentration. The same fundamental trends are observed, although a new regime emerges at very high profilin concentrations where there is no polymerization after 8 hours, and thus minimal branching. Thus, at zero profilin concentration the branch density is the same regardless of whether formin is around. Increasing to 1:1 profilin concentration gives lower branch densities with formin. Increasing to higher profilin concentration then gives higher branch densities (after 8 hrs) with formin, because the simulations without formin have not yet reached a steady state.
 
 \begin{figure}
@@ -369,6 +322,9 @@ Typical TIRF experiments can only go up to actin concentrations of 1.5 $\mu$M. F
 \includegraphics[width=0.6\textwidth]{SummaryFigBranch-2.eps}
 \caption{\label{fig:SumPlotBr}Summary of the role of formin and profilin for branched fiber growth (20 nM arp 2/3 in all cases). Top plots: We show the base 5 $\mu$M actin in light blue, with 1 $\mu$M profilin in pink and 4 $\mu$M profilin in yellow. The darker colors then show the same concentrations, but with 1 nM formin. Bottom plot: the number of branches per $\mu$m after one hour as a function of profilin concentration without (blue) and with (red) formin.}
 \end{figure}
+
+\section{Conclusion}
+Our measurements for linear filaments revealed an interesting general property of the profilin/actin/formin interaction: if profilin inhibits spontaneous nucleation, while also speeding up polymerization in the presence of formin, a moderate amount of profilin can actually speed up the total speed of polymerization. Interestingly, measurements in mammalian cells placed the profilin:actin ratios around 0.5:1, suggesting that \emph{in vivo} dynamics operate in the regime where profilin speeds up, rather than slows down polymerization \cite{funk2019profilin}.
 
 \begin{appendices}
 
@@ -545,16 +501,33 @@ In the case when the mother filament has length 8 instead of 4, the time does no
 
 \begin{figure}
 \centering
+\includegraphics[width=0.48\textwidth]{FractionFreeFormin.eps}
+\includegraphics[width=0.48\textwidth]{PercentForminBoundNoprof.eps}
+\caption{Dynamics of actin polymerization (at 5 $\mu$M actin) when formin nucleates actin filaments, and barbed end growth with formin attached occurs at 50\% of the free-ended rate (companion to Fig.\ \ref{fig:ActinNucWithFormin}. Left: the fraction of free formins over time. Right: the percentage of fibers that have a formin-bound barbed end. Right: the number of fibers per unit volume. The solid lines give the total density of filaments per volume, while the dotted lines give the density of formin-bound filaments.}
+\end{figure}
+
+
+\begin{figure}
+\centering
 \includegraphics[width=\textwidth]{LengthHistsFormin.eps}
-\caption{\label{fig:HistsWithFormin}Length distribution for actin filaments in simulations with formin of varying concentrations. We show the distributions of fiber sizes (in terms of the number of monomers) at four time points ($t=600$ s in blue, $t=1200$ s in red, $t=2400$ s in yellow, and $t=3600$ s in purple). The distributions become more uniform (smaller range) as the formin concentration increases.}
+\caption{\label{fig:HistsWithFormin}Length distribution for actin filaments (5 $\mu$M actin) in simulations with formin of varying concentrations. We show the distributions of fiber sizes (in terms of the number of monomers) at six time points as indicated in the legend.}
 \end{figure}
 
 \begin{figure}
 \centering
-\includegraphics[width=0.48\textwidth]{DynamicsProfilinOnly.eps}
-\includegraphics[width=0.48\textwidth]{FractionFreeProfilin.eps}
+\includegraphics[width=0.48\textwidth]{FreeMonConcFormin_15.eps}
+\includegraphics[width=0.48\textwidth]{FibersPerVolFormin_15.eps}
+\includegraphics[width=0.48\textwidth]{FractionFreeFormin_15.eps}
+\includegraphics[width=0.48\textwidth]{PercentForminBoundNoprof_15.eps}
+\caption{\label{fig:ActinLowNucWithFormin}Dynamics of actin polymerization (at 1.5 $\mu$M actin) when formin nucleates actin filaments, and barbed end growth with formin attached occurs at 50\% of the free-ended rate. Top left: the concentration of free actin monomers over time. The colors correspond to different formin concentrations. Top right: the number of fibers per unit volume. The solid lines give the total density of filaments per volume, while the dotted lines give the density of formin-bound filaments. Bottom left: the fraction of free formins over time. Right: the percentage of fibers that have a formin-bound barbed end. Bottom right: the number of fibers per unit volume. The solid lines give the total density of filaments per volume, while the dotted lines give the density of formin-bound filaments. The dynamics are similar to 5 $\mu$M actin, except that the equilibrium of the formin reaction is slower for higher formin densities.}
+\end{figure}
+
+
+
+\begin{figure}
+\centering
 \includegraphics[width=\textwidth]{LengthDistsProfilin.eps}
-\caption{\label{fig:ActinProfilin}Dynamics of actin polymerization (at 5 $\mu$M) with profilin. Top left: the concentration of free actin monomers over time. The colors correspond to different profilin concentrations. Top right: the number of fibers per volume over time. Bottom: fiber length distributions over time for 2 $\mu$M profilin (left), 3 $\mu$M profilin (middle), and 4 $\mu$M profilin (right).}
+\caption{\label{fig:ActinProfilin}Dynamics of actin polymerization (at 5 $\mu$M) with profilin. Fiber length distributions over time for 2 $\mu$M profilin (left), 3 $\mu$M profilin (middle), and 4 $\mu$M profilin (right).}
 \end{figure}
 
 \end{appendices}
