@@ -187,6 +187,21 @@ class ActinMixedNucleates {
             }
         }
     }
+    
+    void InitSeeds(int NInSeeds, int nMonPerSeed){
+        // Compute 
+        int NFibers = NInSeeds/nMonPerSeed;
+        if (NFibers*nMonPerSeed > _nFreeMon){
+            throw std::runtime_error("Cannot have more seeds than total protein");
+        }
+        for (int iFib=0; iFib < NFibers; iFib++){
+            _Fibers.push_back(std::make_shared<Fiber>(_Lens, nMonPerSeed, _nMonProts, _nBarbedProts, 
+                    _BarbedBindersRates, _PointedPlus, _BarbedPlus, _PointedMinus, _BarbedMinus, _BranchOnRates,_BranchOffRate,
+                    _spacing, _a, _mu, _kbT,-1));   
+            _nFreeMon-=nMonPerSeed;
+        }
+        std::cout << "Number of seeds " << NFibers << " number monomers left " << _nFreeMon << std::endl;
+    }
         
     
     void Diffuse(double dt){
@@ -312,6 +327,11 @@ class ActinMixedNucleates {
     
     int nFreeMonomers(){
         return _nFreeMon;
+    }
+    
+    npInt FreeAndProfBoundMonomers(){
+        intvec NumOnEach = NumBoundToEachProtein(_nFreeMon);
+        return makePyArray(NumOnEach);
     }
     
     npInt NumMonOnEachFiber(){
@@ -675,12 +695,14 @@ PYBIND11_MODULE(ActinMixedNucleates, m) {
         .def("InitializeRateMatrices",&ActinMixedNucleates::InitializeRateMatrices)
         .def("InitializeBranchers",&ActinMixedNucleates::InitializeBranchers)
         .def("InitBranchedStructure",&ActinMixedNucleates::InitBranchedStructure)
+        .def("InitSeeds",&ActinMixedNucleates::InitSeeds)
         .def("Diffuse",&ActinMixedNucleates::Diffuse)
         .def("React",&ActinMixedNucleates::React)
         .def("getX", &ActinMixedNucleates::getX)
         .def("AllX0",&ActinMixedNucleates::AllX0)
         .def("AllTaus",&ActinMixedNucleates::AllTaus)
         .def("nFreeMonomers", &ActinMixedNucleates::nFreeMonomers)
+        .def("FreeAndProfBoundMonomers",&ActinMixedNucleates::FreeAndProfBoundMonomers)
         .def("NumMonOnEachFiber",&ActinMixedNucleates::NumMonOnEachFiber)
         .def("BranchedOrLinear", &ActinMixedNucleates::BranchedOrLinear)
         .def("BoundBarbedStates",&ActinMixedNucleates::BoundBarbedStates);

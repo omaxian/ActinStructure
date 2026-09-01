@@ -1,29 +1,27 @@
 % Generate the following plots
 % (1) Plot of free actin concentration over time
 % (2) Histogram of length of fibers (in monomers)
-ArpConcs = [2 20 200]; % in nM
-ProfConcs = [0:4];
+ForminConcs = [0];
 spacing = 2e-3;
-for iF=1:length(ProfConcs)
-Conc = 5;
-ConcProf =ProfConcs(iF);
-ArpConc= 20e-3;
-ForminConc = 0;
-LBox = 5;
-if (ForminConc==0)
-if (ConcProf < 2)
-    LBox = 5;
+for iC=1:length(ForminConcs)
+if (iC==1)
+    PConcs=0;
 else
-    LBox = 8;
+    PConcs=[2.5 5];
 end
-end
+for iP=1:length(PConcs)
+Conc = 1.5;
+ConcProf =PConcs(iP);
+ForminConc = ForminConcs(iC);
+ArpConc= 20e-3;
+LBox = 10;
 MinForFiber = 4;
 Vol = LBox^3;
 uMInvToMicron3 = 1.0e15/(6.022e17);
 Nmon = floor(Conc*Vol/uMInvToMicron3);
 NArp = floor(ArpConc*Vol/uMInvToMicron3);
-tf = 3600;
-dt = 5;
+tf = 10800;
+dt = 10;
 nT = tf/dt;
 nError=3;
 nTrial=10;
@@ -34,8 +32,10 @@ LinFibLens = cell(nT,1);
 BranchFibLens = cell(nT,1);
 for iTrial=1:nTrial
 index = nTrial*(iError-1)+iTrial;
-FileName = strcat(num2str(Conc),'uM_Prof',num2str(ConcProf),'uM_Arp',...
-     num2str(ArpConc*1000),'nM_Formin',num2str(ForminConc*1e4),'em4uM_',num2str(index),'.txt');
+FileName = strcat('Tf',num2str(tf),'_Box',num2str(LBox),'_Actin',num2str(Conc),...
+    'uM_Prof',num2str(ConcProf),'uM_Arp',...
+     num2str(ArpConc*1000),'nM_Formin',num2str(ForminConc*1e4),...
+     'em4uM_',num2str(index),'.txt');
 FreeMons = load(strcat('FreeMons',FileName));
 StructInfo=load(strcat('StructInfo',FileName));
 NumFibs=load(strcat('NumFibs',FileName));
@@ -109,83 +109,106 @@ StdOfEach = std(NumOfEach,0,3);
 ts=(1:nT)*dt;
 figure(1)
 subplot(2,2,1)
-plot(ts,Conc-MeanOfEach(1,:))
+set(gca,'ColorOrderIndex',iC)
+LineSt='-';
+plot(ts,Conc-MeanOfEach(1,:),LineSt)
 hold on
 skip=floor(nT/20);
+try
 set(gca,'ColorOrderIndex',get(gca,'ColorOrderIndex')-1)
+catch
+set(gca,'ColorOrderIndex',1)
+end
+set(gca,'ColorOrderIndex',iC)
 errorbar(ts(skip:skip:end),Conc-MeanOfEach(1,skip:skip:end),...
     2*StdOfEach(1,skip:skip:end)/sqrt(nError),'o','MarkerSize',0.5)
 title('Polymerized actin ($\mu$M)')
 xlabel('$t$ (s)')
 xlim([0 tf])
 subplot(2,2,2)
-plot(ts,MeanOfEach(6,:),'-.')
+plot(ts,MeanOfEach(6,:),LineSt)
 hold on
+try
 set(gca,'ColorOrderIndex',get(gca,'ColorOrderIndex')-1)
+catch
+set(gca,'ColorOrderIndex',1)
+end
+set(gca,'ColorOrderIndex',iC)
 errorbar(ts(skip:skip:end),MeanOfEach(6,skip:skip:end),...
     2*StdOfEach(6,skip:skip:end)/sqrt(nError),'o','MarkerSize',0.5)
 xlabel('$t$ (s)')
 xlim([0 tf])
 title('Fraction formin-bound barbed ends')
 subplot(2,2,3)
-plot(ts,MeanOfEach(4,:),'-.')
+plot(ts,MeanOfEach(4,:),LineSt)
 hold on
+try
 set(gca,'ColorOrderIndex',get(gca,'ColorOrderIndex')-1)
+catch
+set(gca,'ColorOrderIndex',1)
+end
+set(gca,'ColorOrderIndex',iC)
 errorbar(ts(skip:skip:end),MeanOfEach(4,skip:skip:end),...
     2*StdOfEach(4,skip:skip:end)/sqrt(nError),'o','MarkerSize',0.5)
 xlabel('$t$ (s)')
 xlim([0 tf])
 title('Linear fibers per volume')
 subplot(2,2,4)
-plot(ts,MeanOfEach(3,:),':')
+plot(ts,MeanOfEach(3,:),LineSt)
 hold on
+try
 set(gca,'ColorOrderIndex',get(gca,'ColorOrderIndex')-1)
+catch
+set(gca,'ColorOrderIndex',1)
+end
+set(gca,'ColorOrderIndex',iC)
 errorbar(ts(skip:skip:end),MeanOfEach(3,skip:skip:end),...
     2*StdOfEach(3,skip:skip:end)/sqrt(nError),'o','MarkerSize',0.5)
 title('Branches per 1 $\mu$m')
 xlabel('$t$ (s)')
 xlim([0 tf])
-% figure(2)
-% plot(ts,MeanOfEach(5,:))
-% hold on
-% set(gca,'ColorOrderIndex',get(gca,'ColorOrderIndex')-1)
-% errorbar(ts(skip:skip:end),MeanOfEach(5,skip:skip:end),...
-%     2*StdOfEach(5,skip:skip:end)/sqrt(nError),'o','MarkerSize',0.5)
-% ylabel('Fraction free arp 2/3')
-% % Histogram
-% MeanCountsByTime = cell(nT,1);
-% StdCountsByTime = cell(nT,1);
-% xpl = cell(nT,1);
-% for iT=1:nT
-%     MeanCountsByTime{iT}=mean(CountsByTime_Lin{iT});
-%     StdCountsByTime{iT}=std(CountsByTime_Lin{iT});
-%     xpl{iT}=(EdgesByTime_Lin{iT}(1:end-1)+EdgesByTime_Lin{iT}(2:end))*0.5;
-% end
-% figure(3)
-% tspl =[600 1200 2400 3600]/dt;
-% subplot(1,5,iF)
-% for iT=tspl
-%     errorbar(xpl{iT},MeanCountsByTime{iT},2*StdCountsByTime{iT}/sqrt(nError),'LineWidth',2.0);
-%     hold on
-% end
-% legend(strcat('$t=$',num2str(tspl(1)*dt)),strcat('$t=$',num2str(tspl(2)*dt)),...
-%     strcat('$t=$',num2str(tspl(3)*dt)),strcat('$t=$',num2str(tspl(4)*dt)))
-% title(strcat(num2str(ArpConc*1000),' nM'))
-% figure(4)
-% MeanCountsByTime = cell(nT,1);
-% StdCountsByTime = cell(nT,1);
-% xpl = cell(nT,1);
-% for iT=1:nT
-%     MeanCountsByTime{iT}=mean(CountsByTime_Br{iT});
-%     StdCountsByTime{iT}=std(CountsByTime_Br{iT});
-%     xpl{iT}=(EdgesByTime_Br{iT}(1:end-1)+EdgesByTime_Br{iT}(2:end))*0.5;
-% end
-% subplot(1,5,iF)
-% for iT=tspl
-%     errorbar(xpl{iT},MeanCountsByTime{iT},2*StdCountsByTime{iT}/sqrt(nError),'LineWidth',2.0);
-%     hold on
-% end
-% legend(strcat('$t=$',num2str(tspl(1)*dt)),strcat('$t=$',num2str(tspl(2)*dt)),...
-%     strcat('$t=$',num2str(tspl(3)*dt)),strcat('$t=$',num2str(tspl(4)*dt)))
-% title(strcat(num2str(ForminConc*1000),' nM Formin'))
+figure(2)
+plot(ts,MeanOfEach(5,:))
+hold on
+set(gca,'ColorOrderIndex',get(gca,'ColorOrderIndex')-1)
+errorbar(ts(skip:skip:end),MeanOfEach(5,skip:skip:end),...
+    2*StdOfEach(5,skip:skip:end)/sqrt(nError),'o','MarkerSize',0.5)
+ylabel('Fraction free arp 2/3')
+% Histogram
+MeanCountsByTime = cell(nT,1);
+StdCountsByTime = cell(nT,1);
+xpl = cell(nT,1);
+for iT=1:nT
+    MeanCountsByTime{iT}=mean(CountsByTime_Lin{iT});
+    StdCountsByTime{iT}=std(CountsByTime_Lin{iT});
+    xpl{iT}=(EdgesByTime_Lin{iT}(1:end-1)+EdgesByTime_Lin{iT}(2:end))*0.5;
+end
+figure(3)
+tspl =[100 300 600 1200 3600 10800]/dt;
+subplot(1,length(ForminConcs),iC)
+for iT=tspl
+    errorbar(xpl{iT},MeanCountsByTime{iT},2*StdCountsByTime{iT}/sqrt(nError),'LineWidth',2.0);
+    hold on
+end
+legend(strcat('$t=$',num2str(tspl(1)*dt)),strcat('$t=$',num2str(tspl(2)*dt)),...
+    strcat('$t=$',num2str(tspl(3)*dt)),strcat('$t=$',num2str(tspl(4)*dt)))
+title(strcat(num2str(ArpConc*1000),' nM'))
+figure(4)
+MeanCountsByTime = cell(nT,1);
+StdCountsByTime = cell(nT,1);
+xpl = cell(nT,1);
+for iT=1:nT
+    MeanCountsByTime{iT}=mean(CountsByTime_Br{iT});
+    StdCountsByTime{iT}=std(CountsByTime_Br{iT});
+    xpl{iT}=(EdgesByTime_Br{iT}(1:end-1)+EdgesByTime_Br{iT}(2:end))*0.5;
+end
+subplot(1,length(ForminConcs),iC)
+for iT=tspl
+    errorbar(xpl{iT},MeanCountsByTime{iT},2*StdCountsByTime{iT}/sqrt(nError),'LineWidth',2.0);
+    hold on
+end
+legend(strcat('$t=$',num2str(tspl(1)*dt)),strcat('$t=$',num2str(tspl(2)*dt)),...
+    strcat('$t=$',num2str(tspl(3)*dt)),strcat('$t=$',num2str(tspl(4)*dt)))
+title(strcat(num2str(ForminConc*1000),' nM Formin'))
+end
 end
