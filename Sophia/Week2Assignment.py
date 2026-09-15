@@ -49,7 +49,7 @@ k2 = 1
 Ai = 1
 Bi = 1 
 ABi = 0 
-tmax = 15
+tmax = 3
 
 tgraph = np.linspace(0, tmax, 500)
 res = solve_ivp(ode, [0, tmax], [Ai, Bi, ABi],t_eval = tgraph, args = (k1, k2))
@@ -59,10 +59,11 @@ plt.xlabel("Time")
 plt.ylabel("[AB]")
 plt.show()
 
-vols = [20, 200, 2000, 20000]
+vols = [2000, 2000, 2000, 2000]
 
 plt.plot(res.t, res.y[2], label = "Macroscopic ODE")
 
+N = 5
 for V in vols: 
     r1 = k1/V
     r2 = k2 
@@ -71,14 +72,41 @@ for V in vols:
     NBi = int(Bi * V)
     NABi = int(ABi * V)
     
-    times, A, B, AB = microscopic(r1, r2, NAi, NBi, NABi, tmax)
-    concAB = np.array(AB)/V
+    everyAB = []
+    
+    for j in range(N):   
+        times, A, B, AB = microscopic(r1, r2, NAi, NBi, NABi, tmax)
+        print(j)
+        print(times[:5])
+        print(AB[:5])
+        concAB = np.array(AB)
+        
+        collection_AB = []
+        for time in tgraph: 
+            place = np.searchsorted(times, time, side="right") - 1
+            collection_AB.append(concAB[place])
+        everyAB.append(collection_AB)
+            
+        plt.plot(times, concAB)
+    
+    everyAB = np.array(everyAB)
+    mean_AB = np.mean(everyAB, axis = 0)
+    #axis = 0 means it is going down the rows and is averaging each column 
+    error = 2*np.std(everyAB, axis = 0)/np.sqrt(N)
+    
+    plt.plot(tgraph, mean_AB)
+    plt.fill_between(tgraph, mean_AB - error, mean_AB + error, alpha = 0.4)
+
+    
     print("V =", V)
     print("AB:", AB[:15])
-    plt.step(times, concAB, label = f"Microscopic ODE Simulation for Volume = {V}")
+    plt.step(times, concAB, label = f"Microscopic ODE Simulationfor Volume = {V}")
 plt.xlabel("Time")
 plt.ylabel("[AB]")
 plt.legend()
 plt.show()
+
+# times 1, 2, 3, 4...1,000
+
 
             
