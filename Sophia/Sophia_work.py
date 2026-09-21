@@ -59,7 +59,7 @@ plt.xlabel("Time")
 plt.ylabel("[AB]")
 plt.show()
 
-vols = [2000, 2000, 2000, 2000]
+vols = [20000]
 
 plt.plot(res.t, res.y[2], label = "Macroscopic ODE")
 
@@ -87,20 +87,20 @@ for V in vols:
             collection_AB.append(concAB[place])
         everyAB.append(collection_AB)
             
-        plt.plot(times, concAB)
+        plt.plot(times, concAB) # make these very thin
     
     everyAB = np.array(everyAB)
     mean_AB = np.mean(everyAB, axis = 0)
     #axis = 0 means it is going down the rows and is averaging each column 
     error = 2*np.std(everyAB, axis = 0)/np.sqrt(N)
     
-    plt.plot(tgraph, mean_AB)
+    plt.plot(tgraph, mean_AB) # make this a thick line
     plt.fill_between(tgraph, mean_AB - error, mean_AB + error, alpha = 0.4)
 
     
     print("V =", V)
     print("AB:", AB[:15])
-    plt.step(times, concAB, label = f"Microscopic ODE Simulationfor Volume = {V}")
+    #plt.step(times, concAB, label = f"Microscopic ODE Simulationfor Volume = {V}")
 plt.xlabel("Time")
 plt.ylabel("[AB]")
 plt.legend()
@@ -108,5 +108,31 @@ plt.show()
 
 # times 1, 2, 3, 4...1,000
 
+actin = [1, 2, 5, 10]
+ratios = np.linspace(0, 2, 50)
+
+#need to pick an actin concentration, pick a ratio, determine the amount of profilin, run the simulaion until you reach equilibirum, and then calculate the fraction of actin that is still free, document it and go to the next part of the loop 
+for conc in actin: 
+    finalconcs = []
+    for ratio in ratios: 
+        profilin = ratio * conc 
+        comp = 0
+        res = solve_ivp(ode, [0, 3], [conc, profilin, comp], args = (2,1))
+        finact = res.y[0, -1]
+        fracfreeact = finact/conc
+        finalconcs.append(fracfreeact)
+    plt.plot(ratios, finalconcs, label = f"{conc}μM actin")
+x=np.linspace(0, 1, 100)
+y = 1 - x
+plt.plot(x, y, ls='dotted', label=f"y=1-x")
+plt.xlabel("Profilin:actin ratio")
+plt.ylabel("Fraction free actin")
+plt.legend()
+plt.show()
+
+#remember how it is important that the binding equilibirum depends on concentration (not only on the ratio)
+
+        
+        
 
             
