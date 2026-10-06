@@ -4,12 +4,12 @@ from ActinMixedNucleates import ActinMixedNucleates
 
 WritePos = False;
 
-for ConcProf in [0,0.75,1.5,6]:
-    for ConcArp in [80e-3, 160e-3]:
-        for SeedConc in [0,0.001,0.002]:
+for ConcProf in [0]:#,0.75,1.5,6]:
+    for ConcArp in [0]:#80e-3, 160e-3]:
+        for SeedConc in [0]:#,0.001,0.002]:
             for ConcFormin in [0]: # in uM
                 # Parameters
-                Conc = 1.5;
+                Conc = 5;
                 a = 4e-3;
                 kbT = 4.1e-3;
                 spacing = 0.5; # units of a
@@ -58,7 +58,7 @@ for ConcProf in [0,0.75,1.5,6]:
                 print('Number of Arp 2/3 %d' %NArp23)
 
                 Lens=np.array([LBox,LBox,LBox]);
-                seed = int(sys.argv[1]);
+                seed = 1
 
                 nThr=1;
                 AllActin = ActinMixedNucleates(Nmon,Lens,SpontaneousRxnRates,a,spacing,kbT,mu, seed,nThr);
@@ -119,8 +119,8 @@ for ConcProf in [0,0.75,1.5,6]:
                     AllActin.React(dt);
                     NumOnEach = AllActin.NumMonOnEachFiber();
                     NumberPerFiber = np.append(NumberPerFiber,NumOnEach)
-                    NumFibers[i] = len(NumOnEach);
                     nFibFour=np.sum(NumOnEach>3);
+                    NumFibers[i] = nFibFour;
                     FreeMonomers[i] = AllActin.nFreeMonomers();
                     BranchedOrLinear = np.append(BranchedOrLinear,AllActin.BranchedOrLinear(False))
                     BoundProteins = np.append(BoundProteins,AllActin.BoundBarbedStates())

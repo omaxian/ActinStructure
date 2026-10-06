@@ -132,7 +132,64 @@ plt.show()
 
 #remember how it is important that the binding equilibirum depends on concentration (not only on the ratio)
 
+# NEW FILE for stuff below here
+Conc = 5; # in uM
+ConcArp = 0;
+Tf = 28800
+LBox = 5
+SeedConc = 0
+#for seed in range(nTrials):
+    #FileName = 'Tf'+str(Tf)+'_Box'+str(LBox)+'_Actin'+str(Conc)+'uM_Seed'+str(SeedConc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_'+str(seed)+'.txt';
+
+
+run_1 = np.loadtxt("/Users/sophiachainani/Documents/ActinStructure/Python-Cpp/Actin5run_1/NumFibsTf28800_Box5_Actin5uM_Seed_0_KProf1_Prof0uM_Arp0nM_Formin0em4uM_1.txt")
+run_2 = np.loadtxt("/Users/sophiachainani/Documents/ActinStructure/Python-Cpp/Actin5run_2/NumFibsTf28800_Box5_Actin5uM_Seed_0_KProf1_Prof0uM_Arp0nM_Formin0em4uM_1.txt")
+run_3 = np.loadtxt("/Users/sophiachainani/Documents/ActinStructure/Python-Cpp/Actin5run_3/NumFibsTf28800_Box5_Actin5uM_Seed_0_KProf1_Prof0uM_Arp0nM_Formin0em4uM_1.txt")
+
+total_runs = np.array([run_1, run_2, run_3])
+print(total_runs.shape)
+
+mean_numfibs = np.mean(total_runs, axis = 0)
+N = 3
+error = 2 * np.std(total_runs, axis = 0)/np.sqrt(N)
+time = np.arange(2880)*10
+
+plt.plot(time, mean_numfibs, label = "Mean number of fibers over time")
+plt.fill_between(time, mean_numfibs - error, mean_numfibs + error, alpha = 0.2)
+plt.xlim(0,1000)
+
+plt.xlabel("Time")
+plt.ylabel("Number of fibers")
+plt.legend()
+
+print(mean_numfibs[:10])
+print(error[:10])
+
+#going to do the stats part here but just doing random branches and lengths rn will import code later 
+branches = [0, 2, 1, 1, 0, 2, 1, 1, 1, 0]
+lengths = []
+count = 0
+branch_counts = []
+current_lengths = []
+in_struc = False 
+for val, length in zip(branches, lengths): 
+    if val == 2:
+        in_struc = True 
+        #mother/start of structure
+        count = 0
+    elif val == 1: 
+       #daughter branch
+        count +=1
+        current_lengths.append(length)
+    elif val == 0 and in_struc == True:
+        print(f"structure had {count} branches")
+        branch_counts.append(count)
+        count = 0
+    else: 
+        continue 
+print(branch_counts)
+
         
         
 
-            
+

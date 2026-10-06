@@ -5,7 +5,7 @@ from ActinMixedNucleates import ActinMixedNucleates
 # Parameters
 Conc = 5; # in uM
 ConcProf = 0;
-ConcArp = 80e-3;
+ConcArp = 80*10**(-3);
 SeedConc = 0;
 ConcFormin = 0;
 
@@ -13,9 +13,9 @@ a = 4e-3;
 kbT = 4.1e-3;
 spacing = 0.5; # units of a
 mu = 0.01;
-LBox = 10;
-if (ConcProf<1.5):
-    LBox = 5;
+LBox = 5;
+#if (ConcProf<1.5):
+#    LBox = 5;
 
 # Parameters from Kovar & Pollard paper for actin alone
 kplusDimer = 3.5e-6; # uM^(-1)*s^(-1)
@@ -130,10 +130,10 @@ for i in range(nSteps):
     print('Time %f, Percent free %f, number fibs %d' %((i+1)*dt, FreeMonomers[i]/Nmon, NumFibers[i]))
 
 #FileName = 'Tf'+str(Tf)+'_Box'+str(LBox)+'_Actin'+str(Conc)+'uM_Seed_'+str(SeedConc)+'_KProf'+str(ProfEq)+'_Prof'+ \
-    str(ConcProf)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4)) \
-    +'em4uM_'+str(seed)+'.txt';
+#    str(ConcProf)+'uM_Arp'+str(int(ConcArp*1000))+'nM_Formin'+str(int(ConcFormin*1e4)) \
+#    +'em4uM_'+str(seed)+'.txt';
 # Write the output
-FileName = 'Tf'+str(Tf)+'_Box'+str(LBox)+'_Actin'+str(Conc)+'uM_Seed'+str(SeedConc)+'uM_Arp'+str(int(ConcArp*1000))+'nM.txt';
+FileName = 'Tf'+str(Tf)+'_Box'+str(LBox)+'_Actin'+str(Conc)+'uM_Seed'+str(SeedConc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_'+str(seed)+'.txt';
 # FreeMonConc is a nT array that gives you the concentration of free monomers in uM (used to measure when polymerization is complete)
 np.savetxt('FreeMonConc'+FileName,FreeMonomers/Nmon*Conc);
 # NumFibs is a nT array that gives you the number of fibers at each time step (use it to parse the next two arrays)

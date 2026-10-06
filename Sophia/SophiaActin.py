@@ -12,9 +12,15 @@ LBox = 5
 SeedConc = 0
 nTrials = 5
 
+import sys
+
+# Option A: Append to the end of the search path
+sys.path.append("/Users/sophiachainani/Documents/ActinStructure/Python-Cpp")
+
 import numpy as np 
 import matplotlib.pyplot as plt
-import InitialActinSimCopy as sim
+import InitialActinSim as sim
+
 
 #for seed in range(nTrials):
    #FileName = 'Tf'+str(Tf)+'_Box'+str(LBox)+'_Actin'+str(Conc)+'uM_Seed'+str(SeedConc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_'+str(seed)+'.txt';
@@ -27,6 +33,7 @@ number_per_fiber = sim.NumberPerFiber
 branched_or_linear = sim.BranchedOrLinear
 free_monomers = sim.FreeMonomers
 NArp23 = sim.NArp23
+
 
 print(num_fibers.shape)
 print(len(number_per_fiber))
@@ -65,7 +72,7 @@ for i in range(len(num_fibers)):
             #mother/start of structure
             in_struc = True
             total = 0
-            current_lengths = []
+            current_lengths = [] # FIx: mother should be part of current lengths
         elif val == 1 and in_struc == True: 
            #daughter branch
             total +=1
