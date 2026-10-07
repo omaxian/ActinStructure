@@ -46,12 +46,14 @@ avg_branches_per_struc_over_time = []
 branch_density_over_time = []
 bound_arp_over_time = []
 count = 0
+
+#normally, branches_here = branched_or_linear[count:count+n] and lengths_here = number_per_fiber[count:count+n]
+# Example 1 had branches_here = np.array([2, 1, 1, 0, 0, 2, 1, 0]) and lengths_here = np.array([1000, 4000, 800, 700, 500, 3000, 900, 600])
+# Example 2 had branches_here = np.array([0, 2, 1, 0, 2, 1, 1, 1]) and lengths_here = np.array([500, 200, 1000, 800, 3000, 400, 600, 100])
 for i in range(len(num_fibers)):
     n = num_fibers[i]
     branches_here = branched_or_linear[count:count+n]
     lengths_here = number_per_fiber[count:count+n]
-    
-    
     count += n
     total = 0
     branch_totals = []
@@ -60,39 +62,30 @@ for i in range(len(num_fibers)):
     curr_struc_num_monomers = []
     branch_densities = []
     
-    in_struc = False 
-    for val, length in zip(branches_here, lengths_here): 
-        if val == 2:
-            curr_struc_num_monomers = [length]
-            #need to finish it 
-            if in_struc == True: 
+    #total is our number of branches (daughters) in our current structure 
+    for j in range(len(lengths_here)):
+        val = branches_here[j]
+        length = lengths_here[j]
+        if val > 0:
+            if val == 2:
+                total = 0
+                current_lengths = [] 
+                curr_struc_num_monomers = [length]
+            elif val == 1: 
+                total += 1 
+                current_lengths.append(length)
+                curr_struc_num_monomers.append(length)
+            if (j == len(branches_here) - 1) or (branches_here[j+1] !=1):
                 branch_totals.append(total)
-                if total>0:
+                if len(current_lengths) > 0:
                     avg_branch_lengths.append(np.mean(current_lengths))
-            #mother/start of structure
-            in_struc = True
-            total = 0
-            current_lengths = [] # FIx: mother should be part of current lengths
-        elif val == 1 and in_struc == True: 
-           #daughter branch
-            total +=1
-            curr_struc_num_monomers.append(length)
-            current_lengths.append(length)
-        elif val == 0 and in_struc == True:
-            #end of current branch
-            density = np.sum(curr_struc_num_monomers) / 2000
-            branch_densities.append(density)
-            branch_totals.append(total)
-            if total>0:
-                avg_branch_lengths.append(np.mean(current_lengths))
-            total = 0
-            current_lengths = []
-            in_struc = False 
-    if in_struc == True: 
-        branch_totals.append(total)
-        if total > 0: 
-            avg_branch_lengths.append(np.mean(current_lengths))
-        total = 0
+                struc_length = np.sum(curr_struc_num_monomers)/2000
+                if struc_length > 0:
+                    density = total/struc_length
+                    branch_densities.append(density)
+                total = 0 
+                current_lengths = []
+                curr_struc_num_monomers = []
     if len(avg_branch_lengths) > 0:
         avg_length_over_time.append(np.mean(avg_branch_lengths))
     else:
@@ -114,7 +107,7 @@ for i in range(len(num_fibers)):
     
 free_arp_over_time = NArp23 - np.array(bound_arp_over_time)
 # num of branched structures = len(branch_totals), avg per struc = np.mean(branch_totals), total num of branches = np.sum(branch_totals)
-    
+
         
 time = np.arange(len(num_fibers)) * 10
 
@@ -159,6 +152,12 @@ print(time)
 
 
 
+# used to check my handwritten examples
+#print("Testing")
+#print(branch_totals)
+#print(len(branch_totals))
+#print(np.mean(branch_totals))
+#print(branch_densities)
 
 
 
@@ -166,11 +165,7 @@ print(time)
 
 
 
-
-
-
-
-
+#OLD STUFF
 # mean_numfibs = np.mean(total_runs, axis = 0)
    # N = 3
     #error = 2 * np.std(total_runs, axis = 0)/np.sqrt(N)
@@ -186,7 +181,35 @@ print(time)
     #print(mean_numfibs[:10])
     #print(error[:10])
 
-#start count total at 0
+
+#Old filtering code 
+#  for val, length in zip(branches_here, lengths_here): 
+    #if val == 2:
+       # curr_struc_num_monomers = [length]
+        #need to finish it 
+       # if in_struc == True: 
+           # branch_totals.append(total)
+            #if total>0:
+             #   avg_branch_lengths.append(np.mean(current_lengths))
+        #mother/start of structure
+       # in_struc = True
+        #total = 0
+        #current_lengths = [] # FIx: mother should be part of current lengths
+    #elif val == 1 and in_struc == True: 
+       #daughter branch
+       #total +=1
+        #curr_struc_num_monomers.append(length)
+        #current_lengths.append(length)
+    #elif val == 0 and in_struc == True:
+        #end of current branch
+        #density = np.sum(curr_struc_num_monomers) / 2000
+        #branch_densities.append(density)
+        #branch_totals.append(total)
+        #if total>0:
+        #    avg_branch_lengths.append(np.mean(current_lengths))
+        #total = 0
+        #current_lengths = []
+        #in_struc = False 
         
         
 
