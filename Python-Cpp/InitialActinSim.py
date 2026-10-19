@@ -118,13 +118,13 @@ for i in range(nSteps):
     AllActin.React(dt);
     NumOnEach = AllActin.NumMonOnEachFiber();
     # Eliminate dimers and trimers (these don't count as actual fibers)
-    NumDiTri = sum(NumOnEach<=3);
-    NumOnEach = NumOnEach[NumDiTri:];
+    #NumDiTri = sum(NumOnEach<=3);
+    #NumOnEach = NumOnEach[NumDiTri:];
     NumberPerFiber = np.append(NumberPerFiber,NumOnEach)
     NumFibers[i] = len(NumOnEach);
     FreeMonomers[i] = AllActin.nFreeMonomers();
     BranchedState = AllActin.BranchedOrLinear(False); # 2 for mother, 1 for in branched structure, 0 for linear
-    BranchedState=BranchedState[NumDiTri:];
+    #BranchedState=BranchedState[NumDiTri:];
     BranchedOrLinear = np.append(BranchedOrLinear,BranchedState)
     BoundProteins = np.append(BoundProteins,AllActin.BoundBarbedStates())
     print('Time %f, Percent free %f, number fibs %d' %((i+1)*dt, FreeMonomers[i]/Nmon, NumFibers[i]))
