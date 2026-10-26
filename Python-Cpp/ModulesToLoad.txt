@@ -1,0 +1,9 @@
+Add to your bashrc:
+
+#Additional aliases
+alias python=python3
+
+#Additional modules
+module load python
+module load intel
+
