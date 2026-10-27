@@ -7,8 +7,6 @@ Created on Mon Oct  5 08:06:58 2026
 """
 Conc = 5; # in uM
 ConcArp = 80 * 10**(-3);
-Tf = 2880
-LBox = 5
 SeedConc = 0
 nTrials = 5
 
@@ -26,7 +24,9 @@ import InitialActinSim as sim
    #FileName = 'Tf'+str(Tf)+'_Box'+str(LBox)+'_Actin'+str(Conc)+'uM_Seed'+str(SeedConc)+'uM_Arp'+str(int(ConcArp*1000))+'nM_'+str(seed)+'.txt';
 #will incorporate this later on - having trouble because couldn't change the Arp concentration successfully in the old Actin Sim file so had to make a copy, but need help changing the labeling  
 
-
+step = 100
+pts_interval = 1000
+#step is for the stored simulation points/skipping entries but pts_interval is for the time in secs 
 
 num_fibers = sim.NumFibers
 number_per_fiber = sim.NumberPerFiber
@@ -34,6 +34,8 @@ branched_or_linear = sim.BranchedOrLinear
 free_monomers = sim.FreeMonomers
 NArp23 = sim.NArp23
 total_actin = sim.Nmon
+Tf = sim.Tf
+LBox = sim.LBox
 
 print(num_fibers.shape)
 print(len(number_per_fiber))
@@ -53,6 +55,9 @@ branched_monomers_over_time = []
 # Example 2 had branches_here = np.array([0, 2, 1, 0, 2, 1, 1, 1]) and lengths_here = np.array([500, 200, 1000, 800, 3000, 400, 600, 100])
 for i in range(len(num_fibers)):
     n = num_fibers[i]
+    if i %step !=0:
+        count +=n
+        continue
     branches_here = branched_or_linear[count:count+n]
     lengths_here = number_per_fiber[count:count+n]
     count += n
@@ -108,12 +113,12 @@ for i in range(len(num_fibers)):
     else:
         branch_density_over_time.append(0)
     branched_monomers_over_time.append(branched_monomers_this_time)
-    
+
+free_monomers_plot = free_monomers[::step]
 free_arp_over_time = NArp23 - np.array(bound_arp_over_time)
 # num of branched structures = len(branch_totals), avg per struc = np.mean(branch_totals), total num of branches = np.sum(branch_totals)
 
-        
-time = np.arange(len(num_fibers)) * 10
+time = np.arange(0, len(num_fibers)) * pts_interval
 
 plt.figure()
 plt.plot(time, num_struc_over_time)
@@ -140,7 +145,7 @@ plt.ylabel("Branch density")
 plt.show()
 
 plt.figure()
-plt.plot(time, free_monomers)
+plt.plot(time, free_monomers_plot)
 plt.xlabel("Time")
 plt.ylabel("Free monomers")
 plt.show()
@@ -159,7 +164,7 @@ print(time)
 
 fraction_bound_arp = np.array(bound_arp_over_time)/NArp23
 
-polymerized_actin_over_time = total_actin - free_monomers
+polymerized_actin_over_time = total_actin - free_monomers_plot
 
 fraction_branched_actin = np.divide(np.array(branched_monomers_over_time), polymerized_actin_over_time, out = np.zeros(len(polymerized_actin_over_time)), where=polymerized_actin_over_time !=0)
 
@@ -182,7 +187,7 @@ print(len(num_struc_over_time))
 print(len(avg_branches_per_struc_over_time))
 print(len(avg_length_over_time))
 print(len(branch_density_over_time))
-print(len(free_monomers))
+print(len(free_monomers_plot))
 print(len(free_arp_over_time))
 print(len(fraction_bound_arp))
 print(len(fraction_branched_actin))
@@ -207,7 +212,7 @@ axes[0,3].plot(time, branch_density_over_time)
 axes[0,3].set_title("Branch density")
 axes[0,3].set_xlabel("Time")
 
-axes[1,0].plot(time, free_monomers)
+axes[1,0].plot(time, free_monomers_plot)
 axes[1,0].set_title("Free monomers")
 axes[1,0].set_xlabel("Time")
 

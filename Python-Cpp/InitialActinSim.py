@@ -13,7 +13,7 @@ a = 4e-3;
 kbT = 4.1e-3;
 spacing = 0.5; # units of a
 mu = 0.01;
-LBox = 5;
+LBox = 4;
 #if (ConcProf<1.5):
 #    LBox = 5;
 
@@ -102,7 +102,7 @@ if (ConcArp > 0):
     AllActin.InitializeBranchers(NArp23,BranchRates,AlphaBranch);
 
 
-Tf = 28800;
+Tf = 604800;
 dt = 10;
 nSteps = int(Tf/dt+1e-6);
 
