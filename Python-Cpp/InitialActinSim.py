@@ -102,8 +102,8 @@ if (ConcArp > 0):
     AllActin.InitializeBranchers(NArp23,BranchRates,AlphaBranch);
 
 
-Tf = 604800;
-dt = 10;
+Tf = 28800;
+dt = 100;
 nSteps = int(Tf/dt+1e-6);
 
 NumFibers = np.zeros(nSteps,dtype=np.int64);
