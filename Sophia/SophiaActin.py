@@ -14,6 +14,7 @@ import sys
 
 # Option A: Append to the end of the search path
 sys.path.append("/Users/sophiachainani/Documents/ActinStructure/Python-Cpp")
+sys.path.append("/Users/ondrejmaxian/Documents/ACTIN/ActinStructure/Python-Cpp")
 
 import numpy as np 
 import matplotlib.pyplot as plt

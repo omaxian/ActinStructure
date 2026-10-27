@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include "types.h"
-#include "cblas.h"
-#include "lapacke.h"
+//#include "cblas.h"
+//#include "lapacke.h"
+#include "mkl.h"
 #include<exception>
 
 
